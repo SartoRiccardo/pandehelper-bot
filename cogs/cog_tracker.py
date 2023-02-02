@@ -17,8 +17,10 @@ class TrackerCog(commands.Cog):
         """
         if not ctx.author.guild_permissions.administrator:
             return
-
         channel_id = int(channel[2:-1])
+        if not discord.utils.get(ctx.guild.text_channels, id=channel_id):
+            return
+
         await db.queries.track_channel(channel_id)
         await ctx.message.add_reaction("✅")
 
@@ -30,8 +32,10 @@ class TrackerCog(commands.Cog):
         """
         if not ctx.author.guild_permissions.administrator:
             return
-
         channel_id = int(channel[2:-1])
+        if not discord.utils.get(ctx.guild.text_channels, id=channel_id):
+            return
+
         await db.queries.untrack_channel(channel_id)
         await ctx.message.add_reaction("✅")
 
@@ -44,8 +48,9 @@ class TrackerCog(commands.Cog):
         """
         if not ctx.author.guild_permissions.administrator:
             return
-
         channel_id = int(channel[2:-1])
+        if not discord.utils.get(ctx.guild.text_channels, id=channel_id):
+            return
 
         message = "```\n   Member  | D1 | D2 | D3 | D4 | D5 | D6 | D7\n"
         claims = await db.queries.get_ticket_overview(channel_id, season)
