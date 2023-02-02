@@ -3,11 +3,15 @@ Tracks ticket usage on Pandemonium.
 
 ## Usage
 
+Requires a postgres database
+
 ### Setup
 
 1. Clone the repo
-2. Rename `config.example.py` into `config.py` and fill it out accordingly
-3. Run the `ct-ticket-tracker.py`
+2. Install the dependencies in `requirements.txt`
+3. Rename `config.example.py` into `config.py` and fill it out accordingly
+4. Execute the contents of `db_init.sql` into your postgres database
+5. Run the `ct-ticket-tracker.py`
 
 ### Setting up the tile log channel
 
