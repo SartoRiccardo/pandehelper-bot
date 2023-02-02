@@ -7,12 +7,11 @@ postgres = db.connection.postgres
 
 
 FIRST_CT_START = datetime.datetime.strptime('2022-08-10 10', '%Y-%m-%d %H')
-EVENT_DURATION = 14
+EVENT_DURATION = 7
 
 
 @postgres
 async def track_channel(channel: int, conn=None) -> None:
-    print(channel)
     await conn.execute("""
             INSERT INTO teams (channel) VALUES ($1)
                 ON CONFLICT DO NOTHING
