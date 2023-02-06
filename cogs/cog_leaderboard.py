@@ -61,7 +61,7 @@ class LeaderboardCog(commands.Cog):
         now_unix = time.mktime(now.timetuple())
         current_event = (await btd6.AsyncBtd6.AsyncBtd6.ct())[0]
 
-        if now_unix > current_event.end:
+        if now_unix > current_event.end/1000:
             return
 
         lb_coros = []
