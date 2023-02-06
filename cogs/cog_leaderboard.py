@@ -65,7 +65,7 @@ class LeaderboardCog(commands.Cog):
             return
 
         lb_coros = []
-        for page in range(6):
+        for page in range(10):
             lb_coros.append(current_event.teams(page+1))
         lb_pages = await asyncio.gather(*lb_coros)
 
