@@ -69,3 +69,23 @@ async def capture(channel: int, user: int, tile: str, message: int, conn=None) -
 @postgres
 async def uncapture(message: int, conn=None) -> None:
     await conn.execute("DELETE FROM claims WHERE message=$1", message)
+
+
+@postgres
+async def add_leaderboard_channel(guild: int, channel: int, conn=None) -> None:
+    await conn.execute("""
+                INSERT INTO lbchannels (guild, channel) VALUES ($1, $2)
+                    ON CONFLICT DO NOTHING
+                """, guild, channel)
+
+
+@postgres
+async def remove_leaderboard_channel(guild: int, channel: int, conn=None) -> None:
+    await conn.execute("DELETE FROM lbchannels WHERE guild=$1 AND channel=$2",
+                       guild, channel)
+
+
+@postgres
+async def leaderboard_channels(conn=None):
+    payload = await conn.fetch("SELECT guild, channel FROM lbchannels")
+    return [(row["guild"], row["channel"]) for row in payload]

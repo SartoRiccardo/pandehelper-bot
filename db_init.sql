@@ -12,5 +12,11 @@ CREATE TABLE IF NOT EXISTS teams (
     PRIMARY KEY(channel)
 );
 
+CREATE TABLE IF NOT EXISTS lbchannels (
+    guild BIGINT NOT NULL,
+    channel BIGINT NOT NULL,
+    PRIMARY KEY(guild, channel)
+);
+
 ALTER TABLE claims ADD CONSTRAINT fk_teams_1
     FOREIGN KEY (channel) REFERENCES teams(channel) ON DELETE CASCADE;
