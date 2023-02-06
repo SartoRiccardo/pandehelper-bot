@@ -61,5 +61,5 @@ class Owner(commands.Cog):
         await ctx.send("Loaded cogs: " + ", ".join(cogs))
 
 
-def setup(bot):
-    bot.add_cog(Owner(bot))
+async def setup(bot: commands.Bot) -> None:
+    await bot.add_cog(Owner(bot))
