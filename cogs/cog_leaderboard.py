@@ -14,6 +14,7 @@ class LeaderboardCog(commands.Cog):
         self.bot = bot
 
         self.last_hour_score = {}
+        self.current_ct_id = ""
         self.first_run = True
         self.next_update = datetime.now().replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
 
@@ -60,8 +61,11 @@ class LeaderboardCog(commands.Cog):
 
         now_unix = time.mktime(now.timetuple())
         current_event = (await btd6.AsyncBtd6.AsyncBtd6.ct())[0]
+        if current_event.id != self.current_ct_id:
+            self.current_ct_id = current_event.id
+            self.last_hour_score = {}
 
-        if now_unix > current_event.end/1000:
+        if now_unix > current_event.end/1000+3600:
             return
 
         lb_coros = []
