@@ -53,6 +53,7 @@ class TrackerCog(commands.Cog):
             return
         if channel_id not in (await db.queries.tracked_channels()):
             await ctx.message.add_reaction("❌")
+            return
 
         message = "```\n   Member  | D1 | D2 | D3 | D4 | D5 | D6 | D7\n"
         claims = await db.queries.get_ticket_overview(channel_id, season)
