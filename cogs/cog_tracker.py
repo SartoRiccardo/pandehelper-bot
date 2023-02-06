@@ -51,6 +51,8 @@ class TrackerCog(commands.Cog):
         channel_id = int(channel[2:-1])
         if not discord.utils.get(ctx.guild.text_channels, id=channel_id):
             return
+        if channel_id not in (await db.queries.tracked_channels()):
+            await ctx.message.add_reaction("❌")
 
         message = "```\n   Member  | D1 | D2 | D3 | D4 | D5 | D6 | D7\n"
         claims = await db.queries.get_ticket_overview(channel_id, season)
