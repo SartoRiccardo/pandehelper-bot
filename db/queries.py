@@ -1,5 +1,4 @@
 import time
-import pytz
 import datetime
 import db.connection
 from typing import List, Dict
