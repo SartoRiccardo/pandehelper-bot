@@ -65,7 +65,7 @@ class LeaderboardCog(commands.Cog):
             self.current_ct_id = current_event.id
             self.last_hour_score = {}
 
-        if now_unix > current_event.end/1000+3600:
+        if now_unix > current_event.end/1000+3600 or now_unix < current_event.start/1000:
             return
 
         lb_coros = []
