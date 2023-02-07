@@ -71,7 +71,11 @@ class LeaderboardCog(commands.Cog):
         lb_coros = []
         for page in range(10):
             lb_coros.append(current_event.teams(page+1))
-        lb_pages = await asyncio.gather(*lb_coros)
+        try:
+            lb_pages = await asyncio.gather(*lb_coros)
+        except Exception as exc:
+            print(exc)
+            return
 
         lb_data = []
         for page in lb_pages:
