@@ -101,7 +101,7 @@ class LeaderboardCog(commands.Cog):
                 message_current += " 🆕"
             current_hour_score[team.id] = team.score
 
-            if (i+1) % 25 == 0 or i == len(lb_data)-1:
+            if (i+1) % 20 == 0 or i == len(lb_data)-1:
                 messages.append(message_current)
                 message_current = ""
         messages[len(messages)-1] += f"\n*Last updated: <t:{int(now_unix)}:R>*"
