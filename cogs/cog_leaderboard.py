@@ -92,7 +92,8 @@ class LeaderboardCog(commands.Cog):
             if team.disbanded:
                 placement = "❌"
 
-            message_current += "\n" + row_template.format(placement, team.display_name, team.score)
+            team_name = team.display_name.split("-")[0]
+            message_current += "\n" + row_template.format(placement, team_name, team.score)
             if team.id in self.last_hour_score:
                 score_gained = team.score - self.last_hour_score[team.id]
                 message_current += eco_template.format(score_gained)
@@ -114,15 +115,17 @@ class LeaderboardCog(commands.Cog):
         for guild_id, channel_id in channels:
             guild = self.bot.get_guild(guild_id)
             if guild is None:
-                guild = await self.bot.fetch_guild(guild_id)
-            if guild is None:
-                continue
+                try:
+                    guild = await self.bot.fetch_guild(guild_id)
+                except discord.NotFound:
+                    continue
 
             channel = guild.get_channel(channel_id)
             if channel is None:
-                channel = await guild.fetch_channel(channel_id)
-            if channel is None:
-                continue
+                try:
+                    channel = await guild.fetch_channel(channel_id)
+                except discord.NotFound:
+                    continue
 
             leaderboard_messages = []
             bot_messages = []
