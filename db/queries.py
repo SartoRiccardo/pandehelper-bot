@@ -5,7 +5,7 @@ from typing import List, Dict
 postgres = db.connection.postgres
 
 
-FIRST_CT_START = datetime.datetime.strptime('2022-08-10 10', '%Y-%m-%d %H')
+FIRST_CT_START = datetime.datetime.strptime('2022-08-09 20', '%Y-%m-%d %H')
 EVENT_DURATION = 7
 
 
