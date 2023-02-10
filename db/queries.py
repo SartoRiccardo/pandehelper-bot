@@ -1,7 +1,7 @@
 import time
 import datetime
 import db.connection
-from typing import List, Dict
+from typing import List, Dict, Tuple
 postgres = db.connection.postgres
 
 
@@ -24,7 +24,7 @@ async def untrack_channel(channel: int, conn=None) -> None:
 
 
 @postgres
-async def get_ticket_overview(channel: int, event: int = 0, conn=None):
+async def get_ticket_overview(channel: int, event: int = 0, conn=None) -> Dict[int, List[int]]:
     if event > 0:
         event_start = FIRST_CT_START + datetime.timedelta(days=14*(event-1))
     else:  # Current or last event
@@ -86,6 +86,6 @@ async def remove_leaderboard_channel(guild: int, channel: int, conn=None) -> Non
 
 
 @postgres
-async def leaderboard_channels(conn=None):
+async def leaderboard_channels(conn=None) -> List[Tuple[int, int]]:
     payload = await conn.fetch("SELECT guild, channel FROM lbchannels")
     return [(row["guild"], row["channel"]) for row in payload]
