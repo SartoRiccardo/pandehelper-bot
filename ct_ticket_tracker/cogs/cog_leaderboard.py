@@ -1,15 +1,15 @@
 from datetime import datetime, timedelta
-import time
 import discord
-from discord.ext import tasks
+from discord.ext import tasks, commands
 import time
 import asyncio
-import db.queries
-import btd6.AsyncBtd6
-from discord.ext import commands
+import ct_ticket_tracker.db.queries
+import ct_ticket_tracker.btd6.AsyncBtd6
 
 
 class LeaderboardCog(commands.Cog):
+    leaderboard_group = discord.app_commands.Group(name="leaderboard", description="Various leaderboard commands")
+
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
 
@@ -24,27 +24,33 @@ class LeaderboardCog(commands.Cog):
     def cog_unload(self) -> None:
         self.track_leaderboard.cancel()
 
-    @commands.command(name="addlb")
-    async def add_leaderboard(self, ctx: commands.Context, channel: str) -> None:
-        if not ctx.author.guild_permissions.administrator:
+    @leaderboard_group.command(name="add", description="Add a leaderboard to a channel.")
+    @discord.app_commands.describe(channel="The channel to add it to.")
+    @discord.app_commands.guild_only()
+    @discord.app_commands.default_permissions(administrator=True)
+    async def add_leaderboard(self, interaction: discord.Interaction, channel: str) -> None:
+        if not interaction.user.guild_permissions.administrator:
             return
         channel_id = int(channel[2:-1])
-        if not discord.utils.get(ctx.guild.text_channels, id=channel_id):
+        if not discord.utils.get(interaction.guild.text_channels, id=channel_id):
             return
 
-        await db.queries.add_leaderboard_channel(ctx.guild.id, channel_id)
-        await ctx.message.add_reaction("✅")
+        await ct_ticket_tracker.db.queries.add_leaderboard_channel(interaction.guild.id, channel_id)
+        await interaction.response.send_message(f"Leaderboard added to <#{channel_id}>!", ephemeral=True)
 
-    @commands.command(name="removelb")
-    async def remove_leaderboard(self, ctx: commands.Context, channel: str) -> None:
-        if not ctx.author.guild_permissions.administrator:
+    @leaderboard_group.command(name="remove", description="Remove a leaderboard from a channel.")
+    @discord.app_commands.describe(channel="The channel to remove it from.")
+    @discord.app_commands.guild_only()
+    @discord.app_commands.default_permissions(administrator=True)
+    async def remove_leaderboard(self, interaction: discord.Interaction, channel: str) -> None:
+        if not interaction.user.guild_permissions.administrator:
             return
         channel_id = int(channel[2:-1])
-        if not discord.utils.get(ctx.guild.text_channels, id=channel_id):
+        if not discord.utils.get(interaction.guild.text_channels, id=channel_id):
             return
 
-        await db.queries.remove_leaderboard_channel(ctx.guild.id, channel_id)
-        await ctx.message.add_reaction("✅")
+        await ct_ticket_tracker.db.queries.remove_leaderboard_channel(interaction.guild.id, channel_id)
+        await interaction.response.send_message(f"Leaderboard removed from <#{channel_id}>!", ephemeral=True)
 
     @tasks.loop(seconds=10)
     async def track_leaderboard(self) -> None:
@@ -60,7 +66,7 @@ class LeaderboardCog(commands.Cog):
         self.next_update += timedelta(hours=1)
 
         now_unix = time.mktime(now.timetuple())
-        current_event = (await btd6.AsyncBtd6.AsyncBtd6.ct())[0]
+        current_event = (await ct_ticket_tracker.btd6.AsyncBtd6.AsyncBtd6.ct())[0]
         if current_event.id != self.current_ct_id:
             self.current_ct_id = current_event.id
             self.last_hour_score = {}
@@ -111,7 +117,7 @@ class LeaderboardCog(commands.Cog):
         self.first_run = False
 
     async def send_leaderboard(self, messages):
-        channels = await db.queries.leaderboard_channels()
+        channels = await ct_ticket_tracker.db.queries.leaderboard_channels()
         for guild_id, channel_id in channels:
             guild = self.bot.get_guild(guild_id)
             if guild is None:

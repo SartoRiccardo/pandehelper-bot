@@ -1,7 +1,7 @@
 import discord
-import db.connection
+import ct_ticket_tracker.db.connection
 from discord.ext import commands
-from config import TOKEN
+from config import TOKEN, APP_ID
 
 
 class CtForumBot(commands.Bot):
@@ -10,14 +10,15 @@ class CtForumBot(commands.Bot):
         intents.message_content = True
         super().__init__(
             command_prefix=",,,",
-            intents=intents
+            intents=intents,
+            application_id=APP_ID
         )
 
     async def setup_hook(self):
-        await db.connection.start()
-        await self.load_extension("cogs.owner")
-        await self.load_extension("cogs.cog_tracker")
-        await self.load_extension("cogs.cog_leaderboard")
+        await ct_ticket_tracker.db.connection.start()
+        await self.load_extension("ct_ticket_tracker.cogs.owner")
+        await self.load_extension("ct_ticket_tracker.cogs.cog_tracker")
+        await self.load_extension("ct_ticket_tracker.cogs.cog_leaderboard")
 
 
 if __name__ == '__main__':

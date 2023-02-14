@@ -1,6 +1,7 @@
 import discord
 import importlib
 from discord.ext import commands
+from typing import Optional, Literal
 
 
 SUCCESS_REACTION = '\N{THUMBS UP SIGN}'
@@ -15,6 +16,15 @@ class Owner(commands.Cog):
     def cog_unload(self):
         pass
 
+    @commands.command()
+    @commands.is_owner()
+    async def sync(self, ctx, where: Optional[Literal["."]] = None):
+        if where == ".":
+            synced = await ctx.bot.tree.sync(guild=ctx.guild)
+        else:
+            synced = await ctx.bot.tree.sync()
+        await ctx.send(f"Synced {len(synced)} commands ({'globally' if where is None else 'here'}).")
+
     @commands.group()
     @commands.is_owner()
     async def cog(self, ctx):
@@ -25,7 +35,7 @@ class Owner(commands.Cog):
     @commands.is_owner()
     async def load(self, ctx, name):
         try:
-            await self.bot.load_extension(f"cogs.cog_{name}")
+            await self.bot.load_extension(f"ct_ticket_tracker.cogs.cog_{name}")
             await ctx.message.add_reaction(SUCCESS_REACTION)
         except Exception as e:
             await ctx.send(self.ERROR_MESSAGE.format(type(e).__name__, e))
@@ -34,8 +44,8 @@ class Owner(commands.Cog):
     @commands.is_owner()
     async def unload(self, ctx, name):
         try:
-            if f"cogs.cog_{name}" != __name__:
-                await self.bot.unload_extension(f"cogs.cog_{name}")
+            if f"ct_ticket_tracker.cogs.cog_{name}" != __name__:
+                await self.bot.unload_extension(f"ct_ticket_tracker.cogs.cog_{name}")
                 await ctx.message.add_reaction(SUCCESS_REACTION)
             else:
                 await ctx.send(
@@ -48,8 +58,8 @@ class Owner(commands.Cog):
     @commands.is_owner()
     async def reload(self, ctx, name):
         try:
-            await self.bot.unload_extension(f"cogs.cog_{name}")
-            await self.bot.load_extension(f"cogs.cog_{name}")
+            await self.bot.unload_extension(f"ct_ticket_tracker.cogs.cog_{name}")
+            await self.bot.load_extension(f"ct_ticket_tracker.cogs.cog_{name}")
             await ctx.message.add_reaction(SUCCESS_REACTION)
         except Exception as e:
             await ctx.send(self.ERROR_MESSAGE.format(type(e).__name__, e))

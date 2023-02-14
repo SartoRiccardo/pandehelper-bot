@@ -1,8 +1,8 @@
 import time
 import datetime
-import db.connection
+import ct_ticket_tracker.db.connection
 from typing import List, Dict, Tuple
-postgres = db.connection.postgres
+postgres = ct_ticket_tracker.db.connection.postgres
 
 
 FIRST_CT_START = datetime.datetime.strptime('2022-08-09 20', '%Y-%m-%d %H')

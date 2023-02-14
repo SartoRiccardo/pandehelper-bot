@@ -1,4 +1,5 @@
 TOKEN = "bot-token-here"
+APP_ID = "app-id-here"
 
 DB_USER = "postgres"
 DB_PSWD = "postgres"

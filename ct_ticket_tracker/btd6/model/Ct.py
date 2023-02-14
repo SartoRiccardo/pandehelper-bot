@@ -1,5 +1,5 @@
 import dataclasses
-import btd6.model.CtLeaderboardTeam
+import ct_ticket_tracker.btd6.model.CtLeaderboardTeam
 from typing import List
 import aiohttp
 
@@ -10,7 +10,7 @@ class Ct:
     start: int
     end: int
 
-    async def teams(self, page=1) -> List[btd6.model.CtLeaderboardTeam.CtLeaderboardTeam]:
+    async def teams(self, page=1) -> List[ct_ticket_tracker.btd6.model.CtLeaderboardTeam.CtLeaderboardTeam]:
         if 0 >= page or page > 100:
             return []
 
@@ -23,7 +23,7 @@ class Ct:
 
                 team_leaderboard = []
                 for team in data["body"]:
-                    team_leaderboard.append(btd6.model.CtLeaderboardTeam.CtLeaderboardTeam(
+                    team_leaderboard.append(ct_ticket_tracker.btd6.model.CtLeaderboardTeam.CtLeaderboardTeam(
                         team["profile"][38:], team["displayName"].upper().replace(" (DISBANDED)", ""),
                         team["score"], "(disbanded)" in team["displayName"]
                     ))
