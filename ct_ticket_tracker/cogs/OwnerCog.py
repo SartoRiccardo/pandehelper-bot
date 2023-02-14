@@ -7,7 +7,7 @@ from typing import Optional, Literal
 SUCCESS_REACTION = '\N{THUMBS UP SIGN}'
 
 
-class Owner(commands.Cog):
+class OwnerCog(commands.Cog):
     ERROR_MESSAGE = "**ERROR:** {} - {}"
 
     def __init__(self, bot):
@@ -35,7 +35,7 @@ class Owner(commands.Cog):
     @commands.is_owner()
     async def load(self, ctx, name):
         try:
-            await self.bot.load_extension(f"ct_ticket_tracker.cogs.cog_{name}")
+            await self.bot.load_extension(f"ct_ticket_tracker.cogs.{name}Cog")
             await ctx.message.add_reaction(SUCCESS_REACTION)
         except Exception as e:
             await ctx.send(self.ERROR_MESSAGE.format(type(e).__name__, e))
@@ -44,8 +44,8 @@ class Owner(commands.Cog):
     @commands.is_owner()
     async def unload(self, ctx, name):
         try:
-            if f"ct_ticket_tracker.cogs.cog_{name}" != __name__:
-                await self.bot.unload_extension(f"ct_ticket_tracker.cogs.cog_{name}")
+            if f"ct_ticket_tracker.cogs.{name}Cog" != __name__:
+                await self.bot.unload_extension(f"ct_ticket_tracker.cogs.{name}Cog")
                 await ctx.message.add_reaction(SUCCESS_REACTION)
             else:
                 await ctx.send(
@@ -58,8 +58,8 @@ class Owner(commands.Cog):
     @commands.is_owner()
     async def reload(self, ctx, name):
         try:
-            await self.bot.unload_extension(f"ct_ticket_tracker.cogs.cog_{name}")
-            await self.bot.load_extension(f"ct_ticket_tracker.cogs.cog_{name}")
+            await self.bot.unload_extension(f"ct_ticket_tracker.cogs.{name}Cog")
+            await self.bot.load_extension(f"ct_ticket_tracker.cogs.{name}Cog")
             await ctx.message.add_reaction(SUCCESS_REACTION)
         except Exception as e:
             await ctx.send(self.ERROR_MESSAGE.format(type(e).__name__, e))
@@ -72,4 +72,4 @@ class Owner(commands.Cog):
 
 
 async def setup(bot: commands.Bot) -> None:
-    await bot.add_cog(Owner(bot))
+    await bot.add_cog(OwnerCog(bot))

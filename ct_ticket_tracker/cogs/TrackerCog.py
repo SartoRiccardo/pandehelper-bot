@@ -51,7 +51,7 @@ class TrackerCog(commands.Cog):
             return
         if channel_id not in (await ct_ticket_tracker.db.queries.tracked_channels()):
             await interaction.response.send_message("That channel is not being tracked!", ephemeral=True)
-            return 
+            return
 
         message = "`Member    ` | `D1` | `D2` | `D3` | `D4` | `D5` | `D6` | `D7`\n"
         claims = await ct_ticket_tracker.db.queries.get_ticket_overview(channel_id, season)

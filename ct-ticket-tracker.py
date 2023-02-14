@@ -16,9 +16,9 @@ class CtForumBot(commands.Bot):
 
     async def setup_hook(self):
         await ct_ticket_tracker.db.connection.start()
-        await self.load_extension("ct_ticket_tracker.cogs.owner")
-        await self.load_extension("ct_ticket_tracker.cogs.cog_tracker")
-        await self.load_extension("ct_ticket_tracker.cogs.cog_leaderboard")
+        await self.load_extension("ct_ticket_tracker.cogs.OwnerCog")
+        await self.load_extension("ct_ticket_tracker.cogs.TrackerCog")
+        await self.load_extension("ct_ticket_tracker.cogs.LeaderboardCog")
 
 
 if __name__ == '__main__':
