@@ -1,10 +1,10 @@
 import datetime
 import discord
+from discord.ext import commands
 import re
 import ct_ticket_tracker.db.queries
 import ct_ticket_tracker.utils.bloons
 from typing import Optional
-from discord.ext import commands
 
 
 class TrackerCog(commands.Cog):
@@ -17,9 +17,8 @@ class TrackerCog(commands.Cog):
     @discord.app_commands.describe(channel="The channel to start tracking.")
     @discord.app_commands.guild_only()
     @discord.app_commands.default_permissions(administrator=True)
+    @discord.app_commands.checks.has_permissions(administrator=True)
     async def track(self, interaction: discord.Interaction, channel: str) -> None:
-        if not interaction.user.guild_permissions.administrator:
-            return
         channel_id = int(channel[2:-1])
         if not discord.utils.get(interaction.guild.text_channels, id=channel_id):
             return
@@ -31,9 +30,8 @@ class TrackerCog(commands.Cog):
     @discord.app_commands.describe(channel="The channel to stop tracking.")
     @discord.app_commands.guild_only()
     @discord.app_commands.default_permissions(administrator=True)
+    @discord.app_commands.checks.has_permissions(administrator=True)
     async def untrack(self, interaction: discord.Interaction, channel: str) -> None:
-        if not interaction.user.guild_permissions.administrator:
-            return
         channel_id = int(channel[2:-1])
         if not discord.utils.get(interaction.guild.text_channels, id=channel_id):
             return
@@ -46,9 +44,8 @@ class TrackerCog(commands.Cog):
                                    season="The CT season to check. Defaults to the current one.")
     @discord.app_commands.guild_only()
     @discord.app_commands.default_permissions(administrator=True)
+    @discord.app_commands.checks.has_permissions(administrator=True)
     async def tickets_list(self, interaction: discord.Interaction, channel: str, season: Optional[int] = 0) -> None:
-        if not interaction.user.guild_permissions.administrator:
-            return
         channel_id = int(channel[2:-1])
         if not discord.utils.get(interaction.guild.text_channels, id=channel_id):
             return
@@ -72,10 +69,9 @@ class TrackerCog(commands.Cog):
                                    season="The CT season to check. Defaults to the current one.")
     @discord.app_commands.guild_only()
     @discord.app_commands.default_permissions(administrator=True)
+    @discord.app_commands.checks.has_permissions(administrator=True)
     async def member_tickets(self, interaction: discord.Interaction, channel: str,
                              member: discord.Member, season: Optional[int] = 0) -> None:
-        if not interaction.user.guild_permissions.administrator:
-            return
         channel_id = int(channel[2:-1])
         if not discord.utils.get(interaction.guild.text_channels, id=channel_id):
             return
