@@ -4,7 +4,7 @@ from discord.ext import commands
 from config import TOKEN, APP_ID
 
 
-class CtForumBot(commands.Bot):
+class CtTicketTracker(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
         intents.message_content = True
@@ -16,10 +16,10 @@ class CtForumBot(commands.Bot):
 
     async def setup_hook(self):
         await ct_ticket_tracker.db.connection.start()
-        await self.load_extension("ct_ticket_tracker.cogs.OwnerCog")
-        await self.load_extension("ct_ticket_tracker.cogs.TrackerCog")
-        await self.load_extension("ct_ticket_tracker.cogs.LeaderboardCog")
+        cogs = ["OwnerCog", "TrackerCog", "LeaderboardCog"]
+        for cog in cogs:
+            await self.load_extension(f"ct_ticket_tracker.cogs.{cog}")
 
 
 if __name__ == '__main__':
-    CtForumBot().run(TOKEN)
+    CtTicketTracker().run(TOKEN)

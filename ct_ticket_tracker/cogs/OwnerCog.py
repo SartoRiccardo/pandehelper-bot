@@ -8,6 +8,13 @@ import config
 SUCCESS_REACTION = '\N{THUMBS UP SIGN}'
 
 
+def is_owner():
+    async def predicate(ctx: discord.ext.commands.Context):
+        return ctx.author.id in config.CO_OWNER_IDS or await ctx.bot.is_owner(ctx.author)
+
+    return discord.ext.commands.check(predicate)
+
+
 class OwnerCog(commands.Cog):
     ERROR_MESSAGE = "**ERROR:** {} - {}"
     COG_PATH_TEMPLATE = "ct_ticket_tracker.cogs.{}Cog"
@@ -17,12 +24,6 @@ class OwnerCog(commands.Cog):
 
     def cog_unload(self) -> None:
         pass
-
-    @staticmethod
-    def is_owner():
-        async def predicate(ctx: discord.ext.commands.Context):
-            return ctx.author.id in config.CO_OWNER_IDS or await ctx.bot.is_owner(ctx.author)
-        return discord.ext.commands.check(predicate)
 
     @commands.command()
     @is_owner()
