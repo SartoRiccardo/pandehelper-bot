@@ -1,6 +1,8 @@
+import datetime
 import discord
 import re
 import ct_ticket_tracker.db.queries
+import ct_ticket_tracker.utils.bloons
 from typing import Optional
 from discord.ext import commands
 
@@ -40,7 +42,8 @@ class TrackerCog(commands.Cog):
         await interaction.response.send_message(f"I am no longer tracking <#{channel_id}>", ephemeral=True)
 
     @tickets_group.command(name="view", description="See how many tickets each member used.")
-    @discord.app_commands.describe(channel="The channel to check.", season="The CT season to check. Defaults to the current one.")
+    @discord.app_commands.describe(channel="The channel to check.",
+                                   season="The CT season to check. Defaults to the current one.")
     @discord.app_commands.guild_only()
     @discord.app_commands.default_permissions(administrator=True)
     async def tickets_list(self, interaction: discord.Interaction, channel: str, season: Optional[int] = 0) -> None:
@@ -53,13 +56,51 @@ class TrackerCog(commands.Cog):
             await interaction.response.send_message("That channel is not being tracked!", ephemeral=True)
             return
 
+        await interaction.response.send_message("Just a moment...", ephemeral=True)
         message = "`Member    ` | `D1` | `D2` | `D3` | `D4` | `D5` | `D6` | `D7`\n"
         claims = await ct_ticket_tracker.db.queries.get_ticket_overview(channel_id, season)
         row = "`{:10.10}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}`\n"
         for uid in claims:
             user = await self.bot.fetch_user(uid)
-            message += row.format(user.name if user else str(uid), *claims[uid])
-        await interaction.response.send_message(message, ephemeral=True)
+            message += row.format(user.name if user else str(uid), *[len(day_claims) for day_claims in claims[uid]])
+        await interaction.edit_original_response(content=message)
+
+    @tickets_group.command(name="member", description="In-depth view of a member's used tickets.")
+    @discord.app_commands.describe()
+    @discord.app_commands.describe(member="The member to check.",
+                                   channel="The channel to check.",
+                                   season="The CT season to check. Defaults to the current one.")
+    @discord.app_commands.guild_only()
+    @discord.app_commands.default_permissions(administrator=True)
+    async def member_tickets(self, interaction: discord.Interaction, channel: str,
+                             member: discord.Member, season: Optional[int] = 0) -> None:
+        if not interaction.user.guild_permissions.administrator:
+            return
+        channel_id = int(channel[2:-1])
+        if not discord.utils.get(interaction.guild.text_channels, id=channel_id):
+            return
+        if channel_id not in (await ct_ticket_tracker.db.queries.tracked_channels()):
+            await interaction.response.send_message("That channel is not being tracked!", ephemeral=True)
+            return
+
+        await interaction.response.send_message("Just a moment...", ephemeral=True)
+        if season == 0:
+            season = ct_ticket_tracker.utils.bloons.get_ct_number_during(datetime.datetime.now())
+        member_activity = await ct_ticket_tracker.db.queries.get_tickets_from(member.id, channel_id, season)
+
+        embed = discord.Embed(
+            title=f"{member.display_name}'s Tickets (CT {season})",
+            color=discord.Color.orange()
+        )
+        embed.set_thumbnail(url=member.display_avatar.url)
+        for i in range(len(member_activity)):
+            claims_message = ""
+            for claim in member_activity[i]:
+                message_url = f"https://discord.com/channels/{interaction.guild.id}/{channel_id}/{claim.message_id}"
+                claims_message += f"• `{claim.tile}` <t:{int(claim.claimed_at.timestamp())}:t> ([jump]({message_url}))\n"
+            if len(claims_message) > 0:
+                embed.add_field(name=f"Day {i+1}", value=claims_message, inline=False)
+        await interaction.edit_original_response(embed=embed)
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent) -> None:

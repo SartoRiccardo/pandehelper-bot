@@ -1,12 +1,11 @@
 import time
 import datetime
 import ct_ticket_tracker.db.connection
+import ct_ticket_tracker.utils.bloons
 from typing import List, Dict, Tuple
+from .model.TileCapture import TileCapture
 postgres = ct_ticket_tracker.db.connection.postgres
-
-
-FIRST_CT_START = datetime.datetime.strptime('2022-08-09 22', '%Y-%m-%d %H')
-EVENT_DURATION = 7
+bloons = ct_ticket_tracker.utils.bloons
 
 
 @postgres
@@ -24,15 +23,11 @@ async def untrack_channel(channel: int, conn=None) -> None:
 
 
 @postgres
-async def get_ticket_overview(channel: int, event: int = 0, conn=None) -> Dict[int, List[int]]:
-    if event > 0:
-        event_start = FIRST_CT_START + datetime.timedelta(days=14*(event-1))
-    else:  # Current or last event
-        event_start = FIRST_CT_START
-        now = datetime.datetime.now()
-        while event_start + datetime.timedelta(days=14) < now:
-            event_start += datetime.timedelta(days=14)
-    event_end = event_start + datetime.timedelta(days=EVENT_DURATION)
+async def get_ticket_overview(channel: int, event: int = 0, conn=None) -> Dict[int, List[List[TileCapture]]]:
+    if event == 0:
+        event = bloons.get_ct_number_during(datetime.datetime.now())
+    event_start = bloons.FIRST_CT_START + datetime.timedelta(days=bloons.EVENT_DURATION*2 * (event-1))
+    event_end = event_start + datetime.timedelta(days=bloons.EVENT_DURATION)
     result = await conn.fetch("""
         SELECT * FROM claims
             WHERE channel=$1
@@ -44,10 +39,40 @@ async def get_ticket_overview(channel: int, event: int = 0, conn=None) -> Dict[i
     for record in result:
         uid = record["userid"]
         if uid not in claims:
-            claims[uid] = [0] * EVENT_DURATION
+            claims[uid] = []
+            for _ in range(bloons.EVENT_DURATION):
+                claims[uid].append([])
         day = (record["claimed_at"] - event_start).days
-        if 0 <= day < EVENT_DURATION:
-            claims[uid][day] += 1
+        if 0 <= day < bloons.EVENT_DURATION:
+            claims[uid][day].append(
+                TileCapture(uid, record["tile"], channel, record["message"], record["claimed_at"])
+            )
+    return claims
+
+
+@postgres
+async def get_tickets_from(member_id: int, channel: int, event: int = 0, conn=None) -> List[List[TileCapture]]:
+    if event == 0:
+        event = bloons.get_ct_number_during(datetime.datetime.now())
+    event_start = bloons.FIRST_CT_START + datetime.timedelta(days=bloons.EVENT_DURATION*2 * (event-1))
+    event_end = event_start + datetime.timedelta(days=bloons.EVENT_DURATION)
+    result = await conn.fetch("""
+        SELECT * FROM claims
+            WHERE channel=$1
+              AND userid=$2
+              AND claimed_at >= $3
+              AND claimed_at <= $4
+        """, channel, member_id, event_start, event_end)
+
+    claims = []
+    for _ in range(bloons.EVENT_DURATION):
+        claims.append([])
+    for record in result:
+        day = (record["claimed_at"] - event_start).days
+        if 0 <= day < bloons.EVENT_DURATION:
+            claims[day].append(
+                TileCapture(member_id, record["tile"], channel, record["message"], record["claimed_at"])
+            )
     return claims
 
 
