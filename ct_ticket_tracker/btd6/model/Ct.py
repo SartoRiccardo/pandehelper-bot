@@ -16,7 +16,7 @@ class Ct:
 
         async with aiohttp.ClientSession() as session:
             url = f"https://data.ninjakiwi.com/btd6/ct/{self.id}/leaderboard/team?page={page}"
-            async with session.get(url) as response:
+            async with session.get(url, headers={"User-Agent": "Sarto-Ct-Bot"}) as response:
                 data = await response.json()
                 if not data["success"]:
                     raise Exception(data["error"])
