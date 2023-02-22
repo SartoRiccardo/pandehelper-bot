@@ -28,9 +28,8 @@ class LeaderboardCog(commands.Cog):
     @discord.app_commands.describe(channel="The channel to add it to.")
     @discord.app_commands.guild_only()
     @discord.app_commands.default_permissions(administrator=True)
+    @discord.app_commands.checks.has_permissions(administrator=True)
     async def add_leaderboard(self, interaction: discord.Interaction, channel: str) -> None:
-        if not interaction.user.guild_permissions.administrator:
-            return
         channel_id = int(channel[2:-1])
         if not discord.utils.get(interaction.guild.text_channels, id=channel_id):
             return
@@ -42,9 +41,8 @@ class LeaderboardCog(commands.Cog):
     @discord.app_commands.describe(channel="The channel to remove it from.")
     @discord.app_commands.guild_only()
     @discord.app_commands.default_permissions(administrator=True)
+    @discord.app_commands.checks.has_permissions(administrator=True)
     async def remove_leaderboard(self, interaction: discord.Interaction, channel: str) -> None:
-        if not interaction.user.guild_permissions.administrator:
-            return
         channel_id = int(channel[2:-1])
         if not discord.utils.get(interaction.guild.text_channels, id=channel_id):
             return
@@ -90,7 +88,7 @@ class LeaderboardCog(commands.Cog):
         messages = []
         message_current = msg_header
         current_hour_score = {}
-        for i in range(len(lb_data)):
+        for i in range(min(len(lb_data), 100)):
             team = lb_data[i]
             placement = f"`{i+1}`"
             if i < len(placements_emojis):
