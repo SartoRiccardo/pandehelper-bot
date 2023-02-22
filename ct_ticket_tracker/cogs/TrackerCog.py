@@ -96,7 +96,7 @@ class TrackerCog(commands.Cog):
                 claims_message += f"• `{claim.tile}` <t:{int(claim.claimed_at.timestamp())}:t> ([jump]({message_url}))\n"
             if len(claims_message) > 0:
                 embed.add_field(name=f"Day {i+1}", value=claims_message, inline=False)
-        await interaction.edit_original_response(embed=embed)
+        await interaction.edit_original_response(content="", embed=embed)
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent) -> None:
@@ -111,7 +111,7 @@ class TrackerCog(commands.Cog):
         if match is None:
             return
         tile = match.group(0).upper()
-        await ct_ticket_tracker.db.queries.capture(payload.channel_id, payload.user_id, tile, payload.message_id)
+        await ct_ticket_tracker.db.queries.capture(payload.channel_id, message.author.id, tile, payload.message_id)
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent) -> None:
