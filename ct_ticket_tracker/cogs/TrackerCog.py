@@ -59,7 +59,7 @@ class TrackerCog(commands.Cog):
         row = "`{:10.10}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}`\n"
         for uid in claims:
             user = await self.bot.fetch_user(uid)
-            message += row.format(user.name if user else str(uid), *[len(day_claims) for day_claims in claims[uid]])
+            message += row.format(user.display_name if user else str(uid), *[len(day_claims) for day_claims in claims[uid]])
         await interaction.edit_original_response(content=message)
 
     @tickets_group.command(name="member", description="In-depth view of a member's used tickets.")
@@ -89,11 +89,14 @@ class TrackerCog(commands.Cog):
             color=discord.Color.orange()
         )
         embed.set_thumbnail(url=member.display_avatar.url)
+
         for i in range(len(member_activity)):
             claims_message = ""
             for claim in member_activity[i]:
-                message_url = f"https://discord.com/channels/{interaction.guild.id}/{channel_id}/{claim.message_id}"
-                claims_message += f"• `{claim.tile}` <t:{int(claim.claimed_at.timestamp())}:t> ([jump]({message_url}))\n"
+                # TODO Adding the message URL makes the field hit character limit if you claim more than 9 tiles a day. Add pagination.
+                # message_url = f"https://discord.com/channels/{interaction.guild.id}/{channel_id}/{claim.message_id}"
+                # claims_message += f"• `{claim.tile}` <t:{int(claim.claimed_at.timestamp())}:t> ([jump]({message_url}))\n"
+                claims_message += f"• `{claim.tile}` <t:{int(claim.claimed_at.timestamp())}:t>\n"
             if len(claims_message) > 0:
                 embed.add_field(name=f"Day {i+1}", value=claims_message, inline=False)
         await interaction.edit_original_response(content="", embed=embed)
