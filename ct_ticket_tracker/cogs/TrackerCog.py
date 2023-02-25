@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import discord
 from discord.ext import commands
@@ -46,8 +47,9 @@ class TrackerCog(commands.Cog):
     @discord.app_commands.default_permissions(administrator=True)
     @discord.app_commands.checks.has_permissions(administrator=True)
     async def tickets_list(self, interaction: discord.Interaction, channel: str, season: Optional[int] = 0) -> None:
-        channel_id = int(channel[2:-1])
+        channel_id = int(channel.strip()[2:-1])
         if not discord.utils.get(interaction.guild.text_channels, id=channel_id):
+            await interaction.response.send_message(f"The channel <#{channel_id}> is not in this server!", ephemeral=True)
             return
         if channel_id not in (await ct_ticket_tracker.db.queries.tracked_channels()):
             await interaction.response.send_message("That channel is not being tracked!", ephemeral=True)
@@ -57,9 +59,17 @@ class TrackerCog(commands.Cog):
         message = "`Member    ` | `D1` | `D2` | `D3` | `D4` | `D5` | `D6` | `D7`\n"
         claims = await ct_ticket_tracker.db.queries.get_ticket_overview(channel_id, season)
         row = "`{:10.10}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}`\n"
-        for uid in claims:
-            user = await self.bot.fetch_user(uid)
-            message += row.format(user.display_name if user else str(uid), *[len(day_claims) for day_claims in claims[uid]])
+
+        members = await asyncio.gather(*[
+            interaction.guild.fetch_member(uid) for uid in claims
+        ], return_exceptions=True)
+        for member in members:
+            if type(member) is discord.NotFound:
+                continue
+            message += row.format(
+                member.display_name if member else str(member.id),
+                *[len(day_claims) for day_claims in claims[member.id]]
+            )
         await interaction.edit_original_response(content=message)
 
     @tickets_group.command(name="member", description="In-depth view of a member's used tickets.")
