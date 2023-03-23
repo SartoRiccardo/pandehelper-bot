@@ -34,7 +34,7 @@ class RaidLogCog(commands.Cog):
 
         for thread in forum_channel.threads:
             if tile_code in thread.name.upper():
-                thread_url = f"https://discord.com/channels/{interaction.guild.id}/{forum_channel.id}"
+                thread_url = f"https://discord.com/channels/{interaction.guild.id}/{thread.id}"
                 embed = discord.Embed(title=f"Raid Log - Tile {tile_code}",
                                       colour=discord.Color.orange(),
                                       description=f"Link to the thread: <#{thread.id}>\n"
@@ -45,7 +45,7 @@ class RaidLogCog(commands.Cog):
 
         async for thread in forum_channel.archived_threads(limit=200):
             if tile_code in thread.name.upper():
-                thread_url = f"https://discord.com/channels/{interaction.guild.id}/{forum_channel.id}"
+                thread_url = f"https://discord.com/channels/{interaction.guild.id}/{thread.id}"
                 embed = discord.Embed(title=f"Raid Log - Tile {tile_code}",
                                       colour=discord.Color.orange(),
                                       description=f"Link to the thread: <#{thread.id}>\n"
