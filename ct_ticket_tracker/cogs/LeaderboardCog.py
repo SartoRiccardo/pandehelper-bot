@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta
+from bloonspy import Client
 import discord
 from discord.ext import tasks, commands
 import time
 import asyncio
 import ct_ticket_tracker.db.queries
-import ct_ticket_tracker.btd6.AsyncBtd6
 
 
 class LeaderboardCog(commands.Cog):
@@ -62,41 +62,27 @@ class LeaderboardCog(commands.Cog):
         if now < self.next_update:
             return
         self.next_update += timedelta(hours=1)
-
-        now_unix = time.mktime(now.timetuple())
-        current_event = (await ct_ticket_tracker.btd6.AsyncBtd6.AsyncBtd6.ct())[0]
+        current_event = (await asyncio.to_thread(Client.contested_territories))[0]
         if current_event.id != self.current_ct_id:
             self.current_ct_id = current_event.id
             self.last_hour_score = {}
 
-        if now_unix > current_event.end/1000+3600 or now_unix < current_event.start/1000:
+        if now > current_event.end or now < current_event.start:
             return
 
-        lb_coros = []
-        for page in range(10):
-            lb_coros.append(current_event.teams(page+1))
-        try:
-            lb_pages = await asyncio.gather(*lb_coros)
-        except Exception as exc:
-            print(exc)
-            return
-
-        lb_data = []
-        for page in lb_pages:
-            lb_data += page
-
+        leaderboard = await asyncio.to_thread(current_event.leaderboard_team, pages=4)
         messages = []
         message_current = msg_header
         current_hour_score = {}
-        for i in range(min(len(lb_data), 100)):
-            team = lb_data[i]
+        for i in range(min(len(leaderboard), 100)):
+            team = leaderboard[i]
             placement = f"`{i+1}`"
             if i < len(placements_emojis):
                 placement = placements_emojis[i]
-            if team.disbanded:
-                placement = "❌"
+            # if team.disbanded:
+            #     placement = "❌"
 
-            team_name = team.display_name.split("-")[0]
+            team_name = team.name.split("-")[0]
             message_current += "\n" + row_template.format(placement, team_name, team.score)
             if team.id in self.last_hour_score:
                 score_gained = team.score - self.last_hour_score[team.id]
@@ -105,10 +91,10 @@ class LeaderboardCog(commands.Cog):
                 message_current += " 🆕"
             current_hour_score[team.id] = team.score
 
-            if (i+1) % 20 == 0 or i == len(lb_data)-1:
+            if (i+1) % 20 == 0 or i == len(leaderboard)-1:
                 messages.append(message_current)
                 message_current = ""
-        messages[len(messages)-1] += f"\n*Last updated: <t:{int(now_unix)}:R>*"
+        messages[len(messages)-1] += f"\n*Last updated: <t:{int(time.mktime(now.timetuple()))}:R>*"
         self.last_hour_score = current_hour_score
 
         await self.send_leaderboard(messages)
