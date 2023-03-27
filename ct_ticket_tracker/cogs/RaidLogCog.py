@@ -1,11 +1,6 @@
-import asyncio
-import datetime
 import discord
 from discord.ext import commands
 import re
-import ct_ticket_tracker.db.queries
-import ct_ticket_tracker.utils.bloons
-from typing import Optional
 
 
 class RaidLogCog(commands.Cog):
@@ -27,9 +22,8 @@ class RaidLogCog(commands.Cog):
         await interaction.response.defer()
         try:
             forum_channel = await interaction.guild.fetch_channel(forum_id)
-        except discord.app_commands.errors.CommandInvokeError:
-            await interaction.response.send_message(f"Channel not found in the current guild!",
-                                                    ephemeral=True)
+        except (discord.errors.Forbidden, discord.errors.InvalidData):
+            await interaction.edit_original_response(content=f"This command is only for the Pandemonium server. Sorry!")
             return
 
         for thread in forum_channel.threads:

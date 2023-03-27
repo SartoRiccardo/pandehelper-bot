@@ -6,9 +6,4 @@ EVENT_DURATION = 7
 
 
 def get_ct_number_during(time: datetime.datetime) -> int:
-    event = 1
-    event_start = FIRST_CT_START
-    while event_start + datetime.timedelta(days=EVENT_DURATION*2) < time:
-        event_start += datetime.timedelta(days=EVENT_DURATION*2)
-        event += 1
-    return event
+    return int((time-FIRST_CT_START).days / (EVENT_DURATION*2)) + 1

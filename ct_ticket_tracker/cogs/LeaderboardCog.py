@@ -5,9 +5,11 @@ from discord.ext import tasks, commands
 import time
 import asyncio
 import ct_ticket_tracker.db.queries
+from ct_ticket_tracker.classes import ErrorHandlerCog
+from ct_ticket_tracker.exceptions import WrongChannelMention
 
 
-class LeaderboardCog(commands.Cog):
+class LeaderboardCog(ErrorHandlerCog):
     leaderboard_group = discord.app_commands.Group(name="leaderboard", description="Various leaderboard commands")
 
     def __init__(self, bot: commands.Bot) -> None:
@@ -30,9 +32,12 @@ class LeaderboardCog(commands.Cog):
     @discord.app_commands.default_permissions(administrator=True)
     @discord.app_commands.checks.has_permissions(administrator=True)
     async def add_leaderboard(self, interaction: discord.Interaction, channel: str) -> None:
+        channel = channel.strip()
+        if len(channel) <= 3 or not channel[2:-1].isnumeric():
+            raise WrongChannelMention()
         channel_id = int(channel[2:-1])
         if not discord.utils.get(interaction.guild.text_channels, id=channel_id):
-            return
+            raise WrongChannelMention()
 
         await ct_ticket_tracker.db.queries.add_leaderboard_channel(interaction.guild.id, channel_id)
         await interaction.response.send_message(f"Leaderboard added to <#{channel_id}>!", ephemeral=True)
@@ -43,9 +48,12 @@ class LeaderboardCog(commands.Cog):
     @discord.app_commands.default_permissions(administrator=True)
     @discord.app_commands.checks.has_permissions(administrator=True)
     async def remove_leaderboard(self, interaction: discord.Interaction, channel: str) -> None:
+        channel = channel.strip()
+        if len(channel) <= 3 or not channel[2:-1].isnumeric():
+            raise WrongChannelMention()
         channel_id = int(channel[2:-1])
         if not discord.utils.get(interaction.guild.text_channels, id=channel_id):
-            return
+            raise WrongChannelMention()
 
         await ct_ticket_tracker.db.queries.remove_leaderboard_channel(interaction.guild.id, channel_id)
         await interaction.response.send_message(f"Leaderboard removed from <#{channel_id}>!", ephemeral=True)
@@ -108,6 +116,7 @@ class LeaderboardCog(commands.Cog):
                 try:
                     guild = await self.bot.fetch_guild(guild_id)
                 except discord.NotFound:
+                    await ct_ticket_tracker.db.queries.remove_leaderboard_channel(channel_id)
                     continue
 
             channel = guild.get_channel(channel_id)
@@ -115,6 +124,7 @@ class LeaderboardCog(commands.Cog):
                 try:
                     channel = await guild.fetch_channel(channel_id)
                 except discord.NotFound:
+                    await ct_ticket_tracker.db.queries.remove_leaderboard_channel(channel_id)
                     continue
 
             leaderboard_messages = []

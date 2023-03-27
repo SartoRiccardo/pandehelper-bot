@@ -5,10 +5,12 @@ from discord.ext import commands
 import re
 import ct_ticket_tracker.db.queries
 import ct_ticket_tracker.utils.bloons
+from ct_ticket_tracker.exceptions import WrongChannelMention
+from ct_ticket_tracker.classes import ErrorHandlerCog
 from typing import Optional
 
 
-class TrackerCog(commands.Cog):
+class TrackerCog(ErrorHandlerCog):
     tickets_group = discord.app_commands.Group(name="tickets", description="Various ticket tracking commands.")
 
     def __init__(self, bot: commands.Bot) -> None:
@@ -20,9 +22,12 @@ class TrackerCog(commands.Cog):
     @discord.app_commands.default_permissions(administrator=True)
     @discord.app_commands.checks.has_permissions(administrator=True)
     async def track(self, interaction: discord.Interaction, channel: str) -> None:
+        channel = channel.strip()
+        if len(channel) <= 3 or not channel[2:-1].isnumeric():
+            raise WrongChannelMention()
         channel_id = int(channel[2:-1])
         if not discord.utils.get(interaction.guild.text_channels, id=channel_id):
-            return
+            raise WrongChannelMention()
 
         await ct_ticket_tracker.db.queries.track_channel(channel_id)
         await interaction.response.send_message(f"I am now tracking <#{channel_id}>", ephemeral=True)
@@ -33,9 +38,12 @@ class TrackerCog(commands.Cog):
     @discord.app_commands.default_permissions(administrator=True)
     @discord.app_commands.checks.has_permissions(administrator=True)
     async def untrack(self, interaction: discord.Interaction, channel: str) -> None:
+        channel = channel.strip()
+        if len(channel) <= 3 or not channel[2:-1].isnumeric():
+            raise WrongChannelMention()
         channel_id = int(channel[2:-1])
         if not discord.utils.get(interaction.guild.text_channels, id=channel_id):
-            return
+            raise WrongChannelMention()
 
         await ct_ticket_tracker.db.queries.untrack_channel(channel_id)
         await interaction.response.send_message(f"I am no longer tracking <#{channel_id}>", ephemeral=True)
@@ -47,10 +55,13 @@ class TrackerCog(commands.Cog):
     @discord.app_commands.default_permissions(administrator=True)
     @discord.app_commands.checks.has_permissions(administrator=True)
     async def tickets_list(self, interaction: discord.Interaction, channel: str, season: Optional[int] = 0) -> None:
-        channel_id = int(channel.strip()[2:-1])
+        channel = channel.strip()
+        if len(channel) <= 3 or not channel[2:-1].isnumeric():
+            raise WrongChannelMention()
+        channel_id = int(channel[2:-1])
         if not discord.utils.get(interaction.guild.text_channels, id=channel_id):
-            await interaction.response.send_message(f"The channel <#{channel_id}> is not in this server!", ephemeral=True)
-            return
+            raise WrongChannelMention()
+
         if channel_id not in (await ct_ticket_tracker.db.queries.tracked_channels()):
             await interaction.response.send_message("That channel is not being tracked!", ephemeral=True)
             return
@@ -82,9 +93,13 @@ class TrackerCog(commands.Cog):
     @discord.app_commands.checks.has_permissions(administrator=True)
     async def member_tickets(self, interaction: discord.Interaction, channel: str,
                              member: discord.Member, season: Optional[int] = 0) -> None:
+        channel = channel.strip()
+        if len(channel) <= 3 or not channel[2:-1].isnumeric():
+            raise WrongChannelMention()
         channel_id = int(channel[2:-1])
         if not discord.utils.get(interaction.guild.text_channels, id=channel_id):
-            return
+            raise WrongChannelMention()
+
         if channel_id not in (await ct_ticket_tracker.db.queries.tracked_channels()):
             await interaction.response.send_message("That channel is not being tracked!", ephemeral=True)
             return
