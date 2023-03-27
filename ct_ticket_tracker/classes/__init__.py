@@ -1,1 +1,1 @@
-from ErrorHandlerCog import ErrorHandlerCog
+from ct_ticket_tracker.classes.ErrorHandlerCog import ErrorHandlerCog
