@@ -14,7 +14,7 @@ class TagCog(ErrorHandlerCog):
     @discord.app_commands.describe(tag_name="The tag to search")
     async def send_tag(self, interaction: discord.Interaction, tag_name: str) -> None:
         await interaction.response.defer()
-        tag_content = await ct_ticket_tracker.db.queries.get_tag(tag_name)
+        tag_content = await ct_ticket_tracker.db.queries.get_tag(tag_name.lower())
         response_content = tag_content if tag_content else "No tag with that name!"
         await interaction.edit_original_response(content=response_content)
 
