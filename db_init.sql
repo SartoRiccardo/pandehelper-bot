@@ -18,5 +18,11 @@ CREATE TABLE IF NOT EXISTS lbchannels (
     PRIMARY KEY(guild, channel)
 );
 
+CREATE TABLE IF NOT EXISTS tags (
+    tag_name VARCHAR(30) NOT NULL,
+    content TEXT NOT NULL,
+    PRIMARY KEY(tag_name)
+);
+
 ALTER TABLE claims ADD CONSTRAINT fk_teams_1
     FOREIGN KEY (channel) REFERENCES teams(channel) ON DELETE CASCADE;

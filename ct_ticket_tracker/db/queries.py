@@ -114,3 +114,18 @@ async def remove_leaderboard_channel(guild: int, channel: int, conn=None) -> Non
 async def leaderboard_channels(conn=None) -> List[Tuple[int, int]]:
     payload = await conn.fetch("SELECT guild, channel FROM lbchannels")
     return [(row["guild"], row["channel"]) for row in payload]
+
+
+@postgres
+async def set_tag(tag_name: str, content: str, conn=None) -> None:
+    rows_changed = await conn.execute("UPDATE tags SET content=$1 WHERE tag_name=$2", content, tag_name)
+    if rows_changed != "UPDATE 1":
+        await conn.execute("INSERT INTO tags(tag_name, content) VALUES ($1, $2)", content, tag_name)
+
+
+@postgres
+async def get_tag(tag_name: str, conn=None) -> str or None:
+    payload = await conn.fetch("SELECT content FROM tags WHERE tag_name=$1", tag_name)
+    if len(payload) == 0:
+        return None
+    return payload[0]["content"]
