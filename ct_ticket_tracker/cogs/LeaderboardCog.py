@@ -102,6 +102,9 @@ class LeaderboardCog(ErrorHandlerCog):
             if (i+1) % 20 == 0 or i == len(leaderboard)-1:
                 messages.append(message_current)
                 message_current = ""
+
+        if len(messages) == 0:
+            return
         messages[len(messages)-1] += f"\n*Last updated: <t:{int(time.mktime(now.timetuple()))}:R>*"
         self.last_hour_score = current_hour_score
 
