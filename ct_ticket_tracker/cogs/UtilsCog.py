@@ -33,11 +33,12 @@ class UtilsCog(ErrorHandlerCog):
                          ]
         if end_round <= 0:
             await interaction.response.send_message(f"{end_round} is not a valid round.")
+            return
         longest = 0
-        for game_round in range(min(100, end_round)):
+        for game_round in range(min(len(round_lengths), end_round)):
             if round_lengths[longest] < round_lengths[game_round]:
                 longest = game_round
-        await interaction.response.send_message(f"The longest round is {longest+1} (lasts {round_lengths[round(longest)]}s).")
+        await interaction.response.send_message(f"The longest round is {longest+1} (lasts {round(round_lengths[longest])}s).")
 
 
 async def setup(bot: commands.Bot) -> None:
