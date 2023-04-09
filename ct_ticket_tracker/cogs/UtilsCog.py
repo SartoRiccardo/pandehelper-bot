@@ -18,13 +18,23 @@ class UtilsCog(ErrorHandlerCog):
             return
 
         rounds = await asyncio.to_thread(ct_ticket_tracker.utils.io.get_race_rounds)
-        rounds = sorted(rounds[:end_round], key=lambda x: x["length"])
-        rounds.reverse()
-        rounds = rounds[:3]
+        start_round = 0
+        round_checkpoints = []
+        while start_round < end_round:
+            check_rounds = sorted(rounds[start_round:end_round], key=lambda x: x["length"])
+            longest = check_rounds[-1]
+            start_round = longest["round"]
+            round_checkpoints.append(longest)
 
-        reply = f"The {len(rounds)} longest rounds are:\n" + \
-                "".join([f"• R{rnd['round']} - {rnd['length']:.2f}\n" for rnd in rounds]) + \
-                f"The last bloon should be a **{rounds[0]['last_bloon']}**"
+        followup_rounds_template = "‣ Then, send **R{}** after max. **{:.2f}s** *(lasts {:.2f}s total).*\n"
+        reply = f"The longest round is **R{round_checkpoints[0]['round']} **" \
+                f"(lasts **{round_checkpoints[0]['length']:.2f}s**).\n" + \
+                "".join([
+                    followup_rounds_template.format(
+                        rnd["round"], round_checkpoints[0]['length']-rnd["length"], rnd["length"]
+                    ) for rnd in round_checkpoints[1:]
+                    ]) + \
+                f"The last bloon should be a **{round_checkpoints[0]['last_bloon']}**"
         await interaction.response.send_message(reply)
 
 
