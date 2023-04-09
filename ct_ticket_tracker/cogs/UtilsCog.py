@@ -26,14 +26,19 @@ class UtilsCog(ErrorHandlerCog):
             start_round = longest["round"]
             round_checkpoints.append(longest)
 
-        followup_rounds_template = "‣ Then, send **R{}** after max. **{:.2f}s** *(lasts {:.2f}s total).*\n"
+        followup_rounds_template = "‣ Send **R{}** after max. **{:.2f}s**\n" \
+                                   "   *({:.2f}s after R{})   (lasts {:.2f}s total)*\n\n"
+        checkpoints_msg = ""
+        for i in range(len(round_checkpoints)-1):
+            rnd = round_checkpoints[i+1]
+            prev_rnd = round_checkpoints[i]
+            checkpoints_msg += followup_rounds_template.format(
+                rnd["round"], round_checkpoints[0]["length"]-rnd["length"], prev_rnd["length"]-rnd["length"],
+                prev_rnd["round"], rnd["length"]
+            )
         reply = f"The longest round is **R{round_checkpoints[0]['round']} **" \
-                f"(lasts **{round_checkpoints[0]['length']:.2f}s**).\n" + \
-                "".join([
-                    followup_rounds_template.format(
-                        rnd["round"], round_checkpoints[0]['length']-rnd["length"], rnd["length"]
-                    ) for rnd in round_checkpoints[1:]
-                    ]) + \
+                f"(lasts **{round_checkpoints[0]['length']:.2f}s**).\n\n" + \
+                checkpoints_msg + \
                 f"The last bloon should be a **{round_checkpoints[0]['last_bloon']}**"
         await interaction.response.send_message(reply)
 
