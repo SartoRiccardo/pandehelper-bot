@@ -39,7 +39,8 @@ class UtilsCog(ErrorHandlerCog):
         reply = f"The longest round is **R{round_checkpoints[0]['round']} **" \
                 f"(lasts **{round_checkpoints[0]['length']:.2f}s**).\n\n" + \
                 checkpoints_msg + \
-                f"The last bloon should be a **{round_checkpoints[0]['last_bloon']}**"
+                f"The last bloon should be a **{round_checkpoints[0]['last_bloon']}** " \
+                f"(or a **{round_checkpoints[0]['last_bloon_reverse']}** if the race is on Reverse)."
         await interaction.response.send_message(reply)
 
 
