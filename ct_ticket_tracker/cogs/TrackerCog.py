@@ -71,8 +71,14 @@ class TrackerCog(ErrorHandlerCog):
         claims = await ct_ticket_tracker.db.queries.get_ticket_overview(channel_id, season)
         row = "`{:10.10}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}`\n"
 
+        async def get_member(uid: int) -> discord.Member:
+            member = interaction.guild.get_member(uid)
+            if member is None:
+                member = await interaction.guild.fetch_member(uid)
+            return member
+
         members = await asyncio.gather(*[
-            interaction.guild.fetch_member(uid) for uid in claims
+            get_member(uid) for uid in claims
         ], return_exceptions=True)
         for member in members:
             if type(member) is discord.NotFound:
