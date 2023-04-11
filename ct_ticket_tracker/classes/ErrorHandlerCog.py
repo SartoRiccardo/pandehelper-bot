@@ -1,12 +1,18 @@
 import discord
+import traceback
 from discord.ext import commands
+from .HelpMessageCog import HelpMessageCog
 from ct_ticket_tracker.exceptions import WrongChannelMention
 
 
-class ErrorHandlerCog(commands.Cog):
+class ErrorHandlerCog(HelpMessageCog):
+    def __init__(self, bot: commands.Bot) -> None:
+        super().__init__(bot)
+
     async def cog_app_command_error(self, interaction: discord.Interaction,
                                     error: discord.app_commands.AppCommandError) -> None:
         print(error, type(error.__cause__), type(error))
+        traceback.print_exc()
 
         content = "An error has occurred!"
         error_type = type(error.__cause__)

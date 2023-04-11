@@ -1,7 +1,6 @@
 import discord
-import importlib
 from discord.ext import commands
-from typing import Optional, Literal, Any
+from typing import Optional, Literal
 import config
 
 
@@ -33,6 +32,7 @@ class OwnerCog(commands.Cog):
         else:
             synced = await ctx.bot.tree.sync()
         await ctx.send(f"Synced {len(synced)} commands ({'globally' if where is None else 'here'}).")
+        self.bot.synced_tree = synced
 
     @commands.group(aliases=["cogs"])
     @is_owner()

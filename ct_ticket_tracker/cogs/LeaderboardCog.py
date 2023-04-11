@@ -11,9 +11,17 @@ from ct_ticket_tracker.exceptions import WrongChannelMention
 
 class LeaderboardCog(ErrorHandlerCog):
     leaderboard_group = discord.app_commands.Group(name="leaderboard", description="Various leaderboard commands")
+    help_descriptions = {
+        "leaderboard": {
+            "add": "Sets a channel as a leaderboard channel. The Top 100 Global leaderboard will "
+                   "appear there and be updated every hour.",
+            "remove": "Removes the leaderboard from a channel previously added with [[add]]."
+                      " That channel will no longer be updated."
+        }
+    }
 
     def __init__(self, bot: commands.Bot) -> None:
-        self.bot = bot
+        super().__init__(bot)
 
         self.last_hour_score = {}
         self.current_ct_id = ""

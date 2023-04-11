@@ -13,8 +13,19 @@ from typing import Optional
 class TrackerCog(ErrorHandlerCog):
     tickets_group = discord.app_commands.Group(name="tickets", description="Various ticket tracking commands.")
 
+    help_descriptions = {
+        "tickets": {
+            "track": "Starts tracking a channel for tile claims. A tile is considered claimed when an user reacts "
+                     "to a message with ✅ in that channel, and the message they reacted to contains a valid "
+                     "tile code. It also assumes everyone's reset is at the same time.",
+            "untrack": "Stop tracking a channel for tile claims.",
+            "view": "A table containing number of tickets used by each member on each day.",
+            "member": "Detailed information about a specific member, showing which tiles were claimed and when.",
+        }
+    }
+
     def __init__(self, bot: commands.Bot) -> None:
-        self.bot = bot
+        super().__init__(bot)
 
     @tickets_group.command(name="track", description="Track a channel.")
     @discord.app_commands.describe(channel="The channel to start tracking.")

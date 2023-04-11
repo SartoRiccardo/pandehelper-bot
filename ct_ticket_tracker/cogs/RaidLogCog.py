@@ -1,11 +1,12 @@
 import discord
 from discord.ext import commands
+from ct_ticket_tracker.classes import ErrorHandlerCog
 import re
 
 
-class RaidLogCog(commands.Cog):
+class RaidLogCog(ErrorHandlerCog):
     def __init__(self, bot: commands.Bot) -> None:
-        self.bot = bot
+        super().__init__(bot)
 
     @discord.app_commands.command(name="raidlog", description="Get a Raid Log thread")
     @discord.app_commands.describe(tile_code="The tile code to look up.")
