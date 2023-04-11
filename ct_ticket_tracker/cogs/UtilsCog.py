@@ -1,7 +1,5 @@
 import asyncio
 import ct_ticket_tracker.utils.io
-import ct_ticket_tracker.db.queries
-import ct_ticket_tracker.utils.bloons
 import discord
 from discord.ext import commands
 from ct_ticket_tracker.classes import ErrorHandlerCog
@@ -85,9 +83,13 @@ class UtilsCog(ErrorHandlerCog):
     @discord.app_commands.command(name="tag",
                                   description="Sends a message associated with the given tag")
     @discord.app_commands.describe(tag_name="The tag to search")
-    async def send_tag(self, interaction: discord.Interaction, tag_name: str) -> None:
+    async def send_tag(self, interaction: discord.Interaction, tag_name: str = None) -> None:
         await interaction.response.defer()
-        tag_content = await ct_ticket_tracker.db.queries.get_tag(tag_name.lower())
+        if tag_name is None:
+            tags = await asyncio.to_thread(ct_ticket_tracker.utils.io.get_tag_list)
+            await interaction.edit_original_response(content=f"Tags: `{'` `'.join(tags)}`")
+            return
+        tag_content = await asyncio.to_thread(ct_ticket_tracker.utils.io.get_tag, tag_name)
         response_content = tag_content if tag_content else "No tag with that name!"
         await interaction.edit_original_response(content=response_content)
 

@@ -1,0 +1,6 @@
+{
+  "camotrap": "**CAMO TRAP ROUND PLACEMENTS, DEPENDING ON TILE'S LAST ROUND**\nR73 or below: Place immediately.\nR77 or below: Place on R34.\nR89 or below: Place on R34, kill R78 with something else (SMS, ability, ...)\nR90 and above: Just use something else dawggg \uD83D\uDE02 \uD83D\uDC80",
+  "butiusedthem": "The bot counts a ticket as \"used\" when you react to your own message in raid-order with ✅, so chances are you forgot to do that. Happens to everybody! The important thing is that you actually used them in-game.\nThe worst that will happen to you is you'll get pinged, asked if you did actually use your tickets, and you'll be reminded to use raid-order properly next time.",
+  "reset": "Your tickets reset __at the very moment you open the CT map for the first time.__ That's why it's very important to at least log on at the start, even if you can't claim any tiles!\n__The sooner your reset, the better.__",
+  "stale": "When you capture tiles, they produce points for 24 hours. After that, they'll go *stale*, which means they won't produce points but they'll still be owned. 2 days after they go stale, they go back to being neutral.\nYou can make a stale tile produce points again for 24 hours by capturing it."
+}
