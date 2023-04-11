@@ -74,7 +74,7 @@ class UtilsCog(ErrorHandlerCog):
         minutes = int(final_time/60)
 
         message = f"The longest round {from_round}-{to_round} is **R{longest['round']}** *({longest['length']:.2f}s)*\n" \
-                  f"With the round send delay, to get there in {send_delay:.2f}s\n\n" \
+                  f"With the round send delay, you'll get there in {send_delay:.2f}s\n\n" \
                   f"**Min time: {minutes}:{final_time - minutes * 60:05.2f}** *(if fullsent from {send_time}s)*.\n"
 
         # message = f"If you are at R{from_round} and you fullsend at {send_time_formatted}, the longest round is " \
