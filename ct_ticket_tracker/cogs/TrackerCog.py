@@ -77,10 +77,13 @@ class TrackerCog(ErrorHandlerCog):
             await interaction.response.send_message("That channel is not being tracked!", ephemeral=True)
             return
 
-        await interaction.response.send_message("Just a moment...", ephemeral=True)
+        await interaction.response.defer(ephemeral=True)
+
         message = "`Member    ` | `D1` | `D2` | `D3` | `D4` | `D5` | `D6` | `D7`\n"
-        claims = await ct_ticket_tracker.db.queries.get_ticket_overview(channel_id, season)
+        separator = "------------- + --- + --  + --  + --  + --- + --  + ---\n"
         row = "`{:10.10}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}`\n"
+
+        claims = await ct_ticket_tracker.db.queries.get_ticket_overview(channel_id, season)
 
         async def get_member(uid: int) -> discord.Member:
             member = interaction.guild.get_member(uid)
@@ -91,6 +94,7 @@ class TrackerCog(ErrorHandlerCog):
         members = await asyncio.gather(*[
             get_member(uid) for uid in claims
         ], return_exceptions=True)
+        total_claims = [0] * 7
         for member in members:
             if type(member) is discord.NotFound:
                 continue
@@ -98,6 +102,10 @@ class TrackerCog(ErrorHandlerCog):
                 member.display_name if member else str(member.id),
                 *[len(day_claims) for day_claims in claims[member.id]]
             )
+            for i in range(len(claims[member.id])):
+                total_claims[i] += len(claims[member.id][i])
+        message += separator + row.format("Total", *total_claims)
+
         await interaction.edit_original_response(content=message)
 
     @tickets_group.command(name="member", description="In-depth view of a member's used tickets.")
