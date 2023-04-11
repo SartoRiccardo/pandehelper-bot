@@ -9,7 +9,8 @@ class UtilsCog(ErrorHandlerCog):
     help_descriptions = {
         "longestround": "Gives you info about a race's longest round, and the rounds that follow.",
         "tag": "Sends a pre-written message associated to a tag. Usually for FAQs.\n"
-               "Type the command with no parameters to see all available tags."
+               "Type the command with no parameters to see all available tags.",
+        "github": "Get a link to the bot's repo. It's open source!"
     }
 
     def __init__(self, bot: commands.Bot) -> None:
@@ -92,6 +93,11 @@ class UtilsCog(ErrorHandlerCog):
         tag_content = await asyncio.to_thread(ct_ticket_tracker.utils.io.get_tag, tag_name)
         response_content = tag_content if tag_content else "No tag with that name!"
         await interaction.edit_original_response(content=response_content)
+
+    @discord.app_commands.command(name="github",
+                                  description="Get the bot's repo")
+    async def github(self, interaction: discord.Interaction) -> None:
+        await interaction.response.send_message("https://github.com/SartoRiccardo/ct-ticket-tracker/")
 
 
 async def setup(bot: commands.Bot) -> None:
