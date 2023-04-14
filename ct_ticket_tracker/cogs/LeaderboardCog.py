@@ -38,7 +38,7 @@ class LeaderboardCog(ErrorHandlerCog):
     @discord.app_commands.describe(channel="The channel to add it to.")
     @discord.app_commands.guild_only()
     @discord.app_commands.default_permissions(administrator=True)
-    @discord.app_commands.checks.has_permissions(administrator=True)
+    @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def add_leaderboard(self, interaction: discord.Interaction, channel: str) -> None:
         channel = channel.strip()
         if len(channel) <= 3 or not channel[2:-1].isnumeric():
@@ -54,7 +54,7 @@ class LeaderboardCog(ErrorHandlerCog):
     @discord.app_commands.describe(channel="The channel to remove it from.")
     @discord.app_commands.guild_only()
     @discord.app_commands.default_permissions(administrator=True)
-    @discord.app_commands.checks.has_permissions(administrator=True)
+    @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def remove_leaderboard(self, interaction: discord.Interaction, channel: str) -> None:
         channel = channel.strip()
         if len(channel) <= 3 or not channel[2:-1].isnumeric():

@@ -31,7 +31,7 @@ class TrackerCog(ErrorHandlerCog):
     @discord.app_commands.describe(channel="The channel to start tracking.")
     @discord.app_commands.guild_only()
     @discord.app_commands.default_permissions(administrator=True)
-    @discord.app_commands.checks.has_permissions(administrator=True)
+    @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def track(self, interaction: discord.Interaction, channel: str) -> None:
         channel = channel.strip()
         if len(channel) <= 3 or not channel[2:-1].isnumeric():
@@ -47,7 +47,7 @@ class TrackerCog(ErrorHandlerCog):
     @discord.app_commands.describe(channel="The channel to stop tracking.")
     @discord.app_commands.guild_only()
     @discord.app_commands.default_permissions(administrator=True)
-    @discord.app_commands.checks.has_permissions(administrator=True)
+    @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def untrack(self, interaction: discord.Interaction, channel: str) -> None:
         channel = channel.strip()
         if len(channel) <= 3 or not channel[2:-1].isnumeric():
@@ -64,7 +64,7 @@ class TrackerCog(ErrorHandlerCog):
                                    season="The CT season to check. Defaults to the current one.")
     @discord.app_commands.guild_only()
     @discord.app_commands.default_permissions(administrator=True)
-    @discord.app_commands.checks.has_permissions(administrator=True)
+    @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def tickets_list(self, interaction: discord.Interaction, channel: str, season: Optional[int] = 0) -> None:
         channel = channel.strip()
         if len(channel) <= 3 or not channel[2:-1].isnumeric():
@@ -80,7 +80,7 @@ class TrackerCog(ErrorHandlerCog):
         await interaction.response.defer(ephemeral=True)
 
         message = "`Member    ` | `D1` | `D2` | `D3` | `D4` | `D5` | `D6` | `D7`\n"
-        separator = "------------- + --- + --  + --  + --  + --- + --  + ---\n"
+        # separator = "------------- + --- + --  + --  + --  + --- + --  + ---\n"
         row = "`{:10.10}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}`\n"
 
         claims = await ct_ticket_tracker.db.queries.get_ticket_overview(channel_id, season)
@@ -104,7 +104,7 @@ class TrackerCog(ErrorHandlerCog):
             )
             for i in range(len(claims[member.id])):
                 total_claims[i] += len(claims[member.id][i])
-        message += separator + row.format("Total", *total_claims)
+        message += row.format("Total", *total_claims)
 
         await interaction.edit_original_response(content=message)
 
@@ -115,7 +115,7 @@ class TrackerCog(ErrorHandlerCog):
                                    season="The CT season to check. Defaults to the current one.")
     @discord.app_commands.guild_only()
     @discord.app_commands.default_permissions(administrator=True)
-    @discord.app_commands.checks.has_permissions(administrator=True)
+    @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def member_tickets(self, interaction: discord.Interaction, channel: str,
                              member: discord.Member, season: Optional[int] = 0) -> None:
         channel = channel.strip()
