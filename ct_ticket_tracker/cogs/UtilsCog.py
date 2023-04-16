@@ -194,15 +194,18 @@ class UtilsCog(ErrorHandlerCog):
             await interaction.response.send_message(
                 f"You've verified yourself as {bloons_user.name}! "
                 f"({f'Vet{bloons_user.veteran_rank}' if is_veteran else f'Lv{bloons_user.rank}'})\n\n"
-                "*Not who you are? Run the command with the correct account's OAK!*"
+                "*Not who you are? Run the command with the correct account's OAK!*",
+                ephemeral=True
             )
         except bloonspy.exceptions.NotFound:
             await interaction.response.send_message(
-                "Couldn't find a BTD6 user with that OAK! Are you sure it's the correct one?"
+                "Couldn't find a BTD6 user with that OAK! Are you sure it's the correct one?",
+                ephemeral=True
             )
         except asyncpg.exceptions.UniqueViolationError:
             await interaction.response.send_message(
-                "Someone else is already registered with that OAK!"
+                "Someone else is already registered with that OAK!",
+                ephemeral=True
             )
 
 
