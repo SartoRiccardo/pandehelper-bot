@@ -149,7 +149,7 @@ class UtilsCog(ErrorHandlerCog):
                        "🔹 Open Bloons TD6 (or Battles 2) > Settings > My Account > Open Data API (it's a small " \
                        "link in the bottom right) > Generate Key. Your OAK should look something like " \
                        "`oak_h6ea...p1hr`.\n" \
-                       "🔹 Copy it and, __in DMs__, do /iam and paste your OAK as a parameter. Congrats, you " \
+                       "🔹 Copy it and, __in DMs__, do /verify and paste your OAK as a parameter. Congrats, you " \
                        "have verified yourself!\n\n" \
                        "__**What if I have alts?**__\n" \
                        "Sorry, only one Discord account per OAK for this bot (too lazy to code it). :(\n\n" \
@@ -191,7 +191,7 @@ class UtilsCog(ErrorHandlerCog):
             is_veteran = bloons_user.veteran_rank > 0
             await ct_ticket_tracker.db.queries.set_oak(user.id, oak)
             await interaction.response.send_message(
-                f"You've verified as {bloons_user.name}! "
+                f"You've verified yourself as {bloons_user.name}! "
                 f"({f'Vet{bloons_user.veteran_rank}' if is_veteran else f'Lv{bloons_user.rank}'})\n\n"
                 "*Not who you are? Run the command with the correct account's OAK!*"
             )
