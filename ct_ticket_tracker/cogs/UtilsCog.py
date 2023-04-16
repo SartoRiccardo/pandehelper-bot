@@ -183,7 +183,8 @@ class UtilsCog(ErrorHandlerCog):
 
         if re.match(r"oak_[\da-z]{32}", oak) is None:
             await interaction.response.send_message(
-                "Your OAK is not well formatted! it should be `oak_` followed by 32 numbers and/or lowercase letters!"
+                "Your OAK is not well formatted! it should be `oak_` followed by 32 numbers and/or lowercase letters!",
+                ephemeral=True
             )
             return
 
