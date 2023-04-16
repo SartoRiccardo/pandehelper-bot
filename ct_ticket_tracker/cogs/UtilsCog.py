@@ -138,6 +138,7 @@ class UtilsCog(ErrorHandlerCog):
 
     @discord.app_commands.command(name="verify",
                                   description="Verify who you are in Bloons TD 6!")
+    @discord.app_commands.describe(oak="Your Open Access Key (leave blank if you don't know what that is)")
     async def verify(self, interaction: discord.Interaction, oak: str = None) -> None:
         user = interaction.user
         instructions = "__**About verification**__\n" \
