@@ -114,3 +114,18 @@ async def remove_leaderboard_channel(guild: int, channel: int, conn=None) -> Non
 async def leaderboard_channels(conn=None) -> List[Tuple[int, int]]:
     payload = await conn.fetch("SELECT guild, channel FROM lbchannels")
     return [(row["guild"], row["channel"]) for row in payload]
+
+
+@postgres
+async def get_oak(user: int, conn=None) -> str or None:
+    payload = await conn.fetch("SELECT oak FROM btd6players WHERE userid=$1", user)
+    return payload[0]["oak"] if len(payload) > 0 else None
+
+
+@postgres
+async def set_oak(user: int, oak: str, conn=None) -> None:
+    saved_oak = await get_oak(user)
+    if saved_oak:
+        await conn.execute("UPDATE btd6players SET oak=$2 WHERE userid=$1", user, oak)
+    else:
+        await conn.execute("INSERT INTO btd6players(userid, oak) VALUES ($1, $2)", user, oak)

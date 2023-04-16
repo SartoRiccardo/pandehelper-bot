@@ -18,10 +18,11 @@ CREATE TABLE IF NOT EXISTS lbchannels (
     PRIMARY KEY(guild, channel)
 );
 
-CREATE TABLE IF NOT EXISTS tags (
-    tag_name VARCHAR(30) NOT NULL,
-    content TEXT NOT NULL,
-    PRIMARY KEY(tag_name)
+CREATE TABLE IF NOT EXISTS btd6players (
+    userid BIGINT NOT NULL,
+    oak VARCHAR(40) NOT NULL,
+    PRIMARY KEY(userid),
+    UNIQUE(oak)
 );
 
 ALTER TABLE claims ADD CONSTRAINT fk_teams_1
