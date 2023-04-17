@@ -7,3 +7,7 @@ EVENT_DURATION = 7
 
 def get_ct_number_during(time: datetime.datetime) -> int:
     return int((time-FIRST_CT_START).days / (EVENT_DURATION*2)) + 1
+
+
+def get_current_ct_number() -> int:
+    return get_ct_number_during(datetime.datetime.now())+1

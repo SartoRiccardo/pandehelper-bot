@@ -150,8 +150,8 @@ class UtilsCog(ErrorHandlerCog):
                        "🔹 Open Bloons TD6 (or Battles 2) > Settings > My Account > Open Data API (it's a small " \
                        "link in the bottom right) > Generate Key. Your OAK should look something like " \
                        "`oak_h6ea...p1hr`.\n" \
-                       "🔹 Copy it and, __in DMs__, do /verify and paste your OAK as a parameter. Congrats, you " \
-                       "have verified yourself!\n\n" \
+                       "🔹 Copy it (note: the \"Copy\" button doesn't work, so just manually select it and do ctrl+C) " \
+                       "and, do /verify and paste your OAK as a parameter. Congrats, you have verified yourself!\n\n" \
                        "__**What if I have alts?**__\n" \
                        "Sorry, only one Discord account per OAK for this bot (too lazy to code it). :(\n\n" \
                        "__**More information**__\n" \
