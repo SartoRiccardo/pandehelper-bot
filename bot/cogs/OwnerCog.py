@@ -16,7 +16,7 @@ def is_owner():
 
 class OwnerCog(commands.Cog):
     ERROR_MESSAGE = "**ERROR:** {} - {}"
-    COG_PATH_TEMPLATE = "ct_ticket_tracker.cogs.{}Cog"
+    COG_PATH_TEMPLATE = "bot.cogs.{}Cog"
 
     def __init__(self, bot):
         self.bot = bot

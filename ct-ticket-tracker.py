@@ -19,7 +19,7 @@ class CtTicketTracker(commands.Bot):
         await bot.db.connection.start()
         cogs = ["OwnerCog", "TrackerCog", "LeaderboardCog", "RaidLogCog", "UtilsCog"]
         for cog in cogs:
-            await self.load_extension(f"ct_ticket_tracker.cogs.{cog}")
+            await self.load_extension(f"bot.cogs.{cog}")
 
 
 if __name__ == '__main__':
