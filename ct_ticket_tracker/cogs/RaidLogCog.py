@@ -15,7 +15,7 @@ class RaidLogCog(ErrorHandlerCog):
     async def cmd_raid_log_thread(self, interaction: discord.Interaction, tile_code: str) -> None:
         forum_id = 1049000279099588719
 
-        tile_re = r"[A-GM][A-GR][A-GX]"
+        tile_re = r"[A-GM][A-GR][A-HX]"
         tile_code = tile_code.upper()
         if re.search(tile_re, tile_code) is None:
             await interaction.response.send_message(f"The tile {tile_code} doesn't exist!",
@@ -57,7 +57,7 @@ class RaidLogCog(ErrorHandlerCog):
     @discord.app_commands.guild_only()
     async def cmd_raidlog_reset(self, interaction: discord.Interaction) -> None:
         forum_id = 1049000279099588719
-        tile_re = r"[A-GM][A-GR][A-GX]"
+        tile_re = r"[A-GM][A-GR][A-HX]"
 
         await interaction.response.send_message(
             "Announcing a new season in Raid Log! It might take a while...",
