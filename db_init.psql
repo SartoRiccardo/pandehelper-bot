@@ -25,5 +25,11 @@ CREATE TABLE IF NOT EXISTS btd6players (
     UNIQUE(oak)
 );
 
+CREATE TABLE IF NOT EXISTS tilestratforums (
+    guildid BIGINT NOT NULL,
+    forumid BIGINT NOT NULL,
+    PRIMARY KEY(guildid)
+);
+
 ALTER TABLE claims ADD CONSTRAINT fk_teams_1
     FOREIGN KEY (channel) REFERENCES teams(channel) ON DELETE CASCADE;

@@ -91,7 +91,7 @@ class UtilsCog(ErrorHandlerCog):
                                   description="Get info about the bot's commands.")
     @discord.app_commands.describe(module="The module to get info for.")
     async def send_help_msg(self, interaction: discord.Interaction, module: str = None) -> None:
-        blacklisted_cogs = ["owner", "raidlog"]
+        blacklisted_cogs = ["owner"]
         if module is None:
             cogs = [cog.replace("Cog", "").lower() for cog in self.bot.cogs.keys()]
             for blck_cog in blacklisted_cogs:
