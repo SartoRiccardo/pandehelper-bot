@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
-from ct_ticket_tracker.classes import ErrorHandlerCog
-import ct_ticket_tracker.utils.bloons
+from bot.classes import ErrorHandlerCog
+import bot.utils.bloons
 import re
 
 
@@ -84,7 +84,7 @@ class RaidLogCog(ErrorHandlerCog):
         await interaction.edit_original_response(content="All done!")
 
     async def announce_ct_season_raidlog(self, channel: discord.Thread) -> None:
-        ct_num = ct_ticket_tracker.utils.bloons.get_current_ct_number(breakpoint_on_event_start=False)
+        ct_num = bot.utils.bloons.get_current_ct_number(breakpoint_on_event_start=False)
         season_message = f"__**— CONTESTED TERRITORY {ct_num} —**__"
 
         last_message = channel.last_message

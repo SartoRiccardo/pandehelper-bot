@@ -2,7 +2,7 @@ import discord
 import traceback
 from discord.ext import commands
 from .HelpMessageCog import HelpMessageCog
-from ct_ticket_tracker.exceptions import WrongChannelMention
+from bot.exceptions import WrongChannelMention
 
 
 class ErrorHandlerCog(HelpMessageCog):

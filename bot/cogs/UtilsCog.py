@@ -3,11 +3,11 @@ import re
 import asyncpg.exceptions
 import bloonspy
 import bloonspy.exceptions
-import ct_ticket_tracker.utils.io
-import ct_ticket_tracker.db.queries
+import bot.utils.io
+import bot.db.queries
 import discord
 from discord.ext import commands
-from ct_ticket_tracker.classes import ErrorHandlerCog
+from bot.classes import ErrorHandlerCog
 
 
 class UtilsCog(ErrorHandlerCog):
@@ -31,7 +31,7 @@ class UtilsCog(ErrorHandlerCog):
             await interaction.response.send_message(f"{end_round} is not a valid round.")
             return
 
-        rounds = await asyncio.to_thread(ct_ticket_tracker.utils.io.get_race_rounds)
+        rounds = await asyncio.to_thread(bot.utils.io.get_race_rounds)
         start_round = 0
         round_checkpoints = []
         while start_round < end_round:
@@ -124,10 +124,10 @@ class UtilsCog(ErrorHandlerCog):
     async def send_tag(self, interaction: discord.Interaction, tag_name: str = None) -> None:
         await interaction.response.defer()
         if tag_name is None:
-            tags = await asyncio.to_thread(ct_ticket_tracker.utils.io.get_tag_list)
+            tags = await asyncio.to_thread(bot.utils.io.get_tag_list)
             await interaction.edit_original_response(content=f"Tags: `{'` `'.join(tags)}`")
             return
-        tag_content = await asyncio.to_thread(ct_ticket_tracker.utils.io.get_tag, tag_name)
+        tag_content = await asyncio.to_thread(bot.utils.io.get_tag, tag_name)
         response_content = tag_content if tag_content else "No tag with that name!"
         await interaction.edit_original_response(content=response_content)
 
@@ -159,7 +159,7 @@ class UtilsCog(ErrorHandlerCog):
 
         if oak is None:
             await interaction.response.defer()
-            oak = await ct_ticket_tracker.db.queries.get_oak(user.id)
+            oak = await bot.db.queries.get_oak(user.id)
             bloons_user = None
             if oak:
                 try:
@@ -192,7 +192,7 @@ class UtilsCog(ErrorHandlerCog):
         try:
             bloons_user = bloonspy.Client.get_user(oak)
             is_veteran = bloons_user.veteran_rank > 0
-            await ct_ticket_tracker.db.queries.set_oak(user.id, oak)
+            await bot.db.queries.set_oak(user.id, oak)
             await interaction.response.send_message(
                 f"You've verified yourself as {bloons_user.name}! "
                 f"({f'Vet{bloons_user.veteran_rank}' if is_veteran else f'Lv{bloons_user.rank}'})\n\n"

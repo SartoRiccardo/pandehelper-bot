@@ -1,11 +1,11 @@
 import time
 import datetime
-import ct_ticket_tracker.db.connection
-import ct_ticket_tracker.utils.bloons
+import bot.db.connection
+import bot.utils.bloons
 from typing import List, Dict, Tuple
 from .model.TileCapture import TileCapture
-postgres = ct_ticket_tracker.db.connection.postgres
-bloons = ct_ticket_tracker.utils.bloons
+postgres = bot.db.connection.postgres
+bloons = bot.utils.bloons
 
 
 @postgres

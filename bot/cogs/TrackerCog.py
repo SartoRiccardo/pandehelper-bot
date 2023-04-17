@@ -3,10 +3,10 @@ import datetime
 import discord
 from discord.ext import commands
 import re
-import ct_ticket_tracker.db.queries
-import ct_ticket_tracker.utils.bloons
-from ct_ticket_tracker.exceptions import WrongChannelMention
-from ct_ticket_tracker.classes import ErrorHandlerCog
+import bot.db.queries
+import bot.utils.bloons
+from bot.exceptions import WrongChannelMention
+from bot.classes import ErrorHandlerCog
 from typing import Optional
 
 
@@ -40,7 +40,7 @@ class TrackerCog(ErrorHandlerCog):
         if not discord.utils.get(interaction.guild.text_channels, id=channel_id):
             raise WrongChannelMention()
 
-        await ct_ticket_tracker.db.queries.track_channel(channel_id)
+        await bot.db.queries.track_channel(channel_id)
         await interaction.response.send_message(f"I am now tracking <#{channel_id}>", ephemeral=True)
 
     @tickets_group.command(name="untrack", description="Stop tracking a channel.")
@@ -56,7 +56,7 @@ class TrackerCog(ErrorHandlerCog):
         if not discord.utils.get(interaction.guild.text_channels, id=channel_id):
             raise WrongChannelMention()
 
-        await ct_ticket_tracker.db.queries.untrack_channel(channel_id)
+        await bot.db.queries.untrack_channel(channel_id)
         await interaction.response.send_message(f"I am no longer tracking <#{channel_id}>", ephemeral=True)
 
     @tickets_group.command(name="view", description="See how many tickets each member used.")
@@ -73,7 +73,7 @@ class TrackerCog(ErrorHandlerCog):
         if not discord.utils.get(interaction.guild.text_channels, id=channel_id):
             raise WrongChannelMention()
 
-        if channel_id not in (await ct_ticket_tracker.db.queries.tracked_channels()):
+        if channel_id not in (await bot.db.queries.tracked_channels()):
             await interaction.response.send_message("That channel is not being tracked!", ephemeral=True)
             return
 
@@ -83,7 +83,7 @@ class TrackerCog(ErrorHandlerCog):
         # separator = "------------- + --- + --  + --  + --  + --- + --  + ---\n"
         row = "`{:10.10}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}`\n"
 
-        claims = await ct_ticket_tracker.db.queries.get_ticket_overview(channel_id, season)
+        claims = await bot.db.queries.get_ticket_overview(channel_id, season)
 
         async def get_member(uid: int) -> discord.Member:
             member = interaction.guild.get_member(uid)
@@ -125,14 +125,14 @@ class TrackerCog(ErrorHandlerCog):
         if not discord.utils.get(interaction.guild.text_channels, id=channel_id):
             raise WrongChannelMention()
 
-        if channel_id not in (await ct_ticket_tracker.db.queries.tracked_channels()):
+        if channel_id not in (await bot.db.queries.tracked_channels()):
             await interaction.response.send_message("That channel is not being tracked!", ephemeral=True)
             return
 
         await interaction.response.send_message("Just a moment...", ephemeral=True)
         if season == 0:
-            season = ct_ticket_tracker.utils.bloons.get_ct_number_during(datetime.datetime.now())
-        member_activity = await ct_ticket_tracker.db.queries.get_tickets_from(member.id, channel_id, season)
+            season = bot.utils.bloons.get_ct_number_during(datetime.datetime.now())
+        member_activity = await bot.db.queries.get_tickets_from(member.id, channel_id, season)
 
         embed = discord.Embed(
             title=f"{member.display_name}'s Tickets (CT {season})",
@@ -154,7 +154,7 @@ class TrackerCog(ErrorHandlerCog):
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent) -> None:
         if str(payload.emoji) not in ["✅", "👍"] or \
-                payload.channel_id not in (await ct_ticket_tracker.db.queries.tracked_channels()):
+                payload.channel_id not in (await bot.db.queries.tracked_channels()):
             return
 
         tile_re = r"[a-gA-GMm][a-gA-GRr][a-hA-HXx]"
@@ -164,12 +164,12 @@ class TrackerCog(ErrorHandlerCog):
         if match is None:
             return
         tile = match.group(0).upper()
-        await ct_ticket_tracker.db.queries.capture(payload.channel_id, message.author.id, tile, payload.message_id)
+        await bot.db.queries.capture(payload.channel_id, message.author.id, tile, payload.message_id)
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent) -> None:
         if str(payload.emoji) not in ["✅", "👍"] or \
-                payload.channel_id not in (await ct_ticket_tracker.db.queries.tracked_channels()):
+                payload.channel_id not in (await bot.db.queries.tracked_channels()):
             return
 
         channel = self.bot.get_channel(payload.channel_id)
@@ -177,7 +177,7 @@ class TrackerCog(ErrorHandlerCog):
         for reaction in message.reactions:
             if reaction.emoji in ["✅", "👍"]:
                 return
-        await ct_ticket_tracker.db.queries.uncapture(payload.message_id)
+        await bot.db.queries.uncapture(payload.message_id)
 
 
 async def setup(bot: commands.Bot) -> None:

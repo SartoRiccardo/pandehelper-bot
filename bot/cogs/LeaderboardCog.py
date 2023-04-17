@@ -4,9 +4,9 @@ import discord
 from discord.ext import tasks, commands
 import time
 import asyncio
-import ct_ticket_tracker.db.queries
-from ct_ticket_tracker.classes import ErrorHandlerCog
-from ct_ticket_tracker.exceptions import WrongChannelMention
+import bot.db.queries
+from bot.classes import ErrorHandlerCog
+from bot.exceptions import WrongChannelMention
 
 
 class LeaderboardCog(ErrorHandlerCog):
@@ -47,7 +47,7 @@ class LeaderboardCog(ErrorHandlerCog):
         if not discord.utils.get(interaction.guild.text_channels, id=channel_id):
             raise WrongChannelMention()
 
-        await ct_ticket_tracker.db.queries.add_leaderboard_channel(interaction.guild.id, channel_id)
+        await bot.db.queries.add_leaderboard_channel(interaction.guild.id, channel_id)
         await interaction.response.send_message(f"Leaderboard added to <#{channel_id}>!", ephemeral=True)
 
     @leaderboard_group.command(name="remove", description="Remove a leaderboard from a channel.")
@@ -63,7 +63,7 @@ class LeaderboardCog(ErrorHandlerCog):
         if not discord.utils.get(interaction.guild.text_channels, id=channel_id):
             raise WrongChannelMention()
 
-        await ct_ticket_tracker.db.queries.remove_leaderboard_channel(interaction.guild.id, channel_id)
+        await bot.db.queries.remove_leaderboard_channel(interaction.guild.id, channel_id)
         await interaction.response.send_message(f"Leaderboard removed from <#{channel_id}>!", ephemeral=True)
 
     @tasks.loop(seconds=10)
@@ -120,14 +120,14 @@ class LeaderboardCog(ErrorHandlerCog):
         self.first_run = False
 
     async def send_leaderboard(self, messages):
-        channels = await ct_ticket_tracker.db.queries.leaderboard_channels()
+        channels = await bot.db.queries.leaderboard_channels()
         for guild_id, channel_id in channels:
             guild = self.bot.get_guild(guild_id)
             if guild is None:
                 try:
                     guild = await self.bot.fetch_guild(guild_id)
                 except discord.NotFound:
-                    await ct_ticket_tracker.db.queries.remove_leaderboard_channel(guild_id, channel_id)
+                    await bot.db.queries.remove_leaderboard_channel(guild_id, channel_id)
                     continue
 
             channel = guild.get_channel(channel_id)
@@ -135,7 +135,7 @@ class LeaderboardCog(ErrorHandlerCog):
                 try:
                     channel = await guild.fetch_channel(channel_id)
                 except discord.NotFound:
-                    await ct_ticket_tracker.db.queries.remove_leaderboard_channel(guild_id, channel_id)
+                    await bot.db.queries.remove_leaderboard_channel(guild_id, channel_id)
                     continue
 
             leaderboard_messages = []
