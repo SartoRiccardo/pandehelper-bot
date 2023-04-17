@@ -20,6 +20,7 @@ class RaidLogCog(ErrorHandlerCog):
         if re.search(tile_re, tile_code) is None:
             await interaction.response.send_message(f"The tile {tile_code} doesn't exist!",
                                                     ephemeral=True)
+            return
 
         await interaction.response.defer()
         try:
