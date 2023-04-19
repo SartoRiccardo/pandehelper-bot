@@ -5,7 +5,6 @@ from discord.ext import commands
 import re
 import bot.db.queries
 import bot.utils.bloons
-from bot.exceptions import WrongChannelMention
 from bot.classes import ErrorHandlerCog
 from typing import Optional
 

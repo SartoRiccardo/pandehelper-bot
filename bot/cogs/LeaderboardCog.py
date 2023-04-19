@@ -6,7 +6,6 @@ import time
 import asyncio
 import bot.db.queries
 from bot.classes import ErrorHandlerCog
-from bot.exceptions import WrongChannelMention
 
 
 class LeaderboardCog(ErrorHandlerCog):
@@ -14,9 +13,10 @@ class LeaderboardCog(ErrorHandlerCog):
     help_descriptions = {
         "leaderboard": {
             "add": "Sets a channel as a leaderboard channel. The Top 100 Global leaderboard will "
-                   "appear there and be updated every hour.",
-            "remove": "Removes the leaderboard from a channel previously added with [[add]]."
-                      " That channel will no longer be updated."
+                   "appear there and be updated every hour.\n"
+                   "__It is recommended to set it on a read-only channel.__",
+            "remove": "Removes the leaderboard from a channel previously added with [[add]]. "
+                      "That channel will no longer be updated."
         }
     }
 
