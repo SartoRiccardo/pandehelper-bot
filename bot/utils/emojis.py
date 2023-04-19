@@ -1,0 +1,8 @@
+
+# Leaderboard
+TOP_1_GLOBAL = "🥇"
+TOP_2_GLOBAL = "🥈"
+TOP_3_GLOBAL = "🥉"
+TOP_25_GLOBAL = "<:top25:1072145878602760214>"
+ECO = "🔺"
+NEW_TEAM = "🆕"

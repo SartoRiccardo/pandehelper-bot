@@ -8,6 +8,7 @@ import bot.db.queries
 import bot.utils.io
 from bot.classes import ErrorHandlerCog
 from typing import Dict, Any
+from bot.utils.emojis import TOP_1_GLOBAL, TOP_2_GLOBAL, TOP_3_GLOBAL, TOP_25_GLOBAL, ECO, NEW_TEAM
 
 
 class LeaderboardCog(ErrorHandlerCog):
@@ -82,9 +83,9 @@ class LeaderboardCog(ErrorHandlerCog):
     async def track_leaderboard(self) -> None:
         msg_header = "Team                                                 |    Points (Gained)" + "\n" + \
                      "------------------------------   +  ----------------------"
-        placements_emojis = ["🥇", "🥈", "🥉"] + ["<:top25:1072145878602760214>"]*(25-3)
+        placements_emojis = [TOP_1_GLOBAL, TOP_2_GLOBAL, TOP_3_GLOBAL] + [TOP_25_GLOBAL]*(25-3)
         row_template = "{} `{: <20}`    | `{: <7,}`"
-        eco_template = " (🔺 `{: <4}`)"
+        eco_template = " (" + ECO + " `{: <4}`)"
 
         now = datetime.now()
         if now < self.next_update:
@@ -116,7 +117,7 @@ class LeaderboardCog(ErrorHandlerCog):
                 score_gained = team.score - self.last_hour_score[team.id]
                 message_current += eco_template.format(score_gained)
             elif not self.first_run:
-                message_current += " 🆕"
+                message_current += f" {NEW_TEAM}"
             current_hour_score[team.id] = team.score
 
             if (i+1) % 20 == 0 or i == len(leaderboard)-1:
