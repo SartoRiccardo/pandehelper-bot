@@ -5,7 +5,9 @@ from discord.ext import tasks, commands
 import time
 import asyncio
 import bot.db.queries
+import bot.utils.io
 from bot.classes import ErrorHandlerCog
+from typing import Dict, Any
 
 
 class LeaderboardCog(ErrorHandlerCog):
@@ -23,16 +25,40 @@ class LeaderboardCog(ErrorHandlerCog):
     def __init__(self, bot: commands.Bot) -> None:
         super().__init__(bot)
 
-        self.last_hour_score = {}
+        self.last_hour_score: Dict[str, int] = {}
         self.current_ct_id = ""
         self.first_run = True
         self.next_update = datetime.now().replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
 
-    def cog_load(self) -> None:
+    async def cog_load(self) -> None:
+        await self.load_state()
         self.track_leaderboard.start()
 
     def cog_unload(self) -> None:
         self.track_leaderboard.cancel()
+
+    async def load_state(self) -> None:
+        state = await asyncio.to_thread(bot.utils.io.get_cog_state, "leaderboard")
+        if state is None:
+            return
+
+        saved_at = datetime.fromtimestamp(state["saved_at"])
+        if self.next_update-saved_at > timedelta(hours=1):
+            return
+
+        data = state["data"]
+        if "current_ct_id" in data:
+            self.current_ct_id = data["current_ct_id"]
+        if "last_hour_score" in data:
+            self.last_hour_score = data["last_hour_score"]
+        self.first_run = False
+
+    async def save_state(self) -> None:
+        data = {
+            "current_ct_id": self.current_ct_id,
+            "last_hour_score": self.last_hour_score,
+        }
+        await asyncio.to_thread(bot.utils.io.save_cog_state, "leaderboard", data)
 
     @leaderboard_group.command(name="add", description="Add a leaderboard to a channel.")
     @discord.app_commands.describe(channel="The channel to add it to.")
@@ -104,6 +130,8 @@ class LeaderboardCog(ErrorHandlerCog):
 
         await self.send_leaderboard(messages)
         self.first_run = False
+
+        await self.save_state()
 
     async def send_leaderboard(self, messages):
         channels = await bot.db.queries.leaderboard_channels()
