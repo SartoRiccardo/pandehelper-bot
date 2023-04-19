@@ -42,7 +42,7 @@ You can do 2 things for race tiles, which one is up to you:
 class RaidLogCog(ErrorHandlerCog):
     help_descriptions = {
         None: "Manages a forum to post tile strategies",
-        "tilestratforum": {
+        "tilestrat-forum": {
             "create": "Creates a new Tile Strat forum. You can rename it & set the perms to whatever you want",
             "set": "Sets an existing channel as the Tile Strat forum. Using [[create]] is recommended though.",
             "unset": "Makes the bot stop tracking the current Tile Strat forum.",
@@ -51,7 +51,7 @@ class RaidLogCog(ErrorHandlerCog):
     }
 
     group_tilestratchannel = discord.app_commands.Group(
-        name="tilestratchannel",
+        name="tilestrat-forum",
         description="Manage the Tile Strat forum."
     )
 
@@ -142,11 +142,7 @@ class RaidLogCog(ErrorHandlerCog):
     @discord.app_commands.guild_only()
     async def cmd_create_raidlog(self, interaction: discord.Interaction) -> None:
         forum = await interaction.guild.create_forum("tile-strats")
-
-        await bot.db.queries.set_tile_strat_forum(interaction.guild_id, forum.id)
-        await interaction.response.send_message(
-            f"Done! <#{forum.id}> is now your Tile Strats forum!"
-        )
+        await self.set_raidlog(interaction, forum)
 
     @group_tilestratchannel.command(
         name="set",
@@ -155,22 +151,8 @@ class RaidLogCog(ErrorHandlerCog):
     @discord.app_commands.describe(channel="The forum to set as the server's Tile Strats forum")
     @discord.app_commands.checks.has_permissions(manage_guild=True)
     @discord.app_commands.guild_only()
-    async def cmd_set_raidlog(self, interaction: discord.Interaction, channel: str) -> None:
-        channel = channel.strip()
-        if len(channel) <= 3 or not channel[2:-1].isnumeric():
-            raise WrongChannelMention()
-        channel_id = int(channel[2:-1])
-        print(channel_id)
-        forum = discord.utils.get(interaction.guild.forums, id=channel_id)
-        if not forum:
-            raise WrongChannelMention()
-        if not isinstance(forum, discord.ForumChannel):
-            raise MustBeForum()
-
-        await bot.db.queries.set_tile_strat_forum(interaction.guild_id, channel_id)
-        await interaction.response.send_message(
-            f"Done! <#{channel_id}> is now your Tile Strats forum!"
-        )
+    async def cmd_set_raidlog(self, interaction: discord.Interaction, forum: discord.ForumChannel) -> None:
+        await self.set_raidlog(interaction, forum)
 
     @group_tilestratchannel.command(name="unset", description="Stop tracking the current Tile Strats forum")
     @discord.app_commands.checks.has_permissions(manage_guild=True)
@@ -228,8 +210,15 @@ class RaidLogCog(ErrorHandlerCog):
         )
 
     @staticmethod
-    def get_channel_url(channel: discord.abc.MessageableChannel):
+    def get_channel_url(channel: discord.Thread):
         return f"https://discord.com/channels/{channel.guild.id}/{channel.id}"
+
+    @staticmethod
+    async def set_raidlog(interaction: discord.Interaction, forum: discord.ForumChannel):
+        await bot.db.queries.set_tile_strat_forum(interaction.guild_id, forum.id)
+        await interaction.response.send_message(
+            f"Done! <#{forum.id}> is now your Tile Strats forum!"
+        )
 
 
 async def setup(bot: commands.Bot) -> None:
