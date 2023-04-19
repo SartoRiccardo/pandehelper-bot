@@ -39,32 +39,18 @@ class LeaderboardCog(ErrorHandlerCog):
     @discord.app_commands.guild_only()
     @discord.app_commands.default_permissions(administrator=True)
     @discord.app_commands.checks.has_permissions(manage_guild=True)
-    async def add_leaderboard(self, interaction: discord.Interaction, channel: str) -> None:
-        channel = channel.strip()
-        if len(channel) <= 3 or not channel[2:-1].isnumeric():
-            raise WrongChannelMention()
-        channel_id = int(channel[2:-1])
-        if not discord.utils.get(interaction.guild.text_channels, id=channel_id):
-            raise WrongChannelMention()
-
-        await bot.db.queries.add_leaderboard_channel(interaction.guild.id, channel_id)
-        await interaction.response.send_message(f"Leaderboard added to <#{channel_id}>!", ephemeral=True)
+    async def add_leaderboard(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
+        await bot.db.queries.add_leaderboard_channel(interaction.guild.id, channel.id)
+        await interaction.response.send_message(f"Leaderboard added to <#{channel.id}>!", ephemeral=True)
 
     @leaderboard_group.command(name="remove", description="Remove a leaderboard from a channel.")
     @discord.app_commands.describe(channel="The channel to remove it from.")
     @discord.app_commands.guild_only()
     @discord.app_commands.default_permissions(administrator=True)
     @discord.app_commands.checks.has_permissions(manage_guild=True)
-    async def remove_leaderboard(self, interaction: discord.Interaction, channel: str) -> None:
-        channel = channel.strip()
-        if len(channel) <= 3 or not channel[2:-1].isnumeric():
-            raise WrongChannelMention()
-        channel_id = int(channel[2:-1])
-        if not discord.utils.get(interaction.guild.text_channels, id=channel_id):
-            raise WrongChannelMention()
-
-        await bot.db.queries.remove_leaderboard_channel(interaction.guild.id, channel_id)
-        await interaction.response.send_message(f"Leaderboard removed from <#{channel_id}>!", ephemeral=True)
+    async def remove_leaderboard(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
+        await bot.db.queries.remove_leaderboard_channel(interaction.guild.id, channel.id)
+        await interaction.response.send_message(f"Leaderboard removed from <#{channel.id}>!", ephemeral=True)
 
     @tasks.loop(seconds=10)
     async def track_leaderboard(self) -> None:
