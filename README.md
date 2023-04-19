@@ -1,34 +1,33 @@
 # CT Ticket Tracker
-Tracks ticket usage on Pandemonium.
+Originally a bot to track ticket usage in Pandemonium, it grew out of its scope and can now
+be a versatile helper for many Contested territory Teams.
 
-## Usage
+# Usage
 
-Requires a postgres database
+If you are not interested in hosting your own instace, the `/help` command should provide all
+the information you need.
 
-### Setup
+# Hosting your own instance
+
+## Requirements
+1. A PostgreSQL database
+   * If you can't get one, you must rewrite all functions in `cogs/db` to fit the stack you're using
+2. Python 3.10 or higher
+
+## Setup
 
 1. Clone the repo
-2. Install the dependencies in `requirements.txt`
-3. Rename `config.example.py` into `config.py` and fill it out accordingly
-4. Execute the contents of `db_init.sql` into your postgres database
-5. Run the `ct-ticket-tracker.py`
+```bash
+git clone https://github.com/SartoRiccardo/ct-ticket-tracker/
+```
+2. Install Python dependencies
+```bash
+python -m pip install -r requirements.txt
+```
+3. Rename `config.example.py` into `config.py` and populate it accordingly
+4. Execute the contents of `db_init.sql` into your PostgreSQL database
+   * Make sure the user you set in `config.py` has read/write permissions on that database and its tables
+5. Change the emojis in `bot/utils/emojis.py`, chances are they'll be broken
+6. Run `ct-ticket-tracker.py`
 
-### Setting up the tile log channel
-
-Type `,,,track [channel-mention]`. The bot will start checking that channel for tile claims.
-
-To unclaim a channel, type `,,,untrack [channel-mention]`.
-
-**You need admin perms to run these commands.**
-
-### Check ticket usage
-
-To check ticket usage, type `,,,tickets [channel-mention]`. This will tell you how many tiles were claim by each user on which days on that channel.
-
-To check past events, type `,,,tickets [channel-mention] [event-number]`.
-
-**You need admin perms to run this command.**
-
-### Logging a tile
-
-A tile is considered logged when a member reacts to the tile claim message with ✅ or 👍.
+And you're done! ✨
