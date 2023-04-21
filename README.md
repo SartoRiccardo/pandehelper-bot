@@ -28,6 +28,8 @@ python -m pip install -r requirements.txt
 4. Execute the contents of `db_init.sql` into your PostgreSQL database
    * Make sure the user you set in `config.py` has read/write permissions on that database and its tables
 5. Change the emojis in `bot/utils/emojis.py`, chances are they'll be broken
-6. Run `ct-ticket-tracker.py`
+6. Rename `bot/files/json/tags.example.json` into `bot/files/json/tags.json`
+   1. Add/edit new tags if you want to
+7. Run `ct-ticket-tracker.py`
 
 And you're done! ✨
