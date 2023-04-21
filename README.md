@@ -31,5 +31,6 @@ python -m pip install -r requirements.txt
 6. Rename `bot/files/json/tags.example.json` into `bot/files/json/tags.json`
    1. Add/edit new tags if you want to
 7. Run `ct-ticket-tracker.py`
+8. To register its commands, type `,,,sync` to register them in all servers, or `,,,sync .` if you just want to sync them in your current guild.
 
 And you're done! ✨

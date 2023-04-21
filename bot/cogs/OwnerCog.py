@@ -31,8 +31,8 @@ class OwnerCog(commands.Cog):
             synced = await ctx.bot.tree.sync(guild=ctx.guild)
         else:
             synced = await ctx.bot.tree.sync()
+            self.bot.synced_tree = synced
         await ctx.send(f"Synced {len(synced)} commands ({'globally' if where is None else 'here'}).")
-        self.bot.synced_tree = synced
 
     @commands.group(aliases=["cogs"])
     @is_owner()

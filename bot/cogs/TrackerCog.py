@@ -31,7 +31,7 @@ class TrackerCog(ErrorHandlerCog):
     @discord.app_commands.guild_only()
     @discord.app_commands.default_permissions(administrator=True)
     @discord.app_commands.checks.has_permissions(manage_guild=True)
-    async def track(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
+    async def cmd_track(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
         await bot.db.queries.track_channel(channel.id)
         await interaction.response.send_message(f"I am now tracking <#{channel.id}>", ephemeral=True)
 
@@ -40,7 +40,7 @@ class TrackerCog(ErrorHandlerCog):
     @discord.app_commands.guild_only()
     @discord.app_commands.default_permissions(administrator=True)
     @discord.app_commands.checks.has_permissions(manage_guild=True)
-    async def untrack(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
+    async def cmd_untrack(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
         await bot.db.queries.untrack_channel(channel.id)
         await interaction.response.send_message(f"I am no longer tracking <#{channel.id}>", ephemeral=True)
 
@@ -50,7 +50,7 @@ class TrackerCog(ErrorHandlerCog):
     @discord.app_commands.guild_only()
     @discord.app_commands.default_permissions(administrator=True)
     @discord.app_commands.checks.has_permissions(manage_guild=True)
-    async def tickets_list(self, interaction: discord.Interaction, channel: discord.TextChannel, season: Optional[int] = 0) -> None:
+    async def cmd_tickets_list(self, interaction: discord.Interaction, channel: discord.TextChannel, season: Optional[int] = 0) -> None:
         if channel.id not in (await bot.db.queries.tracked_channels()):
             await interaction.response.send_message("That channel is not being tracked!", ephemeral=True)
             return
@@ -94,8 +94,8 @@ class TrackerCog(ErrorHandlerCog):
     @discord.app_commands.guild_only()
     @discord.app_commands.default_permissions(administrator=True)
     @discord.app_commands.checks.has_permissions(manage_guild=True)
-    async def member_tickets(self, interaction: discord.Interaction, channel: discord.TextChannel,
-                             member: discord.Member, season: Optional[int] = 0) -> None:
+    async def cmd_member_tickets(self, interaction: discord.Interaction, channel: discord.TextChannel,
+                                 member: discord.Member, season: Optional[int] = 0) -> None:
         if channel.id not in (await bot.db.queries.tracked_channels()):
             await interaction.response.send_message("That channel is not being tracked!", ephemeral=True)
             return

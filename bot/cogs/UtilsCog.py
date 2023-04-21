@@ -38,7 +38,7 @@ class UtilsCog(ErrorHandlerCog):
     @discord.app_commands.command(name="longestround",
                                   description="Get the longest round and its duration for races.")
     @discord.app_commands.describe(end_round="The last round of the race.")
-    async def longestround(self, interaction: discord.Interaction, end_round: int) -> None:
+    async def cmd_longestround(self, interaction: discord.Interaction, end_round: int) -> None:
         if end_round <= 0:
             await interaction.response.send_message(f"{end_round} is not a valid round.")
             return
@@ -76,8 +76,8 @@ class UtilsCog(ErrorHandlerCog):
     #                                send_time_formatted="The time you fullsend at (e.g. 0:50). "
     #                                                    "Don't include milliseconds.")
     # @discord.app_commands.rename(send_time_formatted="send_time")
-    # async def mintime(self, interaction: discord.Interaction, from_round: int,
-    #                   to_round: int, send_time_formatted: str) -> None:
+    # async def cmd_mintime(self, interaction: discord.Interaction, from_round: int,
+    #                       to_round: int, send_time_formatted: str) -> None:
     #     if send_time_formatted.isnumeric():
     #         send_time = int(send_time_formatted)
     #     else:
@@ -102,7 +102,7 @@ class UtilsCog(ErrorHandlerCog):
     @discord.app_commands.command(name="help",
                                   description="Get info about the bot's commands.")
     @discord.app_commands.describe(module="The module to get info for.")
-    async def send_help_msg(self, interaction: discord.Interaction, module: str = None) -> None:
+    async def cmd_send_help_msg(self, interaction: discord.Interaction, module: str = None) -> None:
         blacklisted_cogs = ["owner", "raidlog"]
         if module is None:
             cogs = [cog.replace("Cog", "").lower() for cog in self.bot.cogs.keys()]
@@ -133,7 +133,7 @@ class UtilsCog(ErrorHandlerCog):
     @discord.app_commands.command(name="tag",
                                   description="Sends a message associated with the given tag")
     @discord.app_commands.describe(tag_name="The tag to search")
-    async def send_tag(self, interaction: discord.Interaction, tag_name: str = None) -> None:
+    async def cmd_send_tag(self, interaction: discord.Interaction, tag_name: str = None) -> None:
         await interaction.response.defer()
         if tag_name is None:
             tags = await asyncio.to_thread(bot.utils.io.get_tag_list)
@@ -144,7 +144,7 @@ class UtilsCog(ErrorHandlerCog):
         response_content = tag_content if tag_content else "No tag with that name!"
         await interaction.edit_original_response(content=response_content)
 
-    @send_tag.autocomplete("tag_name")
+    @cmd_send_tag.autocomplete("tag_name")
     async def autoc_tag_tag_name(self,
                                  _interaction: discord.Interaction,
                                  current: str
@@ -156,13 +156,13 @@ class UtilsCog(ErrorHandlerCog):
 
     @discord.app_commands.command(name="github",
                                   description="Get the bot's repo")
-    async def github(self, interaction: discord.Interaction) -> None:
+    async def cmd_github(self, interaction: discord.Interaction) -> None:
         await interaction.response.send_message("https://github.com/SartoRiccardo/ct-ticket-tracker/")
 
     @discord.app_commands.command(name="verify",
                                   description="Verify who you are in Bloons TD 6!")
     @discord.app_commands.describe(oak="Your Open Access Key (leave blank if you don't know what that is)")
-    async def verify(self, interaction: discord.Interaction, oak: str = None) -> None:
+    async def cmd_verify(self, interaction: discord.Interaction, oak: str = None) -> None:
         user = interaction.user
         instructions = "__**About verification**__\n" \
                        "To know who you are, I need your **Open Access Key (OAK)**. This is a bit of text that " \
