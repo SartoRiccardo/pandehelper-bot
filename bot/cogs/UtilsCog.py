@@ -6,8 +6,9 @@ import bloonspy.exceptions
 import bot.utils.io
 import bot.db.queries
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from bot.classes import ErrorHandlerCog
+from typing import List
 
 
 class UtilsCog(ErrorHandlerCog):
@@ -22,6 +23,17 @@ class UtilsCog(ErrorHandlerCog):
 
     def __init__(self, bot: commands.Bot) -> None:
         super().__init__(bot)
+        self.tag_list: List[str] = []
+
+    def cog_load(self) -> None:
+        self.update_tag_list.start()
+
+    def cog_unload(self) -> None:
+        self.update_tag_list.cancel()
+
+    @tasks.loop(seconds=60*60)
+    async def update_tag_list(self) -> None:
+        self.tag_list = await asyncio.to_thread(bot.utils.io.get_tag_list)
 
     @discord.app_commands.command(name="longestround",
                                   description="Get the longest round and its duration for races.")
@@ -127,9 +139,20 @@ class UtilsCog(ErrorHandlerCog):
             tags = await asyncio.to_thread(bot.utils.io.get_tag_list)
             await interaction.edit_original_response(content=f"Tags: `{'` `'.join(tags)}`")
             return
-        tag_content = await asyncio.to_thread(bot.utils.io.get_tag, tag_name)
+
+        tag_content = await asyncio.to_thread(bot.utils.io.get_tag, tag_name.lower())
         response_content = tag_content if tag_content else "No tag with that name!"
         await interaction.edit_original_response(content=response_content)
+
+    @send_tag.autocomplete("tag_name")
+    async def autoc_tag_tag_name(self,
+                                 _interaction: discord.Interaction,
+                                 current: str
+                                 ) -> List[discord.app_commands.Choice[str]]:
+        return [
+            discord.app_commands.Choice(name=tag, value=tag)
+            for tag in self.tag_list if current.lower() in tag.lower()
+        ]
 
     @discord.app_commands.command(name="github",
                                   description="Get the bot's repo")
