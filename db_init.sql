@@ -21,8 +21,8 @@ CREATE TABLE IF NOT EXISTS lbchannels (
 CREATE TABLE IF NOT EXISTS btd6players (
     userid BIGINT NOT NULL,
     oak VARCHAR(40) NOT NULL,
-    PRIMARY KEY(userid),
-    UNIQUE(oak)
+    is_main BOOLEAN DEFAULT FALSE,
+    PRIMARY KEY(userid, oak)
 );
 
 ALTER TABLE claims ADD CONSTRAINT fk_teams_1

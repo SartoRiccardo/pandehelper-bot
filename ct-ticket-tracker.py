@@ -17,7 +17,7 @@ class CtTicketTracker(commands.Bot):
 
     async def setup_hook(self):
         await bot.db.connection.start()
-        cogs = ["OwnerCog", "TrackerCog", "LeaderboardCog", "RaidLogCog", "UtilsCog"]
+        cogs = ["OwnerCog", "TrackerCog", "LeaderboardCog", "RaidLogCog", "UtilsCog", "VerifyCog"]
         for cog in cogs:
             await self.load_extension(f"bot.cogs.{cog}")
 

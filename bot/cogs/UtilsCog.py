@@ -18,7 +18,6 @@ class UtilsCog(ErrorHandlerCog):
         "tag": "Sends a pre-written message associated to a tag. Usually for FAQs.\n"
                "Type the command with no parameters to see all available tags.",
         "github": "Get a link to the bot's repo. It's open source!",
-        "verify": "Tell the bot who you are in BTD6!",
     }
 
     def __init__(self, bot: commands.Bot) -> None:
@@ -158,80 +157,6 @@ class UtilsCog(ErrorHandlerCog):
                                   description="Get the bot's repo")
     async def cmd_github(self, interaction: discord.Interaction) -> None:
         await interaction.response.send_message("https://github.com/SartoRiccardo/ct-ticket-tracker/")
-
-    @discord.app_commands.command(name="verify",
-                                  description="Verify who you are in Bloons TD 6!")
-    @discord.app_commands.describe(oak="Your Open Access Key (leave blank if you don't know what that is)")
-    async def cmd_verify(self, interaction: discord.Interaction, oak: str = None) -> None:
-        user = interaction.user
-        instructions = "__**About verification**__\n" \
-                       "To know who you are, I need your **Open Access Key (OAK)**. This is a bit of text that " \
-                       "allows me to see a lot of things about you in-game, like your profile, your team, and " \
-                       "more. It's perfectly safe though, Ninja Kiwi takes privacy very seriously, so I can't do " \
-                       "anything bad with it even if I wanted to!\n\n" \
-                       "__**Generate your OAK**__\n" \
-                       "🔹 Open Bloons TD6 (or Battles 2) > Settings > My Account > Open Data API (it's a small " \
-                       "link in the bottom right) > Generate Key. Your OAK should look something like " \
-                       "`oak_h6ea...p1hr`.\n" \
-                       "🔹 Copy it (note: the \"Copy\" button doesn't work, so just manually select it and do ctrl+C) " \
-                       "and, do /verify and paste your OAK as a parameter. Congrats, you have verified yourself!\n\n" \
-                       "__**What if I have alts?**__\n" \
-                       "Sorry, only one Discord account per OAK for this bot (too lazy to code it). :(\n\n" \
-                       "__**More information**__\n" \
-                       "Ninja Kiwi talking about OAKs: https://support.ninjakiwi.com/hc/en-us/articles/13438499873937\n"
-
-        if oak is None:
-            await interaction.response.defer()
-            oak = await bot.db.queries.get_oak(user.id)
-            bloons_user = None
-            if oak:
-                try:
-                    bloons_user = bloonspy.Client.get_user(oak)
-                except bloonspy.exceptions.NotFound:
-                    pass
-
-            if bloons_user:
-                is_veteran = bloons_user.veteran_rank > 0
-                await interaction.edit_original_response(
-                    content=f"You are already verified as {bloons_user.name}! "
-                            f"({f'Vet{bloons_user.veteran_rank}' if is_veteran else f'Lv{bloons_user.rank}'})\n\n"
-                            "*Not who you are? Run the command with the correct account's OAK!*"
-                )
-            elif interaction.guild:
-                await interaction.edit_original_response(content="Check your DMs!")
-                await user.send(instructions)
-            else:
-                await interaction.edit_original_response(content=instructions)
-            return
-
-        if re.match(r"oak_[\da-z]{32}", oak) is None:
-            await interaction.response.send_message(
-                "Your OAK is not well formatted! it should be `oak_` followed by 32 numbers and/or lowercase letters!\n\n"
-                "*Don't know what an OAK is? Leave the field blank to get a help message!*",
-                ephemeral=True
-            )
-            return
-
-        try:
-            bloons_user = bloonspy.Client.get_user(oak)
-            is_veteran = bloons_user.veteran_rank > 0
-            await bot.db.queries.set_oak(user.id, oak)
-            await interaction.response.send_message(
-                f"You've verified yourself as {bloons_user.name}! "
-                f"({f'Vet{bloons_user.veteran_rank}' if is_veteran else f'Lv{bloons_user.rank}'})\n\n"
-                "*Not who you are? Run the command with the correct account's OAK!*",
-                ephemeral=True
-            )
-        except bloonspy.exceptions.NotFound:
-            await interaction.response.send_message(
-                "Couldn't find a BTD6 user with that OAK! Are you sure it's the correct one?",
-                ephemeral=True
-            )
-        except asyncpg.exceptions.UniqueViolationError:
-            await interaction.response.send_message(
-                "Someone else is already registered with that OAK!",
-                ephemeral=True
-            )
 
 
 async def setup(bot: commands.Bot) -> None:

@@ -2,7 +2,7 @@ import time
 import datetime
 import bot.db.connection
 import bot.utils.bloons
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Any
 from .model.TileCapture import TileCapture
 postgres = bot.db.connection.postgres
 bloons = bot.utils.bloons
@@ -117,15 +117,52 @@ async def leaderboard_channels(conn=None) -> List[Tuple[int, int]]:
 
 
 @postgres
-async def get_oak(user: int, conn=None) -> str or None:
-    payload = await conn.fetch("SELECT oak FROM btd6players WHERE userid=$1", user)
-    return payload[0]["oak"] if len(payload) > 0 else None
+async def get_oaks(user: int, conn=None) -> List[Dict[str, Any]]:
+    payload = await conn.fetch("""
+        SELECT oak, is_main
+        FROM btd6players
+        WHERE userid=$1
+        ORDER BY
+            is_main DESC,
+            oak
+    """, user)
+    return payload
+
+
+async def get_main_oak(user: int) -> str or None:
+    oaks = await get_oaks(user)
+    return oaks[0] if len(oaks) > 0 else None
+
+
+async def set_main_oak(user: int, oak: str, conn=None) -> None:
+    await conn.execute("""
+        UPDATE btd6players
+        SET is_main=(oak=$2)
+        WHERE user=$1
+    """, user, oak)
+
+
+@postgres
+async def is_oak_registered(oak: str, conn=None) -> bool:
+    return len(await conn.fetch("SELECT * FROM btd6players WHERE oak=$1", oak)) > 0
 
 
 @postgres
 async def set_oak(user: int, oak: str, conn=None) -> None:
-    saved_oak = await get_oak(user)
-    if saved_oak:
-        await conn.execute("UPDATE btd6players SET oak=$2 WHERE userid=$1", user, oak)
-    else:
-        await conn.execute("INSERT INTO btd6players(userid, oak) VALUES ($1, $2)", user, oak)
+    await conn.execute("""
+        INSERT INTO btd6players (userid, oak, is_main)
+        VALUES (
+            $1, $2,
+            (SELECT COUNT(*)=0 FROM btd6players WHERE userid=$1)
+        )
+    """, user, oak)
+    pass
+
+
+@postgres
+async def del_oak(user: int, oak: str, conn=None) -> None:
+    await conn.execute("""
+        DELETE FROM btd6players
+        WHERE userid=$1
+            AND oak=$2
+    """, user, oak)
