@@ -42,9 +42,8 @@ class VerifyCog(ErrorHandlerCog):
                        "🔹 Copy it (note: the \"Copy\" button doesn't work, so just manually select it and do ctrl+C) " \
                        "and, do /verify and paste your OAK as a parameter. Congrats, you have verified yourself!\n\n" \
                        "__**What if I have alts?**__\n" \
-                       "One Discord account can have multiple OAKs, but an OAK can only be associated to one Discord " \
-                       "account (for now). One of these OAKs will be your \"main one\" (you can choose which one " \
-                       "via the /verify main command).\n\n" \
+                       "You can register multiple accounts! One of them will be your \"main one\" which will be used " \
+                       "as the default for all commands (you can choose which one via the /verify main command).\n\n" \
                        "__**More information**__\n" \
                        "Ninja Kiwi talking about OAKs: https://support.ninjakiwi.com/hc/en-us/articles/13438499873937\n"
 
@@ -64,7 +63,7 @@ class VerifyCog(ErrorHandlerCog):
                 await interaction.edit_original_response(
                     content=f"You are already verified as {bloons_user.name}! "
                             f"({f'Vet{bloons_user.veteran_rank}' if is_veteran else f'Lv{bloons_user.rank}'})\n\n"
-                            "*Not who you are? Run the command with the correct account's OAK!*"
+                            "*Not who you are? Use /unverify and run the command with the correct account's OAK!*"
                 )
             elif interaction.guild:
                 await interaction.edit_original_response(content="Check your DMs!")
