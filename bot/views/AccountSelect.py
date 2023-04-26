@@ -22,14 +22,14 @@ class AccountSelect(discord.ui.Select):
             await self.callback_func(interaction, self.values[0])
 
 
-class AccountUnverifyView(discord.ui.View):
+class AccountChooserView(discord.ui.View):
     def __init__(self,
                  users: List[Tuple[bloonspy.btd6.User, str]],
-                 func_delete_user: Callable,
+                 callback: Callable,
                  timeout: float = 180):
         super().__init__(timeout=timeout)
         self.users = users
-        self.func_delete_user = func_delete_user
+        self.callback = callback
         self.select = AccountSelect(users, callback=self.unverify_account)
         self.add_item(self.select)
 
@@ -37,5 +37,5 @@ class AccountUnverifyView(discord.ui.View):
         for user, oak in self.users:
             if user.name != value:
                 continue
-            await self.func_delete_user(interaction, user, oak)
+            await self.callback(interaction, user, oak)
 

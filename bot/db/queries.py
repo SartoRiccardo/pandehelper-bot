@@ -134,11 +134,12 @@ async def get_main_oak(user: int) -> str or None:
     return oaks[0] if len(oaks) > 0 else None
 
 
+@postgres
 async def set_main_oak(user: int, oak: str, conn=None) -> None:
     await conn.execute("""
         UPDATE btd6players
         SET is_main=(oak=$2)
-        WHERE user=$1
+        WHERE userid=$1
     """, user, oak)
 
 

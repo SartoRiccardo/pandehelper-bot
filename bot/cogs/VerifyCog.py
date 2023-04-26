@@ -8,7 +8,7 @@ import discord
 from discord.ext import commands
 from bot.classes import ErrorHandlerCog
 from typing import List
-from bot.views import AccountUnverifyView
+from bot.views import AccountChooserView
 
 
 class VerifyCog(ErrorHandlerCog):
@@ -43,7 +43,8 @@ class VerifyCog(ErrorHandlerCog):
                        "and, do /verify and paste your OAK as a parameter. Congrats, you have verified yourself!\n\n" \
                        "__**What if I have alts?**__\n" \
                        "One Discord account can have multiple OAKs, but an OAK can only be associated to one Discord " \
-                       "account (for now). One of these OAKs will be your \"main one\" (you can choose which one).\n\n" \
+                       "account (for now). One of these OAKs will be your \"main one\" (you can choose which one " \
+                       "via the /verify main command).\n\n" \
                        "__**More information**__\n" \
                        "Ninja Kiwi talking about OAKs: https://support.ninjakiwi.com/hc/en-us/articles/13438499873937\n"
 
@@ -102,8 +103,36 @@ class VerifyCog(ErrorHandlerCog):
     @verify_group.command(name="main",
                           description="Choose one of your accounts as your main one")
     async def cmd_set_main(self, interaction: discord.Interaction) -> None:
-        await interaction.response.send_message(content="Under construction!",
-                                                ephemeral=True)
+        oaks = await bot.db.queries.get_oaks(interaction.user.id)
+        users = await asyncio.gather(*[
+            self.get_user(oak["oak"])
+            for oak in oaks
+        ])
+        users = [
+            u for u in users
+            if u is not None
+        ]
+
+        if len(users) == 0:
+            await interaction.response.send_message(
+                content="You have no accounts connected to this bot!",
+                ephemeral=True
+            )
+        elif len(users) == 1:
+            await interaction.response.send_message(
+                content=f"You only have 1 account connected to this bot: **{users[0].name}**, "
+                        "which is already your main!\n"
+                        "To use this command, please connect more accounts first.",
+                ephemeral=True
+            )
+        else:
+            await interaction.response.send_message(
+                content=f"Select which account you'd like to set as your main one. Currently, it's **{users[0].name}**",
+                view=AccountChooserView([
+                    (user, user.id) for user in users
+                ], self.set_user_main),
+                ephemeral=True
+            )
 
     @discord.app_commands.command(name="unverify",
                                   description="Remove one or more accounts from the bot")
@@ -128,7 +157,7 @@ class VerifyCog(ErrorHandlerCog):
         else:
             await interaction.response.send_message(
                 content="Select which account you'd like to unverify.",
-                view=AccountUnverifyView([
+                view=AccountChooserView([
                     (user, user.id) for user in users
                 ], self.unverify_user),
                 ephemeral=True
@@ -148,7 +177,19 @@ class VerifyCog(ErrorHandlerCog):
                             oak: str,
                             edit: bool = True) -> None:
         await bot.db.queries.del_oak(interaction.user.id, oak)
-        content = f"Your account is no longer associated to **{user.name}**"
+        content = f"Your account is no longer associated to **{user.name}**!"
+        if edit:
+            await interaction.response.edit_message(content=content, view=None)
+        else:
+            await interaction.response.send_message(content=content, ephemeral=True)
+
+    @staticmethod
+    async def set_user_main(interaction: discord.Interaction,
+                            user: bloonspy.User,
+                            oak: str,
+                            edit: bool = True) -> None:
+        await bot.db.queries.set_main_oak(interaction.user.id, oak)
+        content = f"Your main account is now **{user.name}**!"
         if edit:
             await interaction.response.edit_message(content=content, view=None)
         else:
