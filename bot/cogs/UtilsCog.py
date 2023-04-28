@@ -18,6 +18,7 @@ class UtilsCog(ErrorHandlerCog):
         "tag": "Sends a pre-written message associated to a tag. Usually for FAQs.\n"
                "Type the command with no parameters to see all available tags.",
         "github": "Get a link to the bot's repo. It's open source!",
+        "invite": "Invite the bot to your server!",
     }
 
     def __init__(self, bot: commands.Bot) -> None:
@@ -157,6 +158,13 @@ class UtilsCog(ErrorHandlerCog):
                                   description="Get the bot's repo")
     async def cmd_github(self, interaction: discord.Interaction) -> None:
         await interaction.response.send_message("https://github.com/SartoRiccardo/ct-ticket-tracker/")
+
+    @discord.app_commands.command(name="invite",
+                                  description="Invite Pandemonium Helper to your server!")
+    async def cmd_invite(self, interaction: discord.Interaction) -> None:
+        await interaction.response.send_message(
+            content="Wanna invite me to your server? Use [this invite link](https://discord.com/api/oauth2/authorize?client_id=1088892665422151710&permissions=51539946512&scope=bot)!"
+        )
 
 
 async def setup(bot: commands.Bot) -> None:
