@@ -131,6 +131,7 @@ class RaidLogCog(ErrorHandlerCog):
                 name=thread_template.format(map="", tile_code=tile_code),
                 content=thread_init_message,
                 applied_tags=tags,
+                # embed=bot.utils.bloons.get_tile_embed(tile_info),
             )
 
         await interaction.edit_original_response(
