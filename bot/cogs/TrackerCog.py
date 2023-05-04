@@ -50,12 +50,16 @@ class TrackerCog(ErrorHandlerCog):
     @discord.app_commands.guild_only()
     @discord.app_commands.default_permissions(administrator=True)
     @discord.app_commands.checks.has_permissions(manage_guild=True)
-    async def cmd_tickets_list(self, interaction: discord.Interaction, channel: discord.TextChannel, season: Optional[int] = 0) -> None:
+    async def cmd_tickets_list(self,
+                               interaction: discord.Interaction,
+                               channel: discord.TextChannel,
+                               season: Optional[int] = 0,
+                               hide: Optional[bool] = True) -> None:
         if channel.id not in (await bot.db.queries.tracked_channels()):
             await interaction.response.send_message("That channel is not being tracked!", ephemeral=True)
             return
 
-        await interaction.response.defer(ephemeral=True)
+        await interaction.response.defer(ephemeral=hide)
 
         message = "`Member    ` | `D1` | `D2` | `D3` | `D4` | `D5` | `D6` | `D7`\n"
         # separator = "------------- + --- + --  + --  + --  + --- + --  + ---\n"
@@ -95,12 +99,13 @@ class TrackerCog(ErrorHandlerCog):
     @discord.app_commands.default_permissions(administrator=True)
     @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def cmd_member_tickets(self, interaction: discord.Interaction, channel: discord.TextChannel,
-                                 member: discord.Member, season: Optional[int] = 0) -> None:
+                                 member: discord.Member, season: Optional[int] = 0,
+                                 hide: Optional[bool] = True) -> None:
         if channel.id not in (await bot.db.queries.tracked_channels()):
             await interaction.response.send_message("That channel is not being tracked!", ephemeral=True)
             return
 
-        await interaction.response.send_message("Just a moment...", ephemeral=True)
+        await interaction.response.send_message("Just a moment...", ephemeral=hide)
         if season == 0:
             season = bot.utils.bloons.get_ct_number_during(datetime.datetime.now())
         member_activity = await bot.db.queries.get_tickets_from(member.id, channel.id, season)
