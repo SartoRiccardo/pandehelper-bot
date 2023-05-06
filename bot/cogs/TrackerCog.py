@@ -9,6 +9,9 @@ from bot.classes import ErrorHandlerCog
 from typing import Optional
 
 
+tracked_emojis = ["🟩", "👌", "🟢", "✅", "👍"]
+
+
 class TrackerCog(ErrorHandlerCog):
     help_descriptions = {
         "tickets": {
@@ -129,7 +132,7 @@ class TrackerCog(ErrorHandlerCog):
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent) -> None:
-        if str(payload.emoji) not in ["✅", "👍"] or \
+        if str(payload.emoji) not in tracked_emojis or \
                 payload.channel_id not in (await bot.db.queries.tracked_channels()):
             return
 
@@ -144,14 +147,14 @@ class TrackerCog(ErrorHandlerCog):
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent) -> None:
-        if str(payload.emoji) not in ["✅", "👍"] or \
+        if str(payload.emoji) not in tracked_emojis or \
                 payload.channel_id not in (await bot.db.queries.tracked_channels()):
             return
 
         channel = self.bot.get_channel(payload.channel_id)
         message = await channel.fetch_message(payload.message_id)
         for reaction in message.reactions:
-            if reaction.emoji in ["✅", "👍"]:
+            if reaction.emoji in tracked_emojis:
                 return
         await bot.db.queries.uncapture(payload.message_id)
 
