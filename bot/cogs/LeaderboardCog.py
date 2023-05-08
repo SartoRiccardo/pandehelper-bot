@@ -8,7 +8,7 @@ import bot.db.queries
 import bot.utils.io
 from bot.classes import ErrorHandlerCog
 from typing import Dict, Any
-from bot.utils.emojis import TOP_1_GLOBAL, TOP_2_GLOBAL, TOP_3_GLOBAL, TOP_25_GLOBAL, ECO, NEW_TEAM
+from bot.utils.emojis import TOP_1_GLOBAL, TOP_2_GLOBAL, TOP_3_GLOBAL, TOP_25_GLOBAL, ECO, ECO_NEGATIVE, NEW_TEAM
 
 
 class LeaderboardCog(ErrorHandlerCog):
@@ -85,7 +85,7 @@ class LeaderboardCog(ErrorHandlerCog):
                      "------------------------------   +  ----------------------"
         placements_emojis = [TOP_1_GLOBAL, TOP_2_GLOBAL, TOP_3_GLOBAL] + [TOP_25_GLOBAL]*(25-3)
         row_template = "{} `{: <20}`    | `{: <7,}`"
-        eco_template = " (" + ECO + " `{: <4}`)"
+        eco_template = " ({} `{: <4}`)"
 
         now = datetime.now()
         if now < self.next_update:
@@ -115,7 +115,8 @@ class LeaderboardCog(ErrorHandlerCog):
             message_current += "\n" + row_template.format(placement, team_name, team.score)
             if team.id in self.last_hour_score:
                 score_gained = team.score - self.last_hour_score[team.id]
-                message_current += eco_template.format(score_gained)
+                eco_emote = ECO if score_gained >= 0 else ECO_NEGATIVE
+                message_current += eco_template.format(eco_emote, score_gained)
             elif not self.first_run:
                 message_current += f" {NEW_TEAM}"
             current_hour_score[team.id] = team.score
