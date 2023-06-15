@@ -1,7 +1,6 @@
 import discord
 from typing import List, Tuple, Callable
 import bloonspy
-import bot.db.queries
 
 
 class AccountSelect(discord.ui.Select):

@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import re
 import asyncpg.exceptions
 import bloonspy
@@ -164,6 +165,14 @@ class UtilsCog(ErrorHandlerCog):
     async def cmd_invite(self, interaction: discord.Interaction) -> None:
         await interaction.response.send_message(
             content="Wanna invite me to your server? Use [this invite link](https://discord.com/api/oauth2/authorize?client_id=1088892665422151710&permissions=51539946512&scope=bot)!"
+        )
+
+    @discord.app_commands.command(name="now",
+                                  description="Now!")
+    async def cmd_now(self, interaction: discord.Interaction) -> None:
+        now = datetime.datetime.now()
+        await interaction.response.send_message(
+            content=f"`{int(now.timestamp())}` <t:{int(now.timestamp())}>"
         )
 
 

@@ -167,3 +167,120 @@ async def del_oak(user: int, oak: str, conn=None) -> None:
         WHERE userid=$1
             AND oak=$2
     """, user, oak)
+
+
+@postgres
+async def get_planners(conn=None) -> List[int]:
+    planners = await conn.fetch("SELECT planner_channel FROM planners")
+    return [p["planner_channel"] for p in planners]
+
+
+@postgres
+async def get_planner(planner_id: int, conn=None) -> Dict[str, Any] or None:
+    results = await conn.fetch("""
+        SELECT *
+        FROM planners
+        WHERE planner_channel=$1
+    """, planner_id)
+    return results[0] if len(results) else None
+
+
+@postgres
+async def add_planner(planner_id: int, conn=None) -> None:
+    await conn.execute("""
+        INSERT INTO planners(planner_channel) VALUES($1)
+    """, planner_id)
+
+
+@postgres
+async def del_planner(planner_id: int, conn=None) -> None:
+    await conn.execute("""
+        DELETE FROM planners WHERE planner_channel=$1
+    """, planner_id)
+
+
+@postgres
+async def change_planner(
+        planner_id: int,
+        clear_time: datetime.datetime = None,
+        ping_channel: int = None,
+        ping_role: int = None,
+        claims_channel: int = None,
+        is_active: bool = None,
+        conn=None) -> None:
+    fields = [
+        ("clear_time", clear_time),
+        ("ping_channel", ping_channel),
+        ("ping_role", ping_role),
+        ("claims_channel", claims_channel),
+        ("is_active", is_active),
+    ]
+    fields_query = []
+    for i in range(len(fields)):
+        var_name, var_value = fields[i]
+        if var_value is None:
+            continue
+        fields_query.append((f"{var_name}=${i+2}", var_value))
+    if len(fields_query) == 0:
+        return
+
+    q = f"UPDATE planners SET {', '.join([x for x, _ in fields_query])} WHERE planner_id=$1"
+    await conn.execute(q, planner_id, *[x for _, x in fields_query])
+
+
+@postgres
+async def get_planned_banners(planner_channel: int, banner_codes: List[str], conn=None) -> List[Dict[str, Any]]:
+    event = bloons.get_current_ct_number()
+    event_start = bloons.FIRST_CT_START + datetime.timedelta(days=bloons.EVENT_DURATION*2 * (event-1))
+    banner_captures = """
+        SELECT c.tile AS tile, c.claimed_at AS claimed_at, ptc.user_id AS user_id
+        FROM (claims c
+        JOIN planners p
+            ON c.channel = p.claims_channel)
+        LEFT JOIN plannertileclaims ptc
+            ON p.planner_channel = ptc.planner_channel AND c.tile = ptc.tile
+        WHERE p.planner_channel = $3
+            AND c.claimed_at >= $1
+            AND c.tile = ANY($2::VARCHAR(3)[])
+        ORDER BY c.claimed_at ASC
+    """
+    banners = await conn.fetch(f"""
+        SELECT bcap.tile, bcap.claimed_at, bcap.user_id
+        FROM ({banner_captures}) bcap
+        WHERE claimed_at = (
+            SELECT MAX(claimed_at)
+            FROM ({banner_captures}) bcap2
+            WHERE bcap.tile = bcap2.tile
+        )
+    """, event_start, banner_codes, planner_channel)
+    return banners
+
+
+@postgres
+async def planner_claim_tile(user: int, tile: str, planner_channel: int, conn=None) -> None:
+    await conn.execute("""
+        INSERT INTO plannertileclaims(user_id, planner_channel, tile)
+        VALUES($1, $2, $3)
+    """, user, planner_channel, tile)
+
+
+@postgres
+async def planner_unclaim_tile(user: int, tile: str, planner_channel: int, conn=None) -> None:
+    await conn.execute("""
+        DELETE FROM plannertileclaims WHERE user_id = $1 AND planner_channel = $2 AND tile = $3
+    """, user, planner_channel, tile)
+
+
+async def planner_get_tile_status(tile: str, planner_channel: int) -> Dict[str, Any] or None:
+    tiles = await get_planned_banners(planner_channel, [tile])
+    return tiles[0] if len(tiles) else None
+
+
+@postgres
+async def get_claims_by(user: int, planner_channel: int, conn=None) -> List[Dict[str, Any]]:
+    return await conn.fetch("""
+        SELECT *
+        FROM plannertileclaims
+        WHERE user_id = $1
+            AND planner_channel = $2
+    """, user, planner_channel)
