@@ -8,7 +8,7 @@ import bot.db.queries
 import bot.utils.io
 import bot.utils.discordutils
 from bot.classes import ErrorHandlerCog
-from typing import List, Tuple, Union, Optional
+from typing import List, Tuple, Union, Optional, Dict
 from bot.utils.emojis import BANNER
 from bot.views import PlannerUserView, PlannerAdminView
 
@@ -40,12 +40,17 @@ class PlannerCog(ErrorHandlerCog):
             "configure": "Configure the planner to make sure it works properly!",
         },
     }
+    CHECK_EVERY = 30
+    CHECK_EVERY_UNCLAIMED = 60
 
     def __init__(self, bot: commands.Bot) -> None:
         super().__init__(bot)
         next_check = datetime.now().replace(second=0, microsecond=0)
-        next_check = next_check.replace(minute=int(next_check.minute/30)*30) + timedelta(minutes=30)
+        next_check = next_check.replace(minute=int(next_check.minute/PlannerCog.CHECK_EVERY)*PlannerCog.CHECK_EVERY) \
+                     + timedelta(minutes=PlannerCog.CHECK_EVERY)
         self.next_check = next_check
+        self.next_check_unclaimed = next_check
+        self.last_check_end = self.next_check
 
     async def load_state(self) -> None:
         state = await asyncio.to_thread(bot.utils.io.get_cog_state, "planner")
@@ -53,16 +58,19 @@ class PlannerCog(ErrorHandlerCog):
             return
 
         saved_at = datetime.fromtimestamp(state["saved_at"])
-        if self.next_check-saved_at > timedelta(minutes=30):
+        if self.next_check-saved_at > timedelta(minutes=PlannerCog.CHECK_EVERY):
             return
 
         data = state["data"]
         if "next_check" in data:
             self.next_check = data["next_check"]
+        if "last_check_end" in data:
+            self.last_check_end = data["last_check_end"]
 
     async def save_state(self) -> None:
         data = {
             "next_check": self.next_check,
+            "last_check_end": self.last_check_end,
         }
         await asyncio.to_thread(bot.utils.io.save_cog_state, "planner", data)
 
@@ -85,7 +93,121 @@ class PlannerCog(ErrorHandlerCog):
         now = datetime.now()
         if now < self.next_check:
             return
-        self.next_check += timedelta(minutes=30)
+        check_from = max(self.next_check, self.last_check_end)
+        check_to = self.next_check + timedelta(minutes=PlannerCog.CHECK_EVERY*2)
+        check_to_unclaimed = self.next_check_unclaimed + timedelta(minutes=PlannerCog.CHECK_EVERY_UNCLAIMED*2)
+        self.next_check += timedelta(minutes=PlannerCog.CHECK_EVERY)
+        self.last_check_end = check_to
+        check_unclaimed = False
+        if now >= self.next_check_unclaimed:
+            check_unclaimed = True
+            self.next_check_unclaimed += timedelta(minutes=PlannerCog.CHECK_EVERY_UNCLAIMED)
+
+        banner_codes = await self.get_banner_tile_list()
+        planners = await bot.db.queries.get_planners(only_active=True)
+        for planner in planners:
+            pings = await self.check_planner_reminder(
+                planner["planner_channel"],
+                planner["ping_channel"],
+                banner_codes,
+                check_from,
+                check_to,
+                check_to_unclaimed if check_unclaimed else None
+            )
+            if len(pings.keys()) > 0:
+                await self.send_reminder(
+                    pings,
+                    planner["planner_channel"],
+                    planner["ping_channel"],
+                    planner["ping_role"],
+                )
+
+    async def check_planner_reminder(self,
+                                     planner_id: int,
+                                     ping_ch_id: int,
+                                     banner_codes: List[str],
+                                     check_from: datetime,
+                                     check_to: datetime,
+                                     check_to_unclaimed: datetime or None) -> Dict[int or None, str]:
+        if ping_ch_id is None:
+            return {}
+        banners = await bot.db.queries.get_planned_banners(planner_id, banner_codes,
+                                                           expire_between=(check_from, check_to))
+        banners_unclaimed = []
+        if check_to_unclaimed is not None:
+            banners_unclaimed = await bot.db.queries.get_planned_banners(planner_id, banner_codes,
+                                                                         expire_between=(check_from,
+                                                                                         check_to_unclaimed),
+                                                                         claimed_status="UNCLAIMED")
+        if len(banners) == 0 and len(banners_unclaimed) == 0:
+            return {}
+
+        pings = {}
+        for b in banners:
+            if b["user_id"] not in pings:
+                pings[b["user_id"]] = []
+            pings[b["user_id"]].append(b["tile"])
+        for unclaimed_b in banners_unclaimed:
+            if None not in pings:
+                pings[None] = []
+            if unclaimed_b["tile"] not in pings[None]:
+                pings[None].append(unclaimed_b["tile"])
+        return pings
+
+    async def send_reminder(self,
+                            pings: Dict[int or None, List[str]],
+                            planner_id: int,
+                            ping_channel_id: int,
+                            ping_role: int) -> None:
+        message = "**Tiles that will expire soon:**\n"
+        pinged_someone = False
+        for uid in pings:
+            if uid is None:
+                continue
+            pinged_someone = True
+            message += f"- <@{uid}>: "
+            for i in range(len(pings[uid])):
+                message += f"`{pings[uid][i]}`"
+                if i == len(pings[uid]) - 1:
+                    message += ".\n"
+                elif i == len(pings[uid]) - 2:
+                    message += " and "
+                else:
+                    message += ", "
+
+        if None in pings and len(pings[None]) > 0:
+            if pinged_someone:
+                message += f"Also, <@&{ping_role}> these tiles haven't been claimed and will expire somewhat soon: "
+            else:
+                message = f"<@&{ping_role}> these tiles haven't been claimed and will expire somewhat soon: "
+            for i in range(len(pings[None])):
+                message += f"`{pings[None][i]}`"
+                if i == len(pings[None]) - 1:
+                    message += "."
+                elif i == len(pings[None]) - 2:
+                    message += " and "
+                else:
+                    message += ", "
+            message += f""
+
+        ping_channel = self.bot.get_channel(ping_channel_id)
+        if ping_channel is None:
+            ping_channel = await self.bot.fetch_channel(ping_channel_id)
+        if ping_channel is None:
+            await bot.db.queries.planner_delete_config(planner_id, ping_channel=True)
+            await self.send_planner_msg(planner_id)
+            return
+
+        await ping_channel.send(
+            content=message
+        )
+
+    @tasks.loop(seconds=5)
+    async def check_decay(self) -> None:
+        """
+        Checks if a banner has just decayed and pings the team in the appropriate channel.
+        """
+        now = datetime.now()
 
     @planner_group.command(name="new", description="Create a new Planner channel.")
     @discord.app_commands.guild_only()

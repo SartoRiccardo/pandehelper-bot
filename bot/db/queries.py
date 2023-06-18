@@ -2,7 +2,7 @@ import time
 import datetime
 import bot.db.connection
 import bot.utils.bloons
-from typing import List, Dict, Tuple, Any
+from typing import List, Dict, Tuple, Any, Literal
 from .model.TileCapture import TileCapture
 postgres = bot.db.connection.postgres
 bloons = bot.utils.bloons
@@ -233,7 +233,11 @@ async def change_planner(
 
 
 @postgres
-async def get_planned_banners(planner_channel: int, banner_codes: List[str], conn=None) -> List[Dict[str, Any]]:
+async def get_planned_banners(planner_channel: int,
+                              banner_codes: List[str],
+                              expire_between: Tuple[datetime.datetime, datetime.datetime] or None = None,
+                              claimed_status: Literal["UNCLAIMED", "CLAIMED", "ANY"] = "ANY",
+                              conn=None) -> List[Dict[str, Any]]:
     event = bloons.get_current_ct_number()
     event_start = bloons.FIRST_CT_START + datetime.timedelta(days=bloons.EVENT_DURATION*2 * (event-1))
     banner_captures = """
@@ -248,6 +252,22 @@ async def get_planned_banners(planner_channel: int, banner_codes: List[str], con
             AND c.tile = ANY($2::VARCHAR(3)[])
         ORDER BY c.claimed_at ASC
     """
+
+    extra_args = []
+    between_q = ""
+    if expire_between is not None:
+        extra_args.append(expire_between[0] - datetime.timedelta(days=1))
+        extra_args.append(expire_between[1] - datetime.timedelta(days=1))
+        between_q = """
+            AND claimed_at >= $4
+            AND claimed_at <= $5
+        """
+    claim_q = ""
+    if claimed_status == "UNCLAIMED":
+        claim_q = "AND bcap.user_id IS NULL"
+    elif claimed_status == "CLAIMED":
+        claim_q = "AND bcap.user_id IS NOT NULL"
+
     banners = await conn.fetch(f"""
         SELECT bcap.tile, bcap.claimed_at, bcap.user_id
         FROM ({banner_captures}) bcap
@@ -259,7 +279,7 @@ async def get_planned_banners(planner_channel: int, banner_codes: List[str], con
             (SELECT clear_time FROM planners WHERE planner_channel = $3) IS NULL
             OR claimed_at >= (SELECT clear_time FROM planners WHERE planner_channel = $3)
         )
-    """, event_start, banner_codes, planner_channel)
+    """ + between_q + claim_q, event_start, banner_codes, planner_channel, *extra_args)
     return banners
 
 
@@ -307,6 +327,28 @@ async def planner_update_config(
     await conn.execute(f"""
         UPDATE planners SET {', '.join(fields)} WHERE planner_channel = $1
     """, planner, *values)
+
+
+@postgres
+async def planner_delete_config(
+        planner: int,
+        ping_ch: bool = False,
+        ping_role: bool = False,
+        tile_claim_ch: bool = False,
+        conn=None) -> None:
+    fields = []
+    if ping_ch is not None:
+        fields.append(f"ping_channel=$2")
+    if ping_role is not None:
+        fields.append(f"ping_role=$2")
+    if tile_claim_ch is not None:
+        fields.append(f"claims_channel=$2")
+
+    if len(fields) == 0:
+        return
+    await conn.execute(f"""
+        UPDATE planners SET {', '.join(fields)} WHERE planner_channel = $1
+    """, planner, None)
 
 
 @postgres
