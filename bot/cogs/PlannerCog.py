@@ -141,6 +141,15 @@ class PlannerCog(ErrorHandlerCog):
                 ephemeral=True,
             )
             return
+
+        if tile_claim_channel:
+            planner_linked = await bot.db.queries.get_planner_linked_to(tile_claim_channel.id)
+            if planner_linked != planner_channel.id:
+                await interaction.response.send_message(
+                    content=f"<#{tile_claim_channel.id}> is already linked to another planner!",
+                    ephemeral=True,
+                )
+                return
         if ping_channel is ping_role is tile_claim_channel:
             await interaction.response.send_message(
                 content="You must modify at least ONE value! Check the optional parameters!",
