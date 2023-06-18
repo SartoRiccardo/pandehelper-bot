@@ -265,15 +265,51 @@ async def planner_claim_tile(user: int, tile: str, planner_channel: int, conn=No
 
 
 @postgres
-async def planner_unclaim_tile(user: int, tile: str, planner_channel: int, conn=None) -> None:
+async def planner_unclaim_tile(tile: str, planner_channel: int, conn=None) -> None:
     await conn.execute("""
-        DELETE FROM plannertileclaims WHERE user_id = $1 AND planner_channel = $2 AND tile = $3
-    """, user, planner_channel, tile)
+        DELETE FROM plannertileclaims WHERE planner_channel = $1 AND tile = $2
+    """, planner_channel, tile)
 
 
 async def planner_get_tile_status(tile: str, planner_channel: int) -> Dict[str, Any] or None:
     tiles = await get_planned_banners(planner_channel, [tile])
     return tiles[0] if len(tiles) else None
+
+
+@postgres
+async def planner_update_config(
+        planner: int,
+        ping_ch: int or None = None,
+        ping_role: int or None = None,
+        tile_claim_ch: int or None = None,
+        conn=None) -> None:
+    fields = []
+    values = []
+    if ping_ch is not None:
+        values.append(ping_ch)
+        fields.append(f"ping_channel=${len(values)+1}")
+    if ping_role is not None:
+        values.append(ping_role)
+        fields.append(f"ping_role=${len(values)+1}")
+    if tile_claim_ch is not None:
+        values.append(tile_claim_ch)
+        fields.append(f"claims_channel=${len(values)+1}")
+
+    if len(fields) == 0:
+        return
+    await conn.execute(f"""
+        UPDATE planners SET {', '.join(fields)} WHERE planner_channel = $1
+    """, planner, *values)
+
+
+@postgres
+async def get_planner_linked_to(tile_claim_ch: int, conn=None) -> int or None:
+    channel = await conn.fetch("""
+        SELECT planner_channel
+        FROM planners
+        WHERE claims_channel = $1
+    """, tile_claim_ch)
+    return channel[0]["planner_channel"] if len(channel) > 0 else None
 
 
 @postgres

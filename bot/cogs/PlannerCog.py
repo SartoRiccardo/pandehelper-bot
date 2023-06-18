@@ -8,13 +8,13 @@ import bot.db.queries
 import bot.utils.io
 import bot.utils.discordutils
 from bot.classes import ErrorHandlerCog
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Optional
 from bot.utils.emojis import BANNER
 from bot.views import PlannerUserView
 
 
 PLANNER_ADMIN_PANEL = """
-# Admin Control Panel
+# Control Panel
 - Status: {}
 - Tile Claim Channel: {}
 - Ping Channel: {}
@@ -35,8 +35,9 @@ class PlannerCog(ErrorHandlerCog):
             "new": "Create a new Planner channel",
             "add": "Sets a channel as a Planner channel.\n"
                    "__It is recommended to set it on a read-only channel.__",
-            "remove": "Removes the Planner from a channel previously added with [[add]]. "
+            "remove": "Removes the Planner from a channel previously added with [[add]].\n"
                       "__Won't delete the channel,__ but it will no longer be updated.",
+            "configure": "Configure the planner to make sure it works properly!",
         },
     }
 
@@ -119,6 +120,46 @@ class PlannerCog(ErrorHandlerCog):
     async def cmd_add_planner(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
         await self.add_planner(interaction, channel)
 
+    @planner_group.command(name="config", description="Configure the planner.")
+    @discord.app_commands.describe(
+        planner_channel="The channel of the planner you want to change.",
+        ping_channel="The channel where the bot will ping users to remind them of banner decays.",
+        ping_role="The role that will get pinged if a banner is unclaimed.",
+        tile_claim_channel="The channel where members log tile captures.",
+    )
+    @discord.app_commands.guild_only()
+    @discord.app_commands.checks.has_permissions(manage_guild=True)
+    async def cmd_configure_planner(self,
+                                    interaction: discord.Interaction,
+                                    planner_channel: discord.TextChannel,
+                                    ping_channel: Optional[discord.TextChannel] = None,
+                                    ping_role: Optional[discord.Role] = None,
+                                    tile_claim_channel: Optional[discord.TextChannel] = None) -> None:
+        if await bot.db.queries.get_planner(planner_channel.id) is None:
+            await interaction.response.send_message(
+                content="That's not a planner channel!",
+                ephemeral=True,
+            )
+            return
+        if ping_channel is ping_role is tile_claim_channel:
+            await interaction.response.send_message(
+                content="You must modify at least ONE value! Check the optional parameters!",
+                ephemeral=True,
+            )
+            return
+
+        await bot.db.queries.planner_update_config(
+            planner_channel.id,
+            ping_ch=ping_channel.id if ping_channel else None,
+            ping_role=ping_role.id if ping_role else None,
+            tile_claim_ch=tile_claim_channel.id if tile_claim_channel else None,
+        )
+        await interaction.response.send_message(
+            content="All done! Check the planner's control panel!",
+            ephemeral=True
+        )
+        await self.send_planner_msg(planner_channel.id)
+
     async def add_planner(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
         if await bot.db.queries.get_planner(channel.id) is not None:
             await interaction.response.send_message(
@@ -134,17 +175,17 @@ class PlannerCog(ErrorHandlerCog):
         )
         await self.send_planner_msg(channel.id)
 
-    @discord.app_commands.command(name="aaa")
-    async def cmd_aaa(self, interaction: discord.Interaction) -> None:
-        # await self.send_planner_msg(interaction.channel_id)
-
-        data = await bot.db.queries.get_planned_banners(
-            interaction.channel_id, ["EDD", "FEB", "EBD", "DBC", "FCE", "EBF", "DAE", "CDD", "EAF", "FBF", "CBF", "FAH", "BAG", "DEB", "CFB", "CAG", "ABD", "ACC", "ACB", "BCC", "BBC", "BFB", "BFA", "CEA"]
-        )
-        for datum in data:
-            print(datum)
-        print("\n\n\n")
-        await interaction.response.send_message("OK", ephemeral=True)
+    # @discord.app_commands.command(name="aaa")
+    # async def cmd_aaa(self, interaction: discord.Interaction) -> None:
+    #     # await self.send_planner_msg(interaction.channel_id)
+    #
+    #     data = await bot.db.queries.get_planned_banners(
+    #         interaction.channel_id, ["EDD", "FEB", "EBD", "DBC", "FCE", "EBF", "DAE", "CDD", "EAF", "FBF", "CBF", "FAH", "BAG", "DEB", "CFB", "CAG", "ABD", "ACC", "ACB", "BCC", "BBC", "BFB", "BFA", "CEA"]
+    #     )
+    #     for datum in data:
+    #         print(datum)
+    #     print("\n\n\n")
+    #     await interaction.response.send_message("OK", ephemeral=True)
 
     async def get_planner_msg(self, channel: int) -> List[Tuple[str, discord.ui.View or None]]:
         """Generates the message to send in planner.
@@ -166,7 +207,7 @@ class PlannerCog(ErrorHandlerCog):
                     "⚠️ None *(members will have to register captures manually)*️",
                 f"<#{planner['ping_channel']}>" if planner['ping_channel'] else
                     "⚠️ None *(the bot will not ping at all)*️",
-                f"<@{planner['ping_role']}>" if planner['ping_role'] else
+                f"<@&{planner['ping_role']}>" if planner['ping_role'] else
                     "⚠️ None *(will ping `@here` instead)*"
             ), None),
             (PLANNER_HR, None),
@@ -278,7 +319,7 @@ class PlannerCog(ErrorHandlerCog):
         response = "That tile's not claimed by you! Hands off! 💢"
         refresh = False
         if tile_status["user_id"] == user:
-            await bot.db.queries.planner_unclaim_tile(user, tile, planner_channel_id)
+            await bot.db.queries.planner_unclaim_tile(tile, planner_channel_id)
             response = f"You have unclaimed `{tile}`!"
             refresh = True
         elif len(claimed_by_user) >= 4:
@@ -294,14 +335,21 @@ class PlannerCog(ErrorHandlerCog):
         """Clears the Planner."""
         pass
 
-    async def on_tile_claimed(self, tile: str, claim_channel: int) -> None:
+    async def on_tile_claimed(self, tile: str, claim_channel: int, _claimer: int) -> None:
         """
         Event fired when a tile gets claimed.
 
         :param tile: The ID of the tile.
         :param claim_channel: The ID of the Ticket Tracker channel.
+        :param _claimer: The ID of the user who claimed it.
         """
-        pass
+        if tile not in await self.get_banner_tile_list():
+            return
+        planner_id = await bot.db.queries.get_planner_linked_to(claim_channel)
+        if planner_id is None:
+            return
+        await bot.db.queries.planner_unclaim_tile(tile, planner_id)
+        await self.send_planner_msg(planner_id)
 
 
 async def setup(bot: commands.Bot) -> None:
