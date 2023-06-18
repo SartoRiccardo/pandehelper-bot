@@ -169,7 +169,18 @@ class UtilsCog(ErrorHandlerCog):
 
     @discord.app_commands.command(name="tile",
                                   description="Check a tile's challenge data")
+    @discord.app_commands.describe(tile="The 3 letter tile code")
+    @discord.app_commands.guild_only()
     async def cmd_tile(self, interaction: discord.Interaction, tile: str) -> None:
+        # Gatekeeping the command to Pandemonium members
+        has_access = False
+        for role in interaction.user.roles:
+            if role.id in [860147253527838721, 940942269933043712]:
+                has_access = True
+                break
+        if not has_access:
+            return
+
         tile = tile.upper()
         embed = await self.get_tile_embed(tile)
         if embed is None:
@@ -187,6 +198,7 @@ class UtilsCog(ErrorHandlerCog):
         path = f"bot/files/json/tiles/{tile}.json"
         if not os.path.exists(path):
             return None
+        # Blocking operation ik idc
         fin = open(path)
         data = json.loads(fin.read())
         fin.close()
