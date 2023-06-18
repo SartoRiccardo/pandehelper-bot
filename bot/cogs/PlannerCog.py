@@ -10,7 +10,7 @@ import bot.utils.discordutils
 from bot.classes import ErrorHandlerCog
 from typing import List, Tuple, Union, Optional
 from bot.utils.emojis import BANNER
-from bot.views import PlannerUserView
+from bot.views import PlannerUserView, PlannerAdminView
 
 
 PLANNER_ADMIN_PANEL = """
@@ -209,7 +209,7 @@ class PlannerCog(ErrorHandlerCog):
                     "⚠️ None *(the bot will not ping at all)*️",
                 f"<@&{planner['ping_role']}>" if planner['ping_role'] else
                     "⚠️ None *(will ping `@here` instead)*"
-            ), None),
+            ), PlannerAdminView(channel, self.send_planner_msg, planner["is_active"])),
             (PLANNER_HR, None),
         ]
 
@@ -233,8 +233,6 @@ class PlannerCog(ErrorHandlerCog):
                             PlannerCog.switch_tile_claim, self.send_planner_msg)
         ))
 
-        # messages[0][1] = PlannerAdminView()
-
         return messages
 
     async def get_views(self) -> List[Union[None, PlannerUserView]]:
@@ -243,7 +241,8 @@ class PlannerCog(ErrorHandlerCog):
         channels = await bot.db.queries.get_planners()
 
         for channel in channels:
-            banners = await bot.db.queries.get_planned_banners(channel, banner_codes)
+            channel_id = channel["planner_channel"]
+            banners = await bot.db.queries.get_planned_banners(channel_id, banner_codes)
             banner_claims = {}
             for banner in banner_codes:
                 banner_claims[banner] = False
@@ -252,8 +251,11 @@ class PlannerCog(ErrorHandlerCog):
                     banner_claims[banner["tile"]] = True
 
             views.append(
-                PlannerUserView([(tile, banner_claims[tile]) for tile in banner_claims], channel,
+                PlannerUserView([(tile, banner_claims[tile]) for tile in banner_claims], channel_id,
                                 PlannerCog.switch_tile_claim, self.send_planner_msg)
+            )
+            views.append(
+                PlannerAdminView(channel_id, self.send_planner_msg, channel["is_active"])
             )
 
         return views
@@ -280,27 +282,6 @@ class PlannerCog(ErrorHandlerCog):
 
         planner_content = await self.get_planner_msg(channel_id)
         messages = await bot.utils.discordutils.update_messages(self.bot.user, planner_content, channel)
-
-    async def switch_planner(self, status: bool) -> None:
-        """Turns the planner on or off.
-
-        :param status: Whether the planner should be turned on or off.
-        """
-        pass
-
-    async def set_planner_ping_channel(self, ping_channel: int) -> None:
-        """Sets the channel where the Planner will send pings for the reminders.
-
-        :param ping_channel: The channel ID where the pings will be sent
-        """
-        pass
-
-    async def set_planner_ping_role(self, ping_role: int) -> None:
-        """Sets the role that will be pinged if no specific user has a tile claimed.
-
-        :param ping_role: The role ID that will be pinged.
-        """
-        pass
 
     @staticmethod
     async def switch_tile_claim(user: int, planner_channel_id: int, tile: str) -> Tuple[str, bool]:

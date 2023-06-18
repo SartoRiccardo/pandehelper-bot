@@ -7,6 +7,9 @@ from .model.TileCapture import TileCapture
 postgres = bot.db.connection.postgres
 bloons = bot.utils.bloons
 
+# I really need to format this into different files huh
+# I'll do that... someday
+
 
 @postgres
 async def track_channel(channel: int, conn=None) -> None:
@@ -170,9 +173,10 @@ async def del_oak(user: int, oak: str, conn=None) -> None:
 
 
 @postgres
-async def get_planners(conn=None) -> List[int]:
-    planners = await conn.fetch("SELECT planner_channel FROM planners")
-    return [p["planner_channel"] for p in planners]
+async def get_planners(only_active: bool = False, conn=None) -> List[Dict[str, Any]]:
+    only_active_q = " WHERE is_active" if only_active else ""
+    planners = await conn.fetch("SELECT * FROM planners" + only_active_q)
+    return planners
 
 
 @postgres
@@ -251,6 +255,9 @@ async def get_planned_banners(planner_channel: int, banner_codes: List[str], con
             SELECT MAX(claimed_at)
             FROM ({banner_captures}) bcap2
             WHERE bcap.tile = bcap2.tile
+        ) AND (
+            (SELECT clear_time FROM planners WHERE planner_channel = $3) IS NULL
+            OR claimed_at >= (SELECT clear_time FROM planners WHERE planner_channel = $3)
         )
     """, event_start, banner_codes, planner_channel)
     return banners
@@ -320,3 +327,13 @@ async def get_claims_by(user: int, planner_channel: int, conn=None) -> List[Dict
         WHERE user_id = $1
             AND planner_channel = $2
     """, user, planner_channel)
+
+
+@postgres
+async def turn_planner(planner: int, active: bool, conn=None) -> None:
+    await conn.execute("UPDATE planners SET is_active=$1 WHERE planner_channel=$2", active, planner)
+
+
+@postgres
+async def set_clear_time(planner: int, clear_time: datetime.datetime, conn=None) -> None:
+    await conn.execute("UPDATE planners SET clear_time=$1 WHERE planner_channel=$2", clear_time, planner)

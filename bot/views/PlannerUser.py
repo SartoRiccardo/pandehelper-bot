@@ -38,8 +38,9 @@ class PlannerUserView(discord.ui.View):
         self.planner_channel_id = planner_channel_id
         self.refresh_planner = refresh_planner
         self.switch_tile_callback = switch_tile_callback
-        self.select = BannerSelect(banners, callback=self.switch_tile)
-        self.add_item(self.select)
+        if len(banners) > 0:
+            self.select = BannerSelect(banners, callback=self.switch_tile)
+            self.add_item(self.select)
 
     async def switch_tile(self, interaction: discord.Interaction, tile: str) -> None:
         response_content, should_refresh = await self.switch_tile_callback(interaction.user.id, self.planner_channel_id, tile)
