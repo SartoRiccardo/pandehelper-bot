@@ -260,7 +260,7 @@ async def get_planned_banners(planner_channel: int,
         extra_args.append(expire_between[1] - datetime.timedelta(days=1))
         between_q = """
             AND claimed_at >= $4
-            AND claimed_at <= $5
+            AND claimed_at < $5
         """
     claim_q = ""
     if claimed_status == "UNCLAIMED":
@@ -280,6 +280,42 @@ async def get_planned_banners(planner_channel: int,
             OR claimed_at >= (SELECT clear_time FROM planners WHERE planner_channel = $3)
         )
     """ + between_q + claim_q, event_start, banner_codes, planner_channel, *extra_args)
+    return banners
+
+
+@postgres
+async def get_banners_between(banner_codes: List[str],
+                              expire_from: datetime.datetime,
+                              expire_to: datetime.datetime,
+                              conn=None) -> List[Dict[str, Any]]:
+    one_day = datetime.timedelta(days=1)
+    banner_captures = """
+            SELECT p.planner_channel AS planner_channel, c.tile AS tile, c.claimed_at AS claimed_at,
+                    ptc.user_id AS user_id, p.ping_channel as ping_channel, p.ping_role AS ping_role
+            FROM (claims c
+            JOIN planners p
+                ON c.channel = p.claims_channel)
+            LEFT JOIN plannertileclaims ptc
+                ON p.planner_channel = ptc.planner_channel AND c.tile = ptc.tile
+            WHERE claimed_at >= $2
+                AND claimed_at < $3
+                AND c.tile = ANY($1::VARCHAR(3)[])
+            ORDER BY c.claimed_at ASC
+        """
+
+    banners = await conn.fetch(f"""
+            SELECT bcap.planner_channel, bcap.tile, bcap.claimed_at, bcap.user_id, bcap.ping_channel,
+                    bcap.ping_role
+            FROM ({banner_captures}) bcap
+            WHERE claimed_at = (
+                SELECT MAX(claimed_at)
+                FROM ({banner_captures}) bcap2
+                WHERE bcap.tile = bcap2.tile
+            ) AND (
+                (SELECT clear_time FROM planners WHERE planner_channel = bcap.planner_channel) IS NULL
+                OR claimed_at >= (SELECT clear_time FROM planners WHERE planner_channel = bcap.planner_channel)
+            )
+        """, banner_codes, expire_from-one_day, expire_to-one_day)
     return banners
 
 

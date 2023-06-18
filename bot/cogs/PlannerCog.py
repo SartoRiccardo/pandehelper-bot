@@ -50,6 +50,7 @@ class PlannerCog(ErrorHandlerCog):
                      + timedelta(minutes=PlannerCog.CHECK_EVERY)
         self.next_check = next_check
         self.next_check_unclaimed = next_check
+        self.next_check_decay = datetime.now().replace(second=0, microsecond=0) + timedelta(minutes=1)
         self.last_check_end = self.next_check
 
     async def load_state(self) -> None:
@@ -80,9 +81,11 @@ class PlannerCog(ErrorHandlerCog):
         for v in views:
             self.bot.add_view(v)
         self.check_reminders.start()
+        self.check_decay.start()
 
     def cog_unload(self) -> None:
         self.check_reminders.cancel()
+        self.check_decay.cancel()
 
     @tasks.loop(seconds=10)
     async def check_reminders(self) -> None:
@@ -206,8 +209,52 @@ class PlannerCog(ErrorHandlerCog):
     async def check_decay(self) -> None:
         """
         Checks if a banner has just decayed and pings the team in the appropriate channel.
+        
+        This function could be done in a much smarter way to optimize requests to the PSQL
+        server by storing the nearest banner to decay for every planner and checking that one.
+        After that banner has decayed, request the PSQL server for the next nearest banner and
+        keep checking for that one. You also have to update the cog's state accordingly when any
+        banner's decay time gets updated, and if the new time becomes the new "nearest time",
+        wait for that instead.
+        The code below pesters the PSQL server once per minute, which is inefficient and I'm not
+        proud of that, but this is also the 400th CT Planner bot by now and I'm not too keen on
+        reinventing the wheel here. Besides I don't need to optimize requests because it's all
+        stored on the same machine so I can tank a bit of unoptimization. It's also 1AM and this
+        planner thing was supposed to be done a week ago but I also have real world work to attend
+        to & this planner feature is overdue by weeks by now. So if for some reason you're using an
+        external PSQL server I'll leave implementing the much more request efficient solution above
+        as homework to the reader.
+        tl;dr I'm not stupid I just don't have time to do this properly & doing it properly doesn't
+        grant me any significant advantage beyond... bragging rights maybe?
         """
         now = datetime.now()
+        if now < self.next_check_decay:
+            return
+        self.next_check_decay += timedelta(minutes=1)
+        banner_codes = await self.get_banner_tile_list()
+        just_decayed = await bot.db.queries.get_banners_between(banner_codes,
+                                                                self.next_check_decay - timedelta(minutes=2),
+                                                                self.next_check_decay - timedelta(minutes=1))
+        for banner in just_decayed:
+
+            ping_channel = self.bot.get_channel(banner["ping_channel"])
+            if ping_channel is None:
+                ping_channel = await self.bot.fetch_channel(banner["ping_channel"])
+            if ping_channel is None:
+                await bot.db.queries.planner_delete_config(banner["planner_id"], ping_channel=True)
+                await self.send_planner_msg(banner["planner_id"])
+                continue
+
+            message = f"**BANNER `{banner['tile']}` HAS JUST GONE STALE**, claim it now"
+            if banner["user_id"]:
+                message += f" <@{banner['user_id']}>"
+            elif banner["ping_role"]:
+                message += f" <@&{banner['ping_role']}>"
+            message += "!"
+
+            await ping_channel.send(
+                content=message
+            )
 
     @planner_group.command(name="new", description="Create a new Planner channel.")
     @discord.app_commands.guild_only()
