@@ -175,7 +175,7 @@ class UtilsCog(ErrorHandlerCog):
         # Gatekeeping the command to Pandemonium members
         has_access = False
         for role in interaction.user.roles:
-            if role.id in [860147253527838721, 940942269933043712]:
+            if role.id in [1005472018189271160, 1026966667345002517, 1011968628419207238, 860147253527838721, 940942269933043712]:
                 has_access = True
                 break
         if not has_access:
