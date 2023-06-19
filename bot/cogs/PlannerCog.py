@@ -65,14 +65,14 @@ class PlannerCog(ErrorHandlerCog):
 
         data = state["data"]
         if "next_check" in data:
-            self.next_check = data["next_check"]
+            self.next_check = datetime.fromtimestamp(data["next_check"])
         if "last_check_end" in data:
-            self.last_check_end = data["last_check_end"]
+            self.last_check_end = datetime.fromtimestamp(data["last_check_end"])
 
     async def save_state(self) -> None:
         data = {
-            "next_check": self.next_check,
-            "last_check_end": self.last_check_end,
+            "next_check": self.next_check.timestamp(),
+            "last_check_end": self.last_check_end.timestamp(),
         }
         await asyncio.to_thread(bot.utils.io.save_cog_state, "planner", data)
 
@@ -128,6 +128,7 @@ class PlannerCog(ErrorHandlerCog):
                     planner["ping_channel"],
                     planner["ping_role"],
                 )
+        await self.save_state()
 
     async def check_planner_reminder(self,
                                      planner_id: int,
@@ -375,7 +376,7 @@ class PlannerCog(ErrorHandlerCog):
                     "⚠️ None *(the bot will not ping at all)*️",
                 f"<@&{planner['ping_role']}>" if planner['ping_role'] else
                     "⚠️ None *(will ping `@here` instead)*"
-            ), PlannerAdminView(channel, self.send_planner_msg, planner["is_active"])),
+            ), PlannerAdminView(channel, self.send_planner_msg, self.edit_tile_time, planner["is_active"])),
             (PLANNER_HR, None),
         ]
 
@@ -421,7 +422,7 @@ class PlannerCog(ErrorHandlerCog):
                                 PlannerCog.switch_tile_claim, self.send_planner_msg)
             )
             views.append(
-                PlannerAdminView(channel_id, self.send_planner_msg, channel["is_active"])
+                PlannerAdminView(channel_id, self.send_planner_msg, self.edit_tile_time, channel["is_active"])
             )
 
         return views
@@ -499,6 +500,35 @@ class PlannerCog(ErrorHandlerCog):
         if planner_id is None:
             return
         await bot.db.queries.planner_unclaim_tile(tile, planner_id)
+        await self.send_planner_msg(planner_id)
+
+    @discord.app_commands.checks.has_permissions(manage_guild=True)
+    async def edit_tile_time(self,
+                             interaction: discord.Interaction,
+                             planner_id: int,
+                             tile: str,
+                             new_time: datetime) -> None:
+        planner_info = await bot.db.queries.get_planner(planner_id)
+        if planner_info is None or planner_info["claims_channel"] is None:
+            return
+        claims_channel = planner_info["claims_channel"]
+        banner_list = await self.get_banner_tile_list()
+        self.banner_decays = await bot.db.queries.get_banner_closest_to_expire(banner_list, datetime.now())
+        success = await bot.db.queries.edit_tile_capture_time(claims_channel, tile, new_time-timedelta(days=1))
+        message = f"Got it! `{tile}` will decay at " \
+                  f"<t:{int(new_time.timestamp())}:t> (<t:{int(new_time.timestamp())}:R>)"
+        if not success:
+            message = f"`{tile}` doesn't seem to be a valid tile...\n"
+            if tile not in banner_list:
+                message += "*It's not a banner!*"
+            else:
+                message += f"*The banner must have been captured at any point during the CT to be able to " \
+                           f"have its time edited. If you want to add it to the planner, register the capture " \
+                           f"yourself in <#{claims_channel}>. and __then__ edit the time.*"
+        await interaction.response.send_message(
+            content=message,
+            ephemeral=True
+        )
         await self.send_planner_msg(planner_id)
 
 

@@ -422,3 +422,29 @@ async def turn_planner(planner: int, active: bool, conn=None) -> None:
 @postgres
 async def set_clear_time(planner: int, clear_time: datetime.datetime, conn=None) -> None:
     await conn.execute("UPDATE planners SET clear_time=$1 WHERE planner_channel=$2", clear_time, planner)
+
+
+@postgres
+async def edit_tile_capture_time(channel_id: int,
+                                 tile: str,
+                                 new_time: datetime.datetime,
+                                 planner_clear_time: datetime.datetime or None = None,
+                                 conn=None) -> bool:
+    event = bloons.get_current_ct_number()
+    event_start = bloons.FIRST_CT_START + datetime.timedelta(days=bloons.EVENT_DURATION*2 * (event-1))
+    min_time_to_edit = event_start if planner_clear_time is None else max(event_start, planner_clear_time)
+    updated = await conn.execute("""
+        UPDATE claims
+        SET claimed_at = $1
+        WHERE tile = $2
+            AND channel = $3
+            AND claimed_at = (
+                SELECT MAX(claimed_at)
+                FROM claims
+                WHERE tile = $2
+                    AND channel = $3
+            )
+            AND claimed_at >= $4
+    """, new_time, tile, channel_id, min_time_to_edit)
+    updated_rows = int(updated[7:])
+    return updated_rows > 0
