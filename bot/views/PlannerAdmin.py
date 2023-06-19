@@ -45,6 +45,36 @@ class ClearPlannerButton(discord.ui.Button):
         await self.clear_callback(interaction)
 
 
+class ForceUnclaimModal(discord.ui.Modal, title="Force a tile to be unclaimed"):
+    tile_code = discord.ui.TextInput(label="Tile Code", min_length=3, max_length=3, placeholder="FFB", required=True)
+
+    def __init__(self, planner_id: int, force_unclaim_callback: Callable, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.planner_id = planner_id
+        self.force_unclaim_callback = force_unclaim_callback
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        tile_code = self.tile_code.value.upper()
+        await self.force_unclaim_callback(interaction, self.planner_id, tile_code)
+
+
+class ForceUnclaimButton(discord.ui.Button):
+    def __init__(self, unclaim_callback: Callable, planner_id: int):
+        self.unclaim_callback = unclaim_callback
+        self.planner_id = planner_id
+        super().__init__(
+            label="Force Unclaim",
+            custom_id=f"planner:admin:unclaim:{planner_id}"[:100],
+            style=discord.ButtonStyle.gray
+        )
+
+    @check_manage_guild
+    async def callback(self, interaction: discord.Interaction) -> Any:
+        await interaction.response.send_modal(
+            ForceUnclaimModal(self.planner_id, self.unclaim_callback)
+        )
+
+
 class TimeEditModal(discord.ui.Modal, title="Edit a Tile's Expiration Time"):
     tile_code = discord.ui.TextInput(label="Tile Code", min_length=3, max_length=3, placeholder="FFB", required=True)
     expire_time = discord.ui.TextInput(label="Stale in", placeholder="13:55", min_length=3, max_length=5, required=True)
@@ -104,6 +134,7 @@ class PlannerAdminView(discord.ui.View):
                  planner_channel_id: int,
                  refresh_planner: Callable,
                  edit_time: Callable,
+                 force_unclaim: Callable,
                  planner_active: bool,
                  timeout: float = None):
         super().__init__(timeout=timeout)
@@ -117,6 +148,9 @@ class PlannerAdminView(discord.ui.View):
         )
         self.add_item(
             EditTimeButton(edit_time, self.planner_id)
+        )
+        self.add_item(
+            ForceUnclaimButton(force_unclaim, self.planner_id)
         )
 
     async def switch_planner(self, interaction: discord.Interaction, new_active: bool) -> None:

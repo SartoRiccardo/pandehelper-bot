@@ -52,7 +52,7 @@ class PlannerCog(ErrorHandlerCog):
         self.next_check_unclaimed = next_check
         self.banner_decays = {}
         self.last_check_end = self.next_check
-        self._banner_list : Cache or None = None
+        self._banner_list: Cache or None = None
 
     async def load_state(self) -> None:
         state = await asyncio.to_thread(bot.utils.io.get_cog_state, "planner")
@@ -291,6 +291,7 @@ class PlannerCog(ErrorHandlerCog):
         await self.add_planner(interaction, channel)
 
     @planner_group.command(name="config", description="Configure the planner.")
+    @discord.app_commands.rename(ping_role="team_role")
     @discord.app_commands.describe(
         planner_channel="The channel of the planner you want to change.",
         ping_channel="The channel where the bot will ping users to remind them of banner decays.",
@@ -376,7 +377,11 @@ class PlannerCog(ErrorHandlerCog):
                     "⚠️ None *(the bot will not ping at all)*️",
                 f"<@&{planner['ping_role']}>" if planner['ping_role'] else
                     "⚠️ None *(will ping `@here` instead)*"
-            ), PlannerAdminView(channel, self.send_planner_msg, self.edit_tile_time, planner["is_active"])),
+            ), PlannerAdminView(channel,
+                                self.send_planner_msg,
+                                self.edit_tile_time,
+                                self.force_unclaim,
+                                planner["is_active"])),
             (PLANNER_HR, None),
         ]
 
@@ -422,7 +427,11 @@ class PlannerCog(ErrorHandlerCog):
                                 PlannerCog.switch_tile_claim, self.send_planner_msg)
             )
             views.append(
-                PlannerAdminView(channel_id, self.send_planner_msg, self.edit_tile_time, channel["is_active"])
+                PlannerAdminView(channel_id,
+                                 self.send_planner_msg,
+                                 self.edit_tile_time,
+                                 self.force_unclaim,
+                                 channel["is_active"])
             )
 
         return views
@@ -527,6 +536,14 @@ class PlannerCog(ErrorHandlerCog):
                            f"yourself in <#{claims_channel}>. and __then__ edit the time.*"
         await interaction.response.send_message(
             content=message,
+            ephemeral=True
+        )
+        await self.send_planner_msg(planner_id)
+
+    async def force_unclaim(self, interaction: discord.Interaction, planner_id: int, tile: str) -> None:
+        await bot.db.queries.planner_unclaim_tile(tile, planner_id)
+        await interaction.response.send_message(
+            content=f"All done! `{tile}` is now unclaimed.",
             ephemeral=True
         )
         await self.send_planner_msg(planner_id)

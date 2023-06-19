@@ -1,15 +1,12 @@
 import asyncio
 import datetime
-import os
 import json
-import bloonspy
-import bloonspy.exceptions
 import bot.utils.io
 import bot.db.queries
 import discord
 from discord.ext import commands, tasks
 from bot.classes import ErrorHandlerCog
-from typing import List, Dict, Any
+from typing import List
 
 
 class UtilsCog(ErrorHandlerCog):
