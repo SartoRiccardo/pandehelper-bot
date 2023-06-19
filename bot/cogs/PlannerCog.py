@@ -222,6 +222,9 @@ class PlannerCog(ErrorHandlerCog):
         for banner in self.banner_decays:
             if banner["claimed_at"] + one_day < now:
                 update_expire_list = True
+                planner = await bot.db.queries.get_planner(banner["planner_channel"])
+                if not planner["is_active"]:
+                    continue
                 banner_data = await bot.db.queries.planner_get_tile_status(banner["tile"], banner["planner_channel"])
                 await self.send_decay_ping(banner["planner_channel"], banner_data["ping_channel"],
                                            banner["tile"], banner_data["user_id"], banner_data["ping_role"])
