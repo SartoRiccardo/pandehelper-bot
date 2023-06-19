@@ -76,6 +76,13 @@ def raw_challenge_to_embed(challenge) -> discord.Embed or None:
 
     challenge = challenge["GameData"]
 
+    if challenge["selectedMap"] == "AdorasTemple":
+        challenge["selectedMap"] = "Adora'sTemple"
+    elif challenge["selectedMap"] == "PatsPond":
+        challenge["selectedMap"] = "Pat'sTemple"
+    elif challenge["selectedMap"] == "Tutorial":
+        challenge["selectedMap"] = "MonkeyMeadow"
+
     boss = None
     challenge_thmb = ""
     if "bossData" in challenge:
