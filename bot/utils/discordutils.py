@@ -6,7 +6,7 @@ import asyncio
 async def update_messages(
         bot: discord.ClientUser,
         content: List[Tuple[str, discord.ui.View or None]],
-        channel: discord.TextChannel) -> List[discord.Message]:
+        channel: discord.TextChannel) -> None:
     """Edits a bunch of messages to reflect some new content. If other users
     sent messages in the channel in the meanwhile, it deletes its own old messages
     and send the whole thing again, to make sure it's always the newest message sent.
@@ -14,18 +14,19 @@ async def update_messages(
     :param bot: The bot user.
     :param content: A list of messages to send and possibly a View or None.
     :param channel: The channel to send the message to.
-    :return: The messages sent or edited.
     """
-    modify = True
     messages_to_change = []
     bot_messages = []
+    modify = True
     async for message in channel.history(limit=25):
         if message.author == bot:
-            messages_to_change.insert(0, message)
+            if modify:
+                messages_to_change.insert(0, message)
             bot_messages.append(message)
-            if len(content) == len(messages_to_change):
-                break
-        else:
+            if len(content) < len(messages_to_change):
+                modify = False
+                messages_to_change = []
+        elif len(content) != len(messages_to_change):
             messages_to_change = []
             modify = False
     if len(messages_to_change) != len(content):
@@ -41,14 +42,13 @@ async def update_messages(
                     (len(messages_to_change[i].components) == len(new_view.to_components()) == 0):
                 coros.append(messages_to_change[i].edit(content=new_content, view=new_view))
         await asyncio.gather(*coros)
-        return messages_to_change
+        return
 
     coros = []
+    print(len(bot_messages))
     for msg in bot_messages:
         coros.append(msg.delete())
     await asyncio.gather(*coros)
 
-    messages = []
     for msg, view in content:
-        messages.append(await channel.send(content=msg, view=view))
-    return messages
+        await channel.send(content=msg, view=view)
