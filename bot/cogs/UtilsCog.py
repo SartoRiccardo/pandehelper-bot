@@ -5,6 +5,7 @@ import os
 import bot.utils.io
 import bot.utils.bloons
 import bot.db.queries
+from bot.utils.Cache import Cache
 import discord
 from discord.ext import commands, tasks
 from bot.classes import ErrorHandlerCog
@@ -24,6 +25,7 @@ class UtilsCog(ErrorHandlerCog):
     def __init__(self, bot: commands.Bot) -> None:
         super().__init__(bot)
         self.tag_list: List[str] = []
+        self.raceregs: Cache or None = None
 
     def cog_load(self) -> None:
         self.update_tag_list.start()
@@ -201,6 +203,48 @@ class UtilsCog(ErrorHandlerCog):
 
         await interaction.response.send_message(
             embed=embed
+        )
+
+    @discord.app_commands.command(name="raceregs",
+                                  description="Get a list of all race regs.")
+    @discord.app_commands.guild_only()
+    async def cmd_raceregs(self, interaction: discord.Interaction) -> None:
+        # Gatekeeping the command to Pandemonium members
+        # Need to make this a decorator huh
+        has_access = False
+        for role in interaction.user.roles:
+            if role.id in [1005472018189271160, 1026966667345002517, 1011968628419207238, 860147253527838721, 940942269933043712]:
+                has_access = True
+                break
+        if not has_access:
+            await interaction.response.send_message("<:hehe:1111026798210326719>", ephemeral=True)
+            return
+
+        if self.raceregs is not None and self.raceregs.valid:
+            race_regs = self.raceregs.value
+        else:
+            tiles_path = "bot/files/json/tiles/"
+            tiles = os.listdir(tiles_path)
+            coros = []
+            for filename in tiles:
+                tile = filename[:3]
+                coros.append(asyncio.to_thread(self.fetch_challenge_data, tile))
+            tiles_data = await asyncio.gather(*coros)
+
+            race_regs = []
+            for tile in tiles_data:
+                if "TileType" not in tile or "subGameType" not in tile["GameData"]:
+                    print(tile)
+                    continue
+                if tile["GameData"]["subGameType"] == 2 and tile['TileType'] == "Regular":
+                    race_regs.append(tile["Code"])
+            current_ct_num = bot.utils.bloons.get_current_ct_number()
+            next_ct_start = bot.utils.bloons.FIRST_CT_START + \
+                            datetime.timedelta(days=bot.utils.bloons.EVENT_DURATION*2*current_ct_num)
+            self.raceregs = Cache(race_regs, next_ct_start)
+
+        await interaction.response.send_message(
+            content=f"`{'` `'.join(race_regs)}`"
         )
 
     @staticmethod
