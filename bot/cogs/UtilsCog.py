@@ -1,7 +1,7 @@
 import asyncio
 import datetime
-import re
-import asyncpg.exceptions
+import os
+import json
 import bloonspy
 import bloonspy.exceptions
 import bot.utils.io
@@ -9,7 +9,7 @@ import bot.db.queries
 import discord
 from discord.ext import commands, tasks
 from bot.classes import ErrorHandlerCog
-from typing import List
+from typing import List, Dict, Any
 
 
 class UtilsCog(ErrorHandlerCog):
@@ -163,8 +163,9 @@ class UtilsCog(ErrorHandlerCog):
     @discord.app_commands.command(name="invite",
                                   description="Invite Pandemonium Helper to your server!")
     async def cmd_invite(self, interaction: discord.Interaction) -> None:
+        url = "https://discord.com/api/oauth2/authorize?client_id=1088892665422151710&permissions=51539946512&scope=bot"
         await interaction.response.send_message(
-            content="Wanna invite me to your server? Use [this invite link](https://discord.com/api/oauth2/authorize?client_id=1088892665422151710&permissions=51539946512&scope=bot)!"
+            content=f"Wanna invite me to your server? Use [this invite link]({url})!"
         )
 
     @discord.app_commands.command(name="now",
@@ -174,6 +175,118 @@ class UtilsCog(ErrorHandlerCog):
         await interaction.response.send_message(
             content=f"`{int(now.timestamp())}` <t:{int(now.timestamp())}>"
         )
+        
+    @discord.app_commands.command(name="tile",
+                                  description="Check a tile's challenge data")
+    @discord.app_commands.describe(tile="The 3 letter tile code")
+    @discord.app_commands.guild_only()
+    async def cmd_tile(self, interaction: discord.Interaction, tile: str) -> None:
+        # Gatekeeping the command to Pandemonium members
+        has_access = False
+        for role in interaction.user.roles:
+            if role.id in [1005472018189271160, 1026966667345002517, 1011968628419207238, 860147253527838721, 940942269933043712]:
+                has_access = True
+                break
+        if not has_access:
+            return
+
+        tile = tile.upper()
+        embed = await self.get_tile_embed(tile)
+        if embed is None:
+            await interaction.response.send_message(
+                content="I don't have the challenge data for that tile!"
+            )
+            return
+
+        await interaction.response.send_message(
+            embed=embed
+        )
+
+    @staticmethod
+    async def get_tile_embed(tile: str) -> discord.Embed or None:
+        path = f"bot/files/json/tiles/{tile}.json"
+        if not os.path.exists(path):
+            return None
+        # Blocking operation ik idc
+        fin = open(path)
+        data = json.loads(fin.read())
+        fin.close()
+
+        tile_type = "Regular"
+        if data['TileType'] == "TeamFirstCapture":
+            return None
+        elif data['TileType'] == "Banner":
+            tile_type = "Banner"
+        elif data['TileType'] == "Relic":
+            tile_type = data['RelicType']
+        data = data["GameData"]
+
+        description = f"**{data['selectedMap']} - {data['selectedDifficulty']} {data['selectedMode']}**\n" \
+                      f"Round {data['dcModel']['startRules']['round']}/{data['dcModel']['startRules']['endRound']} - " \
+                      f"${data['dcModel']['startRules']['cash']}\n"
+        if "bossData" in data:
+            boss_name = "Bloonarius"
+            if data['bossData']['bossBloon'] == 1:
+                boss_name = "Lych"
+            elif data['bossData']['bossBloon'] == 2:
+                boss_name = "Vortex"
+            description += f"{boss_name} {data['bossData']['TierCount']} Tiers\n"
+        elif data['subGameType'] == 9:
+            description += "Least Tiers\n"
+        elif data['subGameType'] == 8:
+            description += "Least Cash\n"
+        elif data['subGameType'] == 2:
+            description += "Time Attack\n"
+
+        if data['dcModel']['maxTowers'] > -1:
+            description += f"- **Max Towers:** {data['dcModel']['maxTowers']}\n"
+        if data['dcModel']['disableMK']:
+            description += f"- **Monkey Knowledge Disabled**\n"
+        if data['dcModel']['disableSelling'] > -1:
+            description += f"- **Selling Disabled**\n"
+        if data['dcModel']['abilityCooldownReductionMultiplier'] != 1.0:
+            description += f"- **Ability cooldown:** {int(data['dcModel']['abilityCooldownReductionMultiplier']*100)}%\n"
+        if data['dcModel']['removeableCostMultiplier'] != 1.0:
+            description += f"- **Removable cost:** {int(data['dcModel']['removeableCostMultiplier']*100)}%\n"
+        if data['dcModel']['bloonModifiers']['speedMultiplier'] != 1.0:
+            description += f"- **Bloon Speed:** {int(data['dcModel']['bloonModifiers']['speedMultiplier']*100)}%\n"
+        if data['dcModel']['bloonModifiers']['moabSpeedMultiplier'] != 1.0:
+            description += f"- **MOAB Speed:** {int(data['dcModel']['bloonModifiers']['moabSpeedMultiplier']*100)}%\n"
+        if data['dcModel']['bloonModifiers']['healthMultipliers']['bloons'] != 1.0:
+            description += f"- **Ceramic Health:** {int(data['dcModel']['bloonModifiers']['healthMultipliers']['bloons']*100)}%\n"
+        if data['dcModel']['bloonModifiers']['healthMultipliers']['moabs'] != 1.0:
+            description += f"- **MOAB Health:** {int(data['dcModel']['bloonModifiers']['healthMultipliers']['moabs']*100)}%\n"
+        if data['dcModel']['bloonModifiers']['regrowRateMultiplier'] != 1.0:
+            description += f"- **Regrow Rate:** {int(data['dcModel']['bloonModifiers']['regrowRateMultiplier']*100)}%\n"
+
+        heroes = []
+        towers = []
+        for twr in data['dcModel']['towers']['_items']:
+            if twr is None or twr['tower'] == "ChosenPrimaryHero" or twr['max'] == 0:
+                continue
+            if twr['isHero']:
+                heroes.append(twr['tower'])
+            else:
+                towers.append((twr['tower'], twr['max']))
+        towers_str = ""
+        for i in range(len(towers)):
+            name, max = towers[i]
+            towers_str += f"{name}"
+            if max > 0:
+                towers_str += f" (x{max})"
+            if i != len(towers)-1:
+                towers_str += " - "
+
+        embed = discord.Embed(
+            title=f"{tile} - {tile_type}",
+            description=description,
+            color=discord.Color.orange(),
+        )
+        if len(heroes) > 0:
+            embed.add_field(name="Heroes", value="-".join(heroes))
+        embed.add_field(name="Towers", value=towers_str)
+        embed.set_footer(text="Command is hastily made I'll improve sometime later")
+        return embed
 
 
 async def setup(bot: commands.Bot) -> None:
