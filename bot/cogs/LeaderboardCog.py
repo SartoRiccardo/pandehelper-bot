@@ -96,9 +96,10 @@ class LeaderboardCog(ErrorHandlerCog):
             self.current_ct_id = current_event.id
             self.last_hour_score = {}
 
-        if now > current_event.end or now < current_event.start:
+        if now > current_event.end + timedelta(hours=1) or now < current_event.start:
             return
 
+        should_skip_eco = now > current_event.end
         leaderboard = await asyncio.to_thread(current_event.leaderboard_team, pages=4)
         messages = []
         message_current = msg_header
@@ -113,12 +114,13 @@ class LeaderboardCog(ErrorHandlerCog):
 
             team_name = team.name.split("-")[0]
             message_current += "\n" + row_template.format(placement, team_name, team.score)
-            if team.id in self.last_hour_score:
-                score_gained = team.score - self.last_hour_score[team.id]
-                eco_emote = ECO if score_gained >= 0 else ECO_NEGATIVE
-                message_current += eco_template.format(eco_emote, score_gained)
-            elif not self.first_run:
-                message_current += f" {NEW_TEAM}"
+            if not should_skip_eco:
+                if team.id in self.last_hour_score:
+                    score_gained = team.score - self.last_hour_score[team.id]
+                    eco_emote = ECO if score_gained >= 0 else ECO_NEGATIVE
+                    message_current += eco_template.format(eco_emote, score_gained)
+                elif not self.first_run:
+                    message_current += f" {NEW_TEAM}"
             current_hour_score[team.id] = team.score
 
             if (i+1) % 20 == 0 or i == len(leaderboard)-1:
