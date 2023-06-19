@@ -114,7 +114,7 @@ def raw_challenge_to_embed(challenge) -> discord.Embed or None:
         description += f"{MAX_TOWERS} Max Towers: {challenge['dcModel']['maxTowers']}\n"
     if challenge['dcModel']['disableMK']:
         description += f"{NO_KNOWLEDGE} Knowledge Disabled\n"
-    if challenge['dcModel']['disableSelling'] > -1:
+    if challenge['dcModel']['disableSelling']:
         description += f"{NO_SELLING} Selling Disabled\n"
     # if challenge['dcModel']['abilityCooldownReductionMultiplier'] != 1.0:
     #     description += f"- **Ability cooldown:** {int(challenge['dcModel']['abilityCooldownReductionMultiplier']*100)}%\n"
