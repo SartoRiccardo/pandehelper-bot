@@ -1,8 +1,7 @@
 from datetime import datetime, timedelta
-from bloonspy import Client
+import json
 import discord
 from discord.ext import tasks, commands
-import time
 import asyncio
 import bot.db.queries
 import bot.utils.io
@@ -11,6 +10,7 @@ from bot.classes import ErrorHandlerCog
 from typing import List, Tuple, Union, Optional, Dict
 from bot.utils.emojis import BANNER
 from bot.views import PlannerUserView, PlannerAdminView
+from bot.utils.Cache import Cache
 
 
 PLANNER_ADMIN_PANEL = """
@@ -52,6 +52,7 @@ class PlannerCog(ErrorHandlerCog):
         self.next_check_unclaimed = next_check
         self.banner_decays = {}
         self.last_check_end = self.next_check
+        self._banner_list : Cache or None = None
 
     async def load_state(self) -> None:
         state = await asyncio.to_thread(bot.utils.io.get_cog_state, "planner")
@@ -352,14 +353,6 @@ class PlannerCog(ErrorHandlerCog):
         )
         await self.send_planner_msg(channel.id)
 
-    # @discord.app_commands.command(name="aaa")
-    # async def cmd_aaa(self, interaction: discord.Interaction) -> None:
-    #     banners = await self.get_banner_tile_list()
-    #     now = datetime.now()
-    #     bnrs = await bot.db.queries.get_banner_closest_to_expire(banners, now)
-    #     print(bnrs)
-    #     await interaction.response.send_message("aaa", ephemeral=True)
-
     async def get_planner_msg(self, channel: int) -> List[Tuple[str, discord.ui.View or None]]:
         """Generates the message to send in planner.
 
@@ -387,7 +380,7 @@ class PlannerCog(ErrorHandlerCog):
         ]
 
         tile_table = PLANNER_TABLE_HEADER
-        banner_codes = await PlannerCog.get_banner_tile_list()
+        banner_codes = await self.get_banner_tile_list()
         banners = await bot.db.queries.get_planned_banners(channel, banner_codes)
         for banner in banners:
             new_row = PLANNER_TABLE_ROW.format(
@@ -410,7 +403,7 @@ class PlannerCog(ErrorHandlerCog):
 
     async def get_views(self) -> List[Union[None, PlannerUserView]]:
         views = []
-        banner_codes = await PlannerCog.get_banner_tile_list()
+        banner_codes = await self.get_banner_tile_list()
         channels = await bot.db.queries.get_planners()
 
         for channel in channels:
@@ -433,12 +426,19 @@ class PlannerCog(ErrorHandlerCog):
 
         return views
 
+    async def get_banner_tile_list(self) -> List[str]:
+        """Returns a list of banner tile codes."""
+        if self._banner_list is None or not self._banner_list.valid:
+            banner_list = await asyncio.to_thread(self.fetch_banner_tile_list)
+            self._banner_list = Cache(banner_list, datetime.now() + timedelta(days=5))
+        return self._banner_list.value
+
     @staticmethod
-    async def get_banner_tile_list() -> List[str]:
-        """Returns a list of banner tile codes"""
-        # Temporary hardcode
-        return ["EDD", "FEB", "EBD", "DBC", "FCE", "EBF", "DAE", "CDD", "EAF", "FBF", "CBF", "FAH", "BAG", "DEB", "CFB",
-                "CAG", "ABD", "ACC", "ACB", "BCC", "BBC", "BFB", "BFA", "CEA"]
+    def fetch_banner_tile_list() -> List[str]:
+        fin = open("bot/files/json/banners.json")
+        banners = json.loads(fin.read())
+        fin.close()
+        return banners
 
     async def send_planner_msg(self, channel_id: int) -> None:
         """(Re)sends the planner message.
@@ -454,7 +454,7 @@ class PlannerCog(ErrorHandlerCog):
                 return
 
         planner_content = await self.get_planner_msg(channel_id)
-        messages = await bot.utils.discordutils.update_messages(self.bot.user, planner_content, channel)
+        await bot.utils.discordutils.update_messages(self.bot.user, planner_content, channel)
 
     @staticmethod
     async def switch_tile_claim(user: int, planner_channel_id: int, tile: str) -> Tuple[str, bool]:
@@ -484,10 +484,6 @@ class PlannerCog(ErrorHandlerCog):
             refresh = True
 
         return response, refresh
-
-    async def clear_planner(self) -> None:
-        """Clears the Planner."""
-        pass
 
     async def on_tile_claimed(self, tile: str, claim_channel: int, _claimer: int) -> None:
         """
