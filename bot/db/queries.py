@@ -309,6 +309,7 @@ async def get_banner_closest_to_expire(banner_codes: List[str],
                 SELECT MAX(claimed_at)
                 FROM ({banner_captures}) bcap2
                 WHERE bcap.tile = bcap2.tile
+                    AND bcap.planner_channel = bcap2.planner_channel
             ) AND (
                 (SELECT clear_time FROM planners WHERE planner_channel = bcap.planner_channel) IS NULL
                 OR claimed_at >= (SELECT clear_time FROM planners WHERE planner_channel = bcap.planner_channel)
@@ -318,7 +319,7 @@ async def get_banner_closest_to_expire(banner_codes: List[str],
             SELECT *
             FROM ({banner_claims}) bclaim
             WHERE bclaim.claimed_at = (
-                SELECT MIN(claimed_at)
+                SELECT MIN(bclaims2.claimed_at)
                 FROM ({banner_claims}) bclaims2
                 WHERE bclaim.planner_channel = bclaims2.planner_channel
             )
