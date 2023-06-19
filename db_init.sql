@@ -25,5 +25,29 @@ CREATE TABLE IF NOT EXISTS btd6players (
     PRIMARY KEY(userid, oak)
 );
 
+CREATE TABLE IF NOT EXISTS planners (
+    planner_channel BIGINT NOT NULL,
+    claims_channel BIGINT,
+    ping_role BIGINT,
+    ping_channel BIGINT,
+    clear_time TIMESTAMP,
+    is_active BOOL DEFAULT TRUE,
+    PRIMARY KEY(planner_channel)
+);
+
+-- Reserve a tile to claim for the Planner
+CREATE TABLE IF NOT EXISTS plannertileclaims (
+    user_id BIGINT NOT NULL,
+    planner_channel BIGINT NOT NULL,
+    tile VARCHAR(3),
+    PRIMARY KEY(user_id, planner_channel, tile)
+);
+
 ALTER TABLE claims ADD CONSTRAINT fk_teams_1
     FOREIGN KEY (channel) REFERENCES teams(channel) ON DELETE CASCADE;
+
+ALTER TABLE planners ADD CONSTRAINT fk_teams_1
+    FOREIGN KEY (claims_channel) REFERENCES teams(channel) ON DELETE NO ACTION;
+
+ALTER TABLE plannertileclaims ADD CONSTRAINT fk_planners_1
+    FOREIGN KEY (planner_channel) REFERENCES planners(planner_channel) ON DELETE CASCADE;

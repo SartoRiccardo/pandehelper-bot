@@ -145,6 +145,12 @@ class TrackerCog(ErrorHandlerCog):
         tile = match.group(0).upper()
         await bot.db.queries.capture(payload.channel_id, message.author.id, tile, payload.message_id)
 
+        # Forward event to those who are listening
+        for cog_name in self.bot.cogs:
+            cog = self.bot.cogs[cog_name]
+            if hasattr(cog, "on_tile_claimed"):
+                await cog.on_tile_claimed(tile, payload.channel_id, message.author.id)
+
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent) -> None:
         if str(payload.emoji) not in tracked_emojis or \

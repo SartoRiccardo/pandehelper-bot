@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import os
 import json
 import bloonspy
@@ -167,6 +168,14 @@ class UtilsCog(ErrorHandlerCog):
             content=f"Wanna invite me to your server? Use [this invite link]({url})!"
         )
 
+    @discord.app_commands.command(name="now",
+                                  description="Now!")
+    async def cmd_now(self, interaction: discord.Interaction) -> None:
+        now = datetime.datetime.now()
+        await interaction.response.send_message(
+            content=f"`{int(now.timestamp())}` <t:{int(now.timestamp())}>"
+        )
+        
     @discord.app_commands.command(name="tile",
                                   description="Check a tile's challenge data")
     @discord.app_commands.describe(tile="The 3 letter tile code")
