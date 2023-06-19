@@ -141,6 +141,7 @@ def raw_challenge_to_embed(challenge) -> discord.Embed or None:
     if len(bloon_modifiers) > 0:
         description += "Bloon modifiers:\n" + "".join(bloon_modifiers)
 
+    heroes_excluded = []
     towers = {
         "Heroes": [],
         "Primary": [],
@@ -149,7 +150,11 @@ def raw_challenge_to_embed(challenge) -> discord.Embed or None:
         "Support": [],
     }
     for twr in challenge['dcModel']['towers']['_items']:
-        if twr is None or twr['tower'] == "ChosenPrimaryHero" or twr['max'] == 0:
+        if twr is None or twr['tower'] == "ChosenPrimaryHero":
+            continue
+        if twr["isHero"] and twr["max"] == 0:
+            heroes_excluded.append(add_spaces(twr['tower']))
+        if twr['max'] == 0:
             continue
         if twr['isHero']:
             towers["Heroes"].append(add_spaces(twr['tower']))
@@ -161,14 +166,26 @@ def raw_challenge_to_embed(challenge) -> discord.Embed or None:
         description=description,
         color=discord.Color.orange(),
     )
-    if len(towers["Heroes"]) > 0:
-        embed.add_field(name="Heroes", value=" — ".join(towers["Heroes"]))
+
     embed.set_author(
         name=f"Contested Territory #{get_current_ct_number()} — Tile {tile}",
         icon_url=tile_type_url,
     )
     embed.set_image(url=MAPS[challenge['selectedMap']])
     embed.set_thumbnail(url=challenge_thmb)
+
+    if len(towers["Heroes"]) > 0:
+        content = ""
+        list_heroes = towers["Heroes"]
+        if len(towers["Heroes"]) > len(heroes_excluded):
+            content = "All **__EXCEPT FOR:__**\n"
+            list_heroes = heroes_excluded
+        for i in range(len(list_heroes)):
+            content += list_heroes[i]
+            if i != len(list_heroes)-1:
+                content += " — " if i % 2 == 0 else "\n"
+        embed.add_field(name="Heroes", value=content)
+
     for key in towers:
         if key == "Heroes" or len(towers[key]) == 0:
             continue
