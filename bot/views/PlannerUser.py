@@ -7,6 +7,7 @@ from bot.utils.emojis import X, ARROW_RIGHT
 class BannerSelect(discord.ui.Select):
     def __init__(self,
                  banners: List[Tuple[str, bool]],
+                 planner_id: int,
                  callback: Callable = None):
         banners = sorted(banners, key=lambda x: x[0])
         options = [
@@ -17,7 +18,7 @@ class BannerSelect(discord.ui.Select):
         super().__init__(
             placeholder="Claim a tile",
             options=options,
-            custom_id="planner:user:bannerselect"
+            custom_id=f"planner:user:banner-select:{planner_id}"[:100]
         )
 
     async def callback(self, interaction: discord.Interaction) -> None:
@@ -39,7 +40,7 @@ class PlannerUserView(discord.ui.View):
         self.refresh_planner = refresh_planner
         self.switch_tile_callback = switch_tile_callback
         if len(banners) > 0:
-            self.select = BannerSelect(banners, callback=self.switch_tile)
+            self.select = BannerSelect(banners, planner_channel_id, callback=self.switch_tile)
             self.add_item(self.select)
 
     async def switch_tile(self, interaction: discord.Interaction, tile: str) -> None:

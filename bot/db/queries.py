@@ -241,7 +241,8 @@ async def get_planned_banners(planner_channel: int,
     event = bloons.get_current_ct_number()
     event_start = bloons.FIRST_CT_START + datetime.timedelta(days=bloons.EVENT_DURATION*2 * (event-1))
     banner_captures = """
-        SELECT c.tile AS tile, c.claimed_at AS claimed_at, ptc.user_id AS user_id
+        SELECT c.tile AS tile, c.claimed_at AS claimed_at, ptc.user_id AS user_id,
+            p.claims_channel, p.ping_role, p.ping_channel
         FROM (claims c
         JOIN planners p
             ON c.channel = p.claims_channel)
@@ -269,7 +270,7 @@ async def get_planned_banners(planner_channel: int,
         claim_q = "AND bcap.user_id IS NOT NULL"
 
     banners = await conn.fetch(f"""
-        SELECT bcap.tile, bcap.claimed_at, bcap.user_id
+        SELECT bcap.tile, bcap.claimed_at, bcap.user_id, claims_channel, ping_role, ping_channel
         FROM ({banner_captures}) bcap
         WHERE claimed_at = (
             SELECT MAX(claimed_at)
@@ -284,10 +285,9 @@ async def get_planned_banners(planner_channel: int,
 
 
 @postgres
-async def get_banners_between(banner_codes: List[str],
-                              expire_from: datetime.datetime,
-                              expire_to: datetime.datetime,
-                              conn=None) -> List[Dict[str, Any]]:
+async def get_banner_closest_to_expire(banner_codes: List[str],
+                                       from_date: datetime.datetime,
+                                       conn=None) -> List[Dict[str, Any]]:
     one_day = datetime.timedelta(days=1)
     banner_captures = """
             SELECT p.planner_channel AS planner_channel, c.tile AS tile, c.claimed_at AS claimed_at,
@@ -298,12 +298,10 @@ async def get_banners_between(banner_codes: List[str],
             LEFT JOIN plannertileclaims ptc
                 ON p.planner_channel = ptc.planner_channel AND c.tile = ptc.tile
             WHERE claimed_at >= $2
-                AND claimed_at < $3
                 AND c.tile = ANY($1::VARCHAR(3)[])
             ORDER BY c.claimed_at ASC
         """
-
-    banners = await conn.fetch(f"""
+    banner_claims = f"""
             SELECT bcap.planner_channel, bcap.tile, bcap.claimed_at, bcap.user_id, bcap.ping_channel,
                     bcap.ping_role
             FROM ({banner_captures}) bcap
@@ -315,7 +313,16 @@ async def get_banners_between(banner_codes: List[str],
                 (SELECT clear_time FROM planners WHERE planner_channel = bcap.planner_channel) IS NULL
                 OR claimed_at >= (SELECT clear_time FROM planners WHERE planner_channel = bcap.planner_channel)
             )
-        """, banner_codes, expire_from-one_day, expire_to-one_day)
+        """
+    banners = await conn.fetch(f"""
+            SELECT *
+            FROM ({banner_claims}) bclaim
+            WHERE bclaim.claimed_at = (
+                SELECT MIN(claimed_at)
+                FROM ({banner_claims}) bclaims2
+                WHERE bclaim.planner_channel = bclaims2.planner_channel
+            )
+        """, banner_codes, from_date-one_day)
     return banners
 
 

@@ -50,7 +50,7 @@ class PlannerCog(ErrorHandlerCog):
                      + timedelta(minutes=PlannerCog.CHECK_EVERY)
         self.next_check = next_check
         self.next_check_unclaimed = next_check
-        self.next_check_decay = datetime.now().replace(second=0, microsecond=0) + timedelta(minutes=1)
+        self.banner_decays = {}
         self.last_check_end = self.next_check
 
     async def load_state(self) -> None:
@@ -81,6 +81,9 @@ class PlannerCog(ErrorHandlerCog):
         for v in views:
             self.bot.add_view(v)
         self.check_reminders.start()
+        banner_list = await self.get_banner_tile_list()
+        self.banner_decays = await bot.db.queries.get_banner_closest_to_expire(banner_list,
+                                                                               datetime.now())
         self.check_decay.start()
 
     def cog_unload(self) -> None:
@@ -179,10 +182,11 @@ class PlannerCog(ErrorHandlerCog):
                     message += ", "
 
         if None in pings and len(pings[None]) > 0:
+            ping = f"<@&{ping_role}>" if ping_role is not None else "@here"
             if pinged_someone:
-                message += f"Also, <@&{ping_role}> these tiles haven't been claimed and will expire somewhat soon: "
+                message += f"Also, {ping} these tiles haven't been claimed and will expire somewhat soon: "
             else:
-                message = f"<@&{ping_role}> these tiles haven't been claimed and will expire somewhat soon: "
+                message = f"{ping} these tiles haven't been claimed and will expire somewhat soon: "
             for i in range(len(pings[None])):
                 message += f"`{pings[None][i]}`"
                 if i == len(pings[None]) - 1:
@@ -209,52 +213,47 @@ class PlannerCog(ErrorHandlerCog):
     async def check_decay(self) -> None:
         """
         Checks if a banner has just decayed and pings the team in the appropriate channel.
-        
-        This function could be done in a much smarter way to optimize requests to the PSQL
-        server by storing the nearest banner to decay for every planner and checking that one.
-        After that banner has decayed, request the PSQL server for the next nearest banner and
-        keep checking for that one. You also have to update the cog's state accordingly when any
-        banner's decay time gets updated, and if the new time becomes the new "nearest time",
-        wait for that instead.
-        The code below pesters the PSQL server once per minute, which is inefficient and I'm not
-        proud of that, but this is also the 400th CT Planner bot by now and I'm not too keen on
-        reinventing the wheel here. Besides I don't need to optimize requests because it's all
-        stored on the same machine so I can tank a bit of unoptimization. It's also 1AM and this
-        planner thing was supposed to be done a week ago but I also have real world work to attend
-        to & this planner feature is overdue by weeks by now. So if for some reason you're using an
-        external PSQL server I'll leave implementing the much more request efficient solution above
-        as homework to the reader.
-        tl;dr I'm not stupid I just don't have time to do this properly & doing it properly doesn't
-        grant me any significant advantage beyond... bragging rights maybe?
         """
         now = datetime.now()
-        if now < self.next_check_decay:
+        one_day = timedelta(days=1)
+        update_expire_list = False
+        for banner in self.banner_decays:
+            if banner["claimed_at"] + one_day < now:
+                update_expire_list = True
+                banner_data = await bot.db.queries.planner_get_tile_status(banner["tile"], banner["planner_channel"])
+                await self.send_decay_ping(banner["planner_channel"], banner_data["ping_channel"],
+                                           banner["tile"], banner_data["user_id"], banner_data["ping_role"])
+
+        if update_expire_list:
+            banner_list = await self.get_banner_tile_list()
+            self.banner_decays = await bot.db.queries.get_banner_closest_to_expire(banner_list, now)
+
+    async def send_decay_ping(self,
+                              planner_id: int,
+                              ping_channel_id: int,
+                              tile: str,
+                              user_id: int or None,
+                              role_id: int or None) -> None:
+        ping_channel = self.bot.get_channel(ping_channel_id)
+        if ping_channel is None:
+            ping_channel = await self.bot.fetch_channel(ping_channel_id)
+        if ping_channel is None:
+            await bot.db.queries.planner_delete_config(planner_id, ping_channel=True)
+            await self.send_planner_msg(planner_id)
             return
-        self.next_check_decay += timedelta(minutes=1)
-        banner_codes = await self.get_banner_tile_list()
-        just_decayed = await bot.db.queries.get_banners_between(banner_codes,
-                                                                self.next_check_decay - timedelta(minutes=2),
-                                                                self.next_check_decay - timedelta(minutes=1))
-        for banner in just_decayed:
 
-            ping_channel = self.bot.get_channel(banner["ping_channel"])
-            if ping_channel is None:
-                ping_channel = await self.bot.fetch_channel(banner["ping_channel"])
-            if ping_channel is None:
-                await bot.db.queries.planner_delete_config(banner["planner_id"], ping_channel=True)
-                await self.send_planner_msg(banner["planner_id"])
-                continue
+        message = f"**BANNER `{tile}` HAS JUST GONE STALE**, claim it now"
+        if user_id:
+            message += f" <@{user_id}>"
+        elif role_id:
+            message += f" <@&{role_id}>"
+        else:
+            message += " @here"
+        message += "!"
 
-            message = f"**BANNER `{banner['tile']}` HAS JUST GONE STALE**, claim it now"
-            if banner["user_id"]:
-                message += f" <@{banner['user_id']}>"
-            elif banner["ping_role"]:
-                message += f" <@&{banner['ping_role']}>"
-            message += "!"
-
-            await ping_channel.send(
-                content=message
-            )
+        await ping_channel.send(
+            content=message
+        )
 
     @planner_group.command(name="new", description="Create a new Planner channel.")
     @discord.app_commands.guild_only()
@@ -313,7 +312,7 @@ class PlannerCog(ErrorHandlerCog):
 
         if tile_claim_channel:
             planner_linked = await bot.db.queries.get_planner_linked_to(tile_claim_channel.id)
-            if planner_linked != planner_channel.id:
+            if planner_linked is not None and planner_linked != planner_channel.id:
                 await interaction.response.send_message(
                     content=f"<#{tile_claim_channel.id}> is already linked to another planner!",
                     ephemeral=True,
@@ -355,15 +354,11 @@ class PlannerCog(ErrorHandlerCog):
 
     # @discord.app_commands.command(name="aaa")
     # async def cmd_aaa(self, interaction: discord.Interaction) -> None:
-    #     # await self.send_planner_msg(interaction.channel_id)
-    #
-    #     data = await bot.db.queries.get_planned_banners(
-    #         interaction.channel_id, ["EDD", "FEB", "EBD", "DBC", "FCE", "EBF", "DAE", "CDD", "EAF", "FBF", "CBF", "FAH", "BAG", "DEB", "CFB", "CAG", "ABD", "ACC", "ACB", "BCC", "BBC", "BFB", "BFA", "CEA"]
-    #     )
-    #     for datum in data:
-    #         print(datum)
-    #     print("\n\n\n")
-    #     await interaction.response.send_message("OK", ephemeral=True)
+    #     banners = await self.get_banner_tile_list()
+    #     now = datetime.now()
+    #     bnrs = await bot.db.queries.get_banner_closest_to_expire(banners, now)
+    #     print(bnrs)
+    #     await interaction.response.send_message("aaa", ephemeral=True)
 
     async def get_planner_msg(self, channel: int) -> List[Tuple[str, discord.ui.View or None]]:
         """Generates the message to send in planner.

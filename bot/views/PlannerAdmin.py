@@ -5,17 +5,43 @@ from typing import Callable, Any
 
 
 class SwitchPlannerButton(discord.ui.Button):
-    def __init__(self, switch_callback: Callable, is_active: bool):
+    def __init__(self, switch_callback: Callable, is_active: bool, planner_id: int):
         self.is_active = is_active
         self.switch_callback = switch_callback
         super().__init__(
             label=f"Turn {'Off' if self.is_active else 'On'}",
-            custom_id="planner:admin:turn",
+            custom_id=f"planner:admin:turn:{planner_id}"[:100],
             style=discord.ButtonStyle.red if self.is_active else discord.ButtonStyle.green
         )
 
     async def callback(self, interaction: discord.Interaction) -> Any:
         await self.switch_callback(interaction, not self.is_active)
+
+
+class ClearPlannerButton(discord.ui.Button):
+    def __init__(self, clear_callback: Callable, planner_id: int):
+        self.clear_callback = clear_callback
+        super().__init__(
+            label="Clear Planner",
+            custom_id=f"planner:admin:clear:{planner_id}"[:100],
+            style=discord.ButtonStyle.gray
+        )
+
+    async def callback(self, interaction: discord.Interaction) -> Any:
+        await self.clear_callback(interaction)
+
+
+class EditTimeButton(discord.ui.Button):
+    def __init__(self, edit_time_callback: Callable, planner_id: int):
+        self.edit_time_callback = edit_time_callback
+        super().__init__(
+            label="Edit Tile Expiry",
+            custom_id=f"planner:admin:edit-time:{planner_id}"[:100],
+            style=discord.ButtonStyle.gray
+        )
+
+    async def callback(self, interaction: discord.Interaction) -> Any:
+        await self.edit_time_callback(interaction)
 
 
 class PlannerAdminView(discord.ui.View):
@@ -28,8 +54,15 @@ class PlannerAdminView(discord.ui.View):
         super().__init__(timeout=timeout)
         self.planner_id = planner_channel_id
         self.refresh_planner = refresh_planner
-        self.turn_button = SwitchPlannerButton(self.switch_planner, planner_active)
-        self.add_item(self.turn_button)
+        self.add_item(
+            SwitchPlannerButton(self.switch_planner, planner_active, self.planner_id)
+        )
+        self.add_item(
+            ClearPlannerButton(self.clear_planner, self.planner_id)
+        )
+        self.add_item(
+            EditTimeButton(self.edit_time, self.planner_id)
+        )
 
     @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def switch_planner(self, interaction: discord.Interaction, new_active: bool) -> None:
@@ -40,8 +73,8 @@ class PlannerAdminView(discord.ui.View):
         )
         await self.refresh_planner(self.planner_id)
 
-    @discord.ui.button(label="Clear Planner", style=discord.ButtonStyle.gray, custom_id="planner:admin:clear")
-    async def btn_clear(self, interaction: discord.Interaction, _button: discord.ui.Button):
+    @discord.app_commands.checks.has_permissions(manage_guild=True)
+    async def clear_planner(self, interaction: discord.Interaction):
         await bot.db.queries.set_clear_time(self.planner_id, datetime.now())
         await interaction.response.send_message(
             content=f"Cleared the planner!",
@@ -49,6 +82,9 @@ class PlannerAdminView(discord.ui.View):
         )
         await self.refresh_planner(self.planner_id)
 
-    @discord.ui.button(label="Edit Tile Time", style=discord.ButtonStyle.gray, custom_id="planner:admin:edit_time")
-    async def btn_edit_time(self, interaction: discord.Interaction, button: discord.ui.Button):
-        pass
+    @discord.app_commands.checks.has_permissions(manage_guild=True)
+    async def edit_time(self, interaction: discord.Interaction, tile: str, new_time: str):
+        await interaction.response.send_message(
+            content="Sorry, this doesn't work yet. It's 1AM and I'm eager to get this out.",
+            ephemeral=True
+        )
