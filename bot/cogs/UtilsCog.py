@@ -187,6 +187,7 @@ class UtilsCog(ErrorHandlerCog):
                 has_access = True
                 break
         if not has_access:
+            await interaction.response.send_message("<:hehe:1111026798210326719>", ephemeral=True)
             return
 
         tile = tile.upper()
