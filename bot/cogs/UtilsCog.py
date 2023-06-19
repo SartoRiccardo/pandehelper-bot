@@ -1,7 +1,9 @@
 import asyncio
 import datetime
 import json
+import os
 import bot.utils.io
+import bot.utils.bloons
 import bot.db.queries
 import discord
 from discord.ext import commands, tasks
@@ -188,7 +190,8 @@ class UtilsCog(ErrorHandlerCog):
             return
 
         tile = tile.upper()
-        embed = await self.get_tile_embed(tile)
+        challenge_data = await asyncio.to_thread(self.fetch_challenge_data, tile)
+        embed = bot.utils.bloons.raw_challenge_to_embed(challenge_data)
         if embed is None:
             await interaction.response.send_message(
                 content="I don't have the challenge data for that tile!"
@@ -200,90 +203,14 @@ class UtilsCog(ErrorHandlerCog):
         )
 
     @staticmethod
-    async def get_tile_embed(tile: str) -> discord.Embed or None:
+    def fetch_challenge_data(tile: str):
         path = f"bot/files/json/tiles/{tile}.json"
         if not os.path.exists(path):
             return None
-        # Blocking operation ik idc
         fin = open(path)
         data = json.loads(fin.read())
         fin.close()
-
-        tile_type = "Regular"
-        if data['TileType'] == "TeamFirstCapture":
-            return None
-        elif data['TileType'] == "Banner":
-            tile_type = "Banner"
-        elif data['TileType'] == "Relic":
-            tile_type = data['RelicType']
-        data = data["GameData"]
-
-        description = f"**{data['selectedMap']} - {data['selectedDifficulty']} {data['selectedMode']}**\n" \
-                      f"Round {data['dcModel']['startRules']['round']}/{data['dcModel']['startRules']['endRound']} - " \
-                      f"${data['dcModel']['startRules']['cash']}\n"
-        if "bossData" in data:
-            boss_name = "Bloonarius"
-            if data['bossData']['bossBloon'] == 1:
-                boss_name = "Lych"
-            elif data['bossData']['bossBloon'] == 2:
-                boss_name = "Vortex"
-            description += f"{boss_name} {data['bossData']['TierCount']} Tiers\n"
-        elif data['subGameType'] == 9:
-            description += "Least Tiers\n"
-        elif data['subGameType'] == 8:
-            description += "Least Cash\n"
-        elif data['subGameType'] == 2:
-            description += "Time Attack\n"
-
-        if data['dcModel']['maxTowers'] > -1:
-            description += f"- **Max Towers:** {data['dcModel']['maxTowers']}\n"
-        if data['dcModel']['disableMK']:
-            description += f"- **Monkey Knowledge Disabled**\n"
-        if data['dcModel']['disableSelling'] > -1:
-            description += f"- **Selling Disabled**\n"
-        if data['dcModel']['abilityCooldownReductionMultiplier'] != 1.0:
-            description += f"- **Ability cooldown:** {int(data['dcModel']['abilityCooldownReductionMultiplier']*100)}%\n"
-        if data['dcModel']['removeableCostMultiplier'] != 1.0:
-            description += f"- **Removable cost:** {int(data['dcModel']['removeableCostMultiplier']*100)}%\n"
-        if data['dcModel']['bloonModifiers']['speedMultiplier'] != 1.0:
-            description += f"- **Bloon Speed:** {int(data['dcModel']['bloonModifiers']['speedMultiplier']*100)}%\n"
-        if data['dcModel']['bloonModifiers']['moabSpeedMultiplier'] != 1.0:
-            description += f"- **MOAB Speed:** {int(data['dcModel']['bloonModifiers']['moabSpeedMultiplier']*100)}%\n"
-        if data['dcModel']['bloonModifiers']['healthMultipliers']['bloons'] != 1.0:
-            description += f"- **Ceramic Health:** {int(data['dcModel']['bloonModifiers']['healthMultipliers']['bloons']*100)}%\n"
-        if data['dcModel']['bloonModifiers']['healthMultipliers']['moabs'] != 1.0:
-            description += f"- **MOAB Health:** {int(data['dcModel']['bloonModifiers']['healthMultipliers']['moabs']*100)}%\n"
-        if data['dcModel']['bloonModifiers']['regrowRateMultiplier'] != 1.0:
-            description += f"- **Regrow Rate:** {int(data['dcModel']['bloonModifiers']['regrowRateMultiplier']*100)}%\n"
-
-        heroes = []
-        towers = []
-        for twr in data['dcModel']['towers']['_items']:
-            if twr is None or twr['tower'] == "ChosenPrimaryHero" or twr['max'] == 0:
-                continue
-            if twr['isHero']:
-                heroes.append(twr['tower'])
-            else:
-                towers.append((twr['tower'], twr['max']))
-        towers_str = ""
-        for i in range(len(towers)):
-            name, max = towers[i]
-            towers_str += f"{name}"
-            if max > 0:
-                towers_str += f" (x{max})"
-            if i != len(towers)-1:
-                towers_str += " - "
-
-        embed = discord.Embed(
-            title=f"{tile} - {tile_type}",
-            description=description,
-            color=discord.Color.orange(),
-        )
-        if len(heroes) > 0:
-            embed.add_field(name="Heroes", value="-".join(heroes))
-        embed.add_field(name="Towers", value=towers_str)
-        embed.set_footer(text="Command is hastily made I'll improve sometime later")
-        return embed
+        return data
 
 
 async def setup(bot: commands.Bot) -> None:
