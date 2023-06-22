@@ -1,3 +1,4 @@
+import discord
 
 
 class WrongChannelMention(Exception):
@@ -5,4 +6,8 @@ class WrongChannelMention(Exception):
 
 
 class MustBeForum(Exception):
+    pass
+
+
+class Gatekept(discord.app_commands.errors.CheckFailure):
     pass

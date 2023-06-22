@@ -4,6 +4,7 @@ import json
 import os
 import bot.utils.io
 import bot.utils.bloons
+import bot.utils.discordutils
 import bot.db.queries
 from bot.utils.Cache import Cache
 import discord
@@ -176,22 +177,13 @@ class UtilsCog(ErrorHandlerCog):
         await interaction.response.send_message(
             content=f"`{int(now.timestamp())}` <t:{int(now.timestamp())}>"
         )
-        
+
     @discord.app_commands.command(name="tile",
                                   description="Check a tile's challenge data")
     @discord.app_commands.describe(tile="The 3 letter tile code")
     @discord.app_commands.guild_only()
+    @bot.utils.discordutils.gatekeep()
     async def cmd_tile(self, interaction: discord.Interaction, tile: str) -> None:
-        # Gatekeeping the command to Pandemonium members
-        has_access = False
-        for role in interaction.user.roles:
-            if role.id in [1005472018189271160, 1026966667345002517, 1011968628419207238, 860147253527838721, 940942269933043712]:
-                has_access = True
-                break
-        if not has_access:
-            await interaction.response.send_message("<:hehe:1111026798210326719>", ephemeral=True)
-            return
-
         tile = tile.upper()
         challenge_data = await asyncio.to_thread(self.fetch_challenge_data, tile)
         embed = bot.utils.bloons.raw_challenge_to_embed(challenge_data)
@@ -208,18 +200,8 @@ class UtilsCog(ErrorHandlerCog):
     @discord.app_commands.command(name="raceregs",
                                   description="Get a list of all race regs.")
     @discord.app_commands.guild_only()
+    @bot.utils.discordutils.gatekeep()
     async def cmd_raceregs(self, interaction: discord.Interaction) -> None:
-        # Gatekeeping the command to Pandemonium members
-        # Need to make this a decorator huh
-        has_access = False
-        for role in interaction.user.roles:
-            if role.id in [1005472018189271160, 1026966667345002517, 1011968628419207238, 860147253527838721, 940942269933043712]:
-                has_access = True
-                break
-        if not has_access:
-            await interaction.response.send_message("<:hehe:1111026798210326719>", ephemeral=True)
-            return
-
         if self.raceregs is not None and self.raceregs.valid:
             race_regs = self.raceregs.value
         else:

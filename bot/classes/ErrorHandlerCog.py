@@ -2,7 +2,7 @@ import discord
 import traceback
 from discord.ext import commands
 from .HelpMessageCog import HelpMessageCog
-from bot.exceptions import WrongChannelMention, MustBeForum
+from bot.exceptions import WrongChannelMention, MustBeForum, Gatekept
 
 
 class ErrorHandlerCog(HelpMessageCog):
@@ -29,6 +29,8 @@ class ErrorHandlerCog(HelpMessageCog):
                       f"*Needs permissions: {', '.join(thrown_error.missing_permissions)}*"
         elif error_type == MustBeForum:
             content = "The channel must be a forum!"
+        elif error_type == Gatekept:
+            content = "<:hehe:1111026798210326719>"
 
         if interaction.response.is_done():
             await interaction.edit_original_response(content=content)
