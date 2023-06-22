@@ -79,7 +79,7 @@ MAPS = {
     "Quarry": "https://media.discordapp.net/attachments/770247322633633792/1091540833146257518/quarry.png",
     "MoonLanding": "https://media.discordapp.net/attachments/770247322633633792/1091540815433707560/moonlanding.png",
     "Cracked": "https://media.discordapp.net/attachments/770247322633633792/1091540760911953970/cracked.png",
-    "Kartsndarts": "https://media.discordapp.net/attachments/770247322633633792/1091540813588217876/kartsndarts.png",
+    "KartsNDarts": "https://media.discordapp.net/attachments/770247322633633792/1091540813588217876/kartsndarts.png",
     "FiringRange": "https://media.discordapp.net/attachments/770247322633633792/1091540786128109659/firingrange.png",
     "Adora'sTemple": "https://media.discordapp.net/attachments/770247322633633792/1091540736022937681/adorastemple.png",
     "Downstream": "https://media.discordapp.net/attachments/770247322633633792/1091540761876627537/downstream.png",
