@@ -4,7 +4,7 @@ from typing import Dict, Union
 
 
 class HelpMessageCog(commands.Cog):
-    help_descriptions: Dict[str, Union[str, Dict[str, str]]] = {}
+    help_descriptions: Dict[str or None, Union[str, Dict[str, str]]] = {}
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -14,6 +14,9 @@ class HelpMessageCog(commands.Cog):
             self.bot.synced_tree = await self.bot.tree.fetch_commands()
 
         message = []
+        if None in self.help_descriptions.keys():
+            message.append(self.help_descriptions[None])
+
         for cmd in self.bot.synced_tree:
             if cmd.name not in self.help_descriptions.keys():
                 continue

@@ -2,7 +2,7 @@ import discord
 import traceback
 from discord.ext import commands
 from .HelpMessageCog import HelpMessageCog
-from bot.exceptions import WrongChannelMention
+from bot.exceptions import WrongChannelMention, MustBeForum
 
 
 class ErrorHandlerCog(HelpMessageCog):
@@ -27,6 +27,8 @@ class ErrorHandlerCog(HelpMessageCog):
         elif error_type == discord.app_commands.errors.MissingPermissions:
             content = "You don't have the perms to execute this command. Sorry!\n" \
                       f"*Needs permissions: {', '.join(thrown_error.missing_permissions)}*"
+        elif error_type == MustBeForum:
+            content = "The channel must be a forum!"
 
         if interaction.response.is_done():
             await interaction.edit_original_response(content=content)

@@ -43,6 +43,12 @@ CREATE TABLE IF NOT EXISTS plannertileclaims (
     PRIMARY KEY(user_id, planner_channel, tile)
 );
 
+CREATE TABLE IF NOT EXISTS tilestratforums (
+    guildid BIGINT NOT NULL,
+    forumid BIGINT NOT NULL,
+    PRIMARY KEY(guildid)
+);
+
 ALTER TABLE claims ADD CONSTRAINT fk_teams_1
     FOREIGN KEY (channel) REFERENCES teams(channel) ON DELETE CASCADE;
 
