@@ -45,7 +45,6 @@ async def update_messages(
         return
 
     coros = []
-    print(len(bot_messages))
     for msg in bot_messages:
         coros.append(msg.delete())
     await asyncio.gather(*coros)

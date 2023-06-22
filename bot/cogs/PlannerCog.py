@@ -8,7 +8,7 @@ import bot.utils.io
 import bot.utils.discordutils
 from bot.classes import ErrorHandlerCog
 from typing import List, Tuple, Union, Optional, Dict
-from bot.utils.emojis import BANNER
+from bot.utils.emojis import BANNER, BLANK
 from bot.views import PlannerUserView, PlannerAdminView
 from bot.utils.Cache import Cache
 
@@ -407,6 +407,10 @@ class PlannerCog(ErrorHandlerCog):
             PlannerUserView(banner_claims, channel,
                             PlannerCog.switch_tile_claim, self.send_planner_msg)
         ))
+
+        # Makes the message always minimum 4 messages long
+        for _ in range(4-len(messages)):
+            messages.insert(2, (PLANNER_HR, None))
 
         return messages
 
