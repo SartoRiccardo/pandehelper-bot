@@ -111,11 +111,21 @@ class RaidLogCog(ErrorHandlerCog):
         for thr_id in to_delete:
             del self.check_back[thr_id]
 
+    @discord.app_commands.command(name="raidlog", description="Alias for /tilestrat")
+    @discord.app_commands.describe(tile_code="The tile code to look up.")
+    @discord.app_commands.guild_only()
+    @bot.utils.discordutils.gatekeep()
+    async def cmd_search_raidlog(self, interaction: discord.Interaction, tile_code: str) -> None:
+        await self.search_tile(interaction, tile_code)
+
     @discord.app_commands.command(name="tilestrat", description="Get the strat thread for a tile")
     @discord.app_commands.describe(tile_code="The tile code to look up.")
     @discord.app_commands.guild_only()
     @bot.utils.discordutils.gatekeep()
     async def cmd_search(self, interaction: discord.Interaction, tile_code: str) -> None:
+        await self.search_tile(interaction, tile_code)
+
+    async def search_tile(self, interaction: discord.Interaction, tile_code: str) -> None:
         forum_id = await bot.db.queries.get_tile_strat_forum(interaction.guild_id)
         if forum_id is None:
             await interaction.response.send_message(
@@ -218,6 +228,7 @@ class RaidLogCog(ErrorHandlerCog):
         )
 
     @group_tilestratchannel.command(name="stats", description="Get the raid log stats of the current season!")
+    @discord.app_commands.describe(season="The CT season to check stats for.")
     @discord.app_commands.guild_only()
     @bot.utils.discordutils.gatekeep()
     async def cmd_stats(self, interaction: discord.Interaction, season: Optional[int] = None) -> None:
