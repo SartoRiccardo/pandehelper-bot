@@ -10,6 +10,7 @@ import bot.utils.bloons
 from bot.utils.emojis import LEAST_TIERS, LEAST_CASH, BLOONARIUS, VORTEX, LYCH, TIME_ATTACK
 from bot.utils.images import IMG_LEAST_CASH, IMG_LEAST_TIERS, IMG_BLOONARIUS, IMG_VORTEX, IMG_LYCH, IMG_TIME_ATTACK
 import re
+from pprint import pprint
 from typing import List, Dict, Optional
 
 
@@ -37,6 +38,7 @@ You can do one of 2 things for race tiles, which one is up to you:
 >  5. Buy another Ace 030, spam 204 Bomb.
 >  6. Fullsend
 >  7. Ace 030 > 040, activate, sell for 205 Sniper for clean."""[1:]
+TOTAL_TILES = 163
 
 
 class RaidLogCog(ErrorHandlerCog):
@@ -128,18 +130,8 @@ class RaidLogCog(ErrorHandlerCog):
             raise UnknownTile(tile_code)
 
         await interaction.response.defer()
-
-        try:
-            forum_channel = await interaction.guild.fetch_channel(forum_id)
-        except discord.errors.Forbidden:
-            await interaction.edit_original_response(
-                content=f"I don't have permission to see that channel!"
-            )
-            return
-        except discord.errors.InvalidData:
-            await interaction.edit_original_response(
-                content=f"That channel isn't even in this server!"
-            )
+        forum_channel = await self.fetch_forum(interaction, forum_id)
+        if forum_channel is None:
             return
 
         tile_info = await asyncio.to_thread(bot.utils.bloons.fetch_tile_data, tile_code)
@@ -224,6 +216,119 @@ class RaidLogCog(ErrorHandlerCog):
         await interaction.edit_original_response(
             embed=self.get_raidlog_embed(found, old_strats)
         )
+
+    @group_tilestratchannel.command(name="stats", description="Get the raid log stats of the current season!")
+    @discord.app_commands.guild_only()
+    @bot.utils.discordutils.gatekeep()
+    async def cmd_stats(self, interaction: discord.Interaction, season: Optional[int] = None) -> None:
+        forum_id = await bot.db.queries.get_tile_strat_forum(interaction.guild_id)
+        if forum_id is None:
+            await interaction.response.send_message(
+                "You don't have a Tile Strats forum set! Run /tilestratforum create or /tilestratforum set to have one.",
+                ephemeral=True
+            )
+            return
+
+        await interaction.response.defer()
+        forum_channel = await self.fetch_forum(interaction, forum_id)
+        if forum_channel is None:
+            return
+
+        if season is None:
+            season = bot.utils.bloons.get_current_ct_number()
+
+        current_event_tag = f"Season {season}"
+        logged_tiles = []
+        for thread in forum_channel.threads:
+            if current_event_tag in [tag.name for tag in thread.applied_tags]:
+                logged_tiles.append(thread.name[-3:])
+
+        async for thread in forum_channel.archived_threads(limit=None):
+            if current_event_tag in [tag.name for tag in thread.applied_tags]:
+                logged_tiles.append(thread.name[-3:])
+
+        logged_count = {
+            "Banner": {"race": 0, "lc": 0, "lt": 0, "boss": 0},
+            "Relic": {"race": 0, "lc": 0, "lt": 0, "boss": 0},
+            "Regular": {"race": 0, "lc": 0, "lt": 0},
+        }
+        logged_total = {
+            "Banner": {"race": 0, "lc": 0, "lt": 0, "boss": 0},
+            "Relic": {"race": 0, "lc": 0, "lt": 0, "boss": 0},
+            "Regular": {"race": 0, "lc": 0, "lt": 0},
+        }
+
+        tiles = await asyncio.to_thread(bot.utils.bloons.fetch_all_tiles)
+
+        for tile in tiles:
+            tile_type = tile["TileType"]
+            tile_chal = "boss"
+            if tile["GameData"]['subGameType'] == 9:
+                tile_chal = "lt"
+            elif tile["GameData"]['subGameType'] == 8:
+                tile_chal = "lc"
+            elif tile["GameData"]['subGameType'] == 2:
+                tile_chal = "race"
+            if tile_type in logged_count:
+                logged_total[tile_type][tile_chal] += 1
+                if tile["Code"] in logged_tiles:
+                    logged_count[tile_type][tile_chal] += 1
+
+        # pprint(logged_count)
+        # pprint(logged_total)
+
+        embed = discord.Embed(
+            title=f"{interaction.guild.name} Tile Strats (Season #{season})",
+            description=f"__**STRATS LOGGED: {len(logged_tiles)/len(tiles)*100:.1f}%**__",
+            color=discord.Color.orange(),
+        )
+        embed.add_field(name="Banners",
+                        value=self.get_stat_field(logged_count["Banner"], logged_total["Banner"]),
+                        inline=False)
+        embed.add_field(name="Relics",
+                        value=self.get_stat_field(logged_count["Relic"], logged_total["Relic"]),
+                        inline=False)
+        embed.add_field(name="Regulars",
+                        value=self.get_stat_field(logged_count["Regular"], logged_total["Regular"]),
+                        inline=False)
+        await interaction.edit_original_response(
+            content="",
+            embed=embed,
+        )
+
+    @staticmethod
+    def get_stat_field(logged, total) -> str:
+        sum_logged = 0
+        sum_total = 0
+        for key in logged:
+            sum_logged += logged[key]
+            sum_total += total[key]
+
+        amount_logged = sum_logged/sum_total*100
+        emote = "💯" if amount_logged == 100 else "➡️"
+        content = f"{emote} Overall: {amount_logged:.1f}%\n" \
+                  f"{LEAST_TIERS} {logged['lt']/total['lt']*100:.1f}% — " \
+                  f"{LEAST_CASH} {logged['lc']/total['lc']*100:.1f}% — " \
+                  f"{TIME_ATTACK} {logged['race']/total['race']*100:.1f}%"
+        if "boss" in logged:
+            content += f" — {BLOONARIUS} {logged['boss']/total['boss']*100:.1f}%"
+        return content
+
+    @staticmethod
+    async def fetch_forum(interaction: discord.Interaction, forum_id: int) -> discord.ForumChannel or None:
+        try:
+            forum_channel = await interaction.guild.fetch_channel(forum_id)
+        except discord.errors.Forbidden:
+            await interaction.edit_original_response(
+                content=f"I don't have permission to see that channel!"
+            )
+            return
+        except discord.errors.InvalidData:
+            await interaction.edit_original_response(
+                content=f"That channel isn't even in this server!"
+            )
+            return
+        return forum_channel
 
     @group_tilestratchannel.command(name="create", description="Create a Tile Strats forum.")
     @discord.app_commands.checks.has_permissions(manage_guild=True)

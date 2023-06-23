@@ -218,3 +218,13 @@ def fetch_tile_data(tile: str):
     data = json.loads(fin.read())
     fin.close()
     return data
+
+
+def fetch_all_tiles():
+    path = f"bot/files/json/tiles"
+    tiles = []
+    for file in os.listdir(path):
+        data = fetch_tile_data(file[:3])
+        if data is not None:
+            tiles.append(data)
+    return tiles
