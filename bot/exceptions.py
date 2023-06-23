@@ -11,3 +11,9 @@ class MustBeForum(Exception):
 
 class Gatekept(discord.app_commands.errors.CheckFailure):
     pass
+
+
+class UnknownTile(Exception):
+    def __init__(self, tile: str):
+        self.tile = tile
+

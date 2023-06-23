@@ -2,7 +2,7 @@ import discord
 import traceback
 from discord.ext import commands
 from .HelpMessageCog import HelpMessageCog
-from bot.exceptions import WrongChannelMention, MustBeForum, Gatekept
+from bot.exceptions import WrongChannelMention, MustBeForum, Gatekept, UnknownTile
 
 
 class ErrorHandlerCog(HelpMessageCog):
@@ -31,6 +31,8 @@ class ErrorHandlerCog(HelpMessageCog):
             content = "The channel must be a forum!"
         elif error_type == Gatekept:
             content = "<:hehe:1111026798210326719>"
+        elif error_type == UnknownTile:
+            content = f"Tile {thrown_error.tile} doesn't exist!"
 
         if interaction.response.is_done():
             await interaction.edit_original_response(content=content)

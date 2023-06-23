@@ -1,6 +1,8 @@
 import datetime
 import discord
 import re
+import os
+import json
 from bot.utils.emojis import NO_SELLING, NO_KNOWLEDGE, CERAM_HEALTH, MOAB_HEALTH, MOAB_SPEED, BLOON_SPEED, \
     BLOONARIUS, VORTEX, LYCH, LEAST_CASH, LEAST_TIERS, TIME_ATTACK, MAX_TOWERS, REGROW_RATE, CASH
 from bot.utils.images import BANNER_IMG, REGULAR_IMG, RELICS_IMG, RELIC_IMG, MAPS, IMG_BLOONARIUS, \
@@ -205,4 +207,14 @@ def add_spaces(text: str) -> str:
     """Adds spaces to a text in PascalCase"""
     def repl(matchobj):
         return " " + matchobj.group(0)
-    return re.sub("[A-Z]", repl, text)
+    return re.sub("[A-Z]", repl, text).strip()
+
+
+def fetch_tile_data(tile: str):
+    path = f"bot/files/json/tiles/{tile}.json"
+    if not os.path.exists(path):
+        return None
+    fin = open(path)
+    data = json.loads(fin.read())
+    fin.close()
+    return data
