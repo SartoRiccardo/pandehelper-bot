@@ -144,6 +144,7 @@ def raw_challenge_to_embed(challenge) -> discord.Embed or None:
         description += "Bloon modifiers:\n" + "".join(bloon_modifiers)
 
     heroes_excluded = []
+    all_heros_enabled = False
     towers = {
         "Heroes": [],
         "Primary": [],
@@ -152,8 +153,13 @@ def raw_challenge_to_embed(challenge) -> discord.Embed or None:
         "Support": [],
     }
     for twr in challenge['dcModel']['towers']['_items']:
-        if twr is None or twr['tower'] == "ChosenPrimaryHero":
+        if twr is None:
             continue
+        if twr['tower'] == "ChosenPrimaryHero":
+            if twr["max"] == 1:
+                all_heros_enabled = True
+            continue
+
         if twr["isHero"] and twr["max"] == 0:
             heroes_excluded.append(add_spaces(twr['tower']))
         if twr['max'] == 0:
@@ -176,6 +182,8 @@ def raw_challenge_to_embed(challenge) -> discord.Embed or None:
     embed.set_image(url=MAPS[challenge['selectedMap']])
     embed.set_thumbnail(url=challenge_thmb)
 
+    if all_heros_enabled:
+        embed.add_field(name="Heroes", value="All Heroes Enabled!")
     if len(towers["Heroes"]) > 0:
         content = ""
         list_heroes = towers["Heroes"]
