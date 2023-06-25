@@ -19,12 +19,14 @@ PLANNER_ADMIN_PANEL = """
 - Tile Claim Channel: {}
 - Ping Channel: {}
 - Team Role: {}
+*To configure, use `/planner config`*
 """[1:-1]
 PLANNER_HR = "```\n \n```"
 PLANNER_TABLE_HEADER = """
 # Tiles & Expiration
 ————  +  ——————————————
 """[1:]
+PLANNER_TABLE_EMPTY = "https://cdn.discordapp.com/attachments/924255725390270474/1122521704829292555/IMG_0401.png"
 PLANNER_TABLE_ROW = "{0} `{1}`  |  <t:{2}:t> (<t:{2}:R>){3}\n"
 
 
@@ -411,6 +413,9 @@ class PlannerCog(ErrorHandlerCog):
                 messages.append((tile_table, None))
                 tile_table = ""
             tile_table += new_row
+
+        if len(banners) == 0:
+            tile_table = PLANNER_TABLE_EMPTY
 
         banner_claims = [(banner["tile"], banner["user_id"] is not None) for banner in banners]
         messages.append((
