@@ -324,6 +324,15 @@ class PlannerCog(ErrorHandlerCog):
                     ephemeral=True,
                 )
                 return
+            if not await bot.db.queries.is_channel_tracked(tile_claim_channel.id):
+                await interaction.response.send_message(
+                    content="That channel is not tracked as a tile claim channel!\n"
+                            "To make the bot track it, please check out `/help module:tracker` and it will "
+                            "tell you all you need to know. Then try this command again!",
+                    ephemeral=True,
+                )
+                return
+
         if ping_channel is ping_role is tile_claim_channel:
             await interaction.response.send_message(
                 content="You must modify at least ONE value! Check the optional parameters!",

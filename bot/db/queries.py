@@ -87,6 +87,12 @@ async def tracked_channels(conn=None) -> List[int]:
 
 
 @postgres
+async def is_channel_tracked(channel_id: int, conn=None) -> bool:
+    payload = await conn.fetch("SELECT channel FROM teams WHERE channel = $1", channel_id)
+    return len(payload) > 0
+
+
+@postgres
 async def capture(channel: int, user: int, tile: str, message: int, conn=None) -> None:
     await conn.execute("""
             INSERT INTO claims (userid, tile, channel, message, claimed_at) VALUES ($1, $2, $3, $4, $5)
