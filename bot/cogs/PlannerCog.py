@@ -31,13 +31,15 @@ PLANNER_TABLE_ROW = "{0} `{1}`  |  <t:{2}:t> (<t:{2}:R>){3}\n"
 class PlannerCog(ErrorHandlerCog):
     planner_group = discord.app_commands.Group(name="planner", description="Various CT Planner commands")
     help_descriptions = {
+        None: "Creates a planner that tracks all banner decay times, pings when they decay, and lets users "
+              "claim them beforehand. Works in tandem with the `tracker` module.",
         "planner": {
             "new": "Create a new Planner channel",
             "add": "Sets a channel as a Planner channel.\n"
                    "__It is recommended to set it on a read-only channel.__",
             "remove": "Removes the Planner from a channel previously added with [[add]].\n"
                       "__Won't delete the channel,__ but it will no longer be updated.",
-            "configure": "Configure the planner to make sure it works properly!",
+            "config": "Configure the planner to make sure it works properly!",
         },
     }
     CHECK_EVERY = 30

@@ -12,7 +12,8 @@ class CtTicketTracker(commands.Bot):
         super().__init__(
             command_prefix=",,,",
             intents=intents,
-            application_id=APP_ID
+            application_id=APP_ID,
+            activity=discord.Game(name="/help"),
         )
 
     async def setup_hook(self):

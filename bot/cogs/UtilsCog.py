@@ -21,6 +21,7 @@ class UtilsCog(ErrorHandlerCog):
                "Type the command with no parameters to see all available tags.",
         "github": "Get a link to the bot's repo. It's open source!",
         "invite": "Invite the bot to your server!",
+        "now": "Now!"
     }
 
     def __init__(self, bot: commands.Bot) -> None:
