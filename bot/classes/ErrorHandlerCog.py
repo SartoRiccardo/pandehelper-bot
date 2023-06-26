@@ -33,6 +33,8 @@ class ErrorHandlerCog(HelpMessageCog):
             content = "<:hehe:1111026798210326719>"
         elif error_type == UnknownTile:
             content = f"Tile {thrown_error.tile} doesn't exist!"
+        elif error_type == discord.errors.Forbidden:
+            content = f"I don't have the perms to do that!"
 
         if interaction.response.is_done():
             await interaction.edit_original_response(content=content)
