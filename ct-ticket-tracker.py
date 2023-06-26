@@ -15,6 +15,7 @@ class CtTicketTracker(commands.Bot):
             application_id=APP_ID,
             activity=discord.Game(name="/help"),
         )
+        self.remove_command("help")
 
     async def setup_hook(self):
         await bot.db.connection.start()
