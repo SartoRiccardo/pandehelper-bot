@@ -7,7 +7,7 @@ import asyncio
 import bot.db.queries
 import bot.utils.io
 from bot.classes import ErrorHandlerCog
-from typing import Dict, Any
+from typing import Dict, List
 from bot.utils.emojis import TOP_1_GLOBAL, TOP_2_GLOBAL, TOP_3_GLOBAL, TOP_25_GLOBAL, ECO, ECO_NEGATIVE, NEW_TEAM
 
 
@@ -137,7 +137,7 @@ class LeaderboardCog(ErrorHandlerCog):
 
         await self.save_state()
 
-    async def send_leaderboard(self, messages):
+    async def send_leaderboard(self, messages: List[str]) -> None:
         channels = await bot.db.queries.leaderboard_channels()
         for guild_id, channel_id in channels:
             guild = self.bot.get_guild(guild_id)
@@ -156,34 +156,11 @@ class LeaderboardCog(ErrorHandlerCog):
                     await bot.db.queries.remove_leaderboard_channel(guild_id, channel_id)
                     continue
 
-            leaderboard_messages = []
-            bot_messages = []
-            modify = True
-            async for message in channel.history(limit=25):
-                if message.author == self.bot.user:
-                    leaderboard_messages.insert(0, message)
-                    bot_messages.append(message)
-                    if len(leaderboard_messages) == len(messages):
-                        break
-                else:
-                    leaderboard_messages = []
-                    modify = False
-            if len(leaderboard_messages) != len(messages):
-                modify = False
-
-            if modify:
-                tasks = []
-                for i in range(len(messages)):
-                    tasks.append(leaderboard_messages[i].edit(content=messages[i]))
-                await asyncio.gather(*tasks)
-            else:
-                tasks = []
-                for msg in bot_messages:
-                    tasks.append(msg.delete())
-                await asyncio.gather(*tasks)
-
-                for content in messages:
-                    await channel.send(content)
+            await bot.utils.discordutils.update_messages(
+                self.bot.user,
+                [(x, None) for x in messages],
+                channel
+            )
 
 
 async def setup(bot: commands.Bot) -> None:
