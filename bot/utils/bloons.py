@@ -236,3 +236,50 @@ def fetch_all_tiles():
         if data is not None:
             tiles.append(data)
     return tiles
+
+
+def relic_to_tile_code(relic: str) -> str or None:
+    relic = relic.lower()
+    relics = {
+        'AirAndSea': ['aas', 'airandsea', 'air_and_sea'],
+        'Abilitized': ['abilitized'],
+        'AlchemistTouch': ['alchtouch', 'alch', 'alchemisttouch', 'alchemist_touch', 'alch_touch'],
+        'MonkeyBoost': ['boost', 'mboost', 'mb', 'monkeyboost', 'monkey_boost'],
+        'MarchingBoots': ['boots', 'mboots', 'marchingboots', 'marching_boots'],
+        'BoxOfMonkey': ['box', 'boxofmonkey', 'bom', 'box_of_monkey'],
+        'BoxOfChocolates': ['chocobox', 'chocbox'],
+        'CamoTrap': ['ctrap', 'camotrap', 'camo_trap'],
+        'DurableShots': ['dshots', 'durableshots', 'durable_shotr'],
+        'ExtraEmpowered': ['eemp', 'extraemp', 'extra_empowered'],
+        'FlintTips': ['flinttips', 'flint_tips'],
+        'Camoflogged': ['flogged', 'cflogged', 'camo_flogged'],
+        'Fortifried': ['fried', 'ffried', 'fortifried'],
+        'GoingTheDistance': ['goingthedistance', 'gtd'],
+        'GlueTrap': ['gtrap', 'glue', 'gluetrap', 'glue_trap'],
+        'HardBaked': ['hardbaked', 'hb'],
+        'HeroBoost': ['hboost', 'heroboost', 'hero_boost'],
+        'ManaBulwark': ['manabulwark'],
+        'MoabClash': ['mc', 'clash', 'moabclash', 'moab_clash'],
+        'MoabMine': ['mine', 'moabmine'],
+        'Regeneration': ['regen', 'regeneration'],
+        'Restoration': ['resto', 'restoration'],
+        'RoundingUp': ['roundingup', 'rounding_up'],
+        'RoyalTreatment': ['royal', 'rtreatment', 'royaltreatment', 'royal_treatment'],
+        'Sharpsplosion': ['sharp', 'sharpsplosion'],
+        'SMS': ['sms', 'supermonkeystorm', 'super_monkey_storm'],
+        'RoadSpikes': ['spikes', 'rspikes', 'roadspikes', 'road_spikes'],
+        'StartingStash': ['stash', 'startingstash', 'starting_stash'],
+        'Thrive': ['thrive'],
+        'ElDorado': ['eldorado', 'dorado', 'el_dorado'],
+        'DeepHeat': ['dheat', 'deepheat', 'deep_heat'],
+        "Techbot": ["techbot"],
+        "Heartless": ["heartless"],
+        "BrokenHeart": ["brokenheart", "broken_heart"]
+    }
+    for key in relics:
+        if relic in relics[key]:
+            tiles = fetch_all_tiles()
+            for tile in tiles:
+                if tile["RelicType"] == key:
+                    return tile["Code"]
+    return None

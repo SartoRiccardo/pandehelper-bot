@@ -137,7 +137,10 @@ class RaidLogCog(ErrorHandlerCog):
         tile_code = tile_code.strip().upper()
         tile_re = r"(?:M|[A-G])(?:R|[A-G])(?:X|[A-H])"
         if len(tile_code) != 3 or re.match(tile_re, tile_code) is None:
-            raise UnknownTile(tile_code)
+            actual_tile_code = await asyncio.to_thread(bot.utils.bloons.relic_to_tile_code, tile_code)
+            if actual_tile_code is None:
+                raise UnknownTile(tile_code)
+            tile_code = actual_tile_code
 
         await interaction.response.defer()
         forum_channel = await self.fetch_forum(interaction, forum_id)

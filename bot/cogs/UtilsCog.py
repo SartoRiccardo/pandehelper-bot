@@ -181,12 +181,15 @@ class UtilsCog(ErrorHandlerCog):
 
     @discord.app_commands.command(name="tile",
                                   description="Check a tile's challenge data")
-    @discord.app_commands.describe(tile="The 3 letter tile code")
+    @discord.app_commands.describe(tile="The 3 letter tile code, or a relic name.")
     @discord.app_commands.guild_only()
     @bot.utils.discordutils.gatekeep()
     async def cmd_tile(self, interaction: discord.Interaction, tile: str) -> None:
         tile = tile.upper()
         challenge_data = await asyncio.to_thread(self.fetch_challenge_data, tile)
+        if challenge_data is None:
+            tile = await asyncio.to_thread(bot.utils.bloons.relic_to_tile_code, tile)
+            challenge_data = await asyncio.to_thread(self.fetch_challenge_data, tile)
         embed = bot.utils.bloons.raw_challenge_to_embed(challenge_data)
         if embed is None:
             await interaction.response.send_message(
