@@ -67,7 +67,7 @@ MAPS = {
     "ParkPath": "https://media.discordapp.net/attachments/770247322633633792/1091540832064131132/parkpath.png",
     "LotusIsland": "https://media.discordapp.net/attachments/770247322633633792/1091540814225752064/lotusisland.png",
     "AlpineRun": "https://media.discordapp.net/attachments/770247322633633792/1091540736270417941/alpinerun.png",
-    "TownCenter": "https://media.discordapp.net/attachments/770247322633633792/1091540873419960420/towncenter.png",
+    "TownCentre": "https://media.discordapp.net/attachments/770247322633633792/1091540873419960420/towncenter.png",
     "Skates": "https://media.discordapp.net/attachments/770247322633633792/1091540861252292668/skates.png",
     "MonkeyMeadow": "https://media.discordapp.net/attachments/770247322633633792/1091540815098155069/monkey_meadow.png",
     "EndOfTheRoad": "https://media.discordapp.net/attachments/770247322633633792/1091540759985004636/endoftheroad.png",
