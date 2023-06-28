@@ -315,14 +315,19 @@ class RaidLogCog(ErrorHandlerCog):
             sum_logged += logged[key]
             sum_total += total[key]
 
+        tile_completions = []
+        if total['lt'] > 0:
+            tile_completions.append(f"{LEAST_TIERS} {logged['lt']/total['lt']*100:.1f}%")
+        if total['lc'] > 0:
+            tile_completions.append(f"{LEAST_CASH} {logged['lc']/total['lc']*100:.1f}%")
+        if total['race'] > 0:
+            tile_completions.append(f"{TIME_ATTACK} {logged['race']/total['race']*100:.1f}%")
+        if "boss" in logged and total["boss"] > 0:
+            tile_completions.append(f"{BLOONARIUS} {logged['boss']/total['boss']*100:.1f}%")
+
         amount_logged = sum_logged/sum_total*100
         emote = "💯" if amount_logged == 100 else "➡️"
-        content = f"{emote} Overall: {amount_logged:.1f}%\n" \
-                  f"{LEAST_TIERS} {logged['lt']/total['lt']*100:.1f}% — " \
-                  f"{LEAST_CASH} {logged['lc']/total['lc']*100:.1f}% — " \
-                  f"{TIME_ATTACK} {logged['race']/total['race']*100:.1f}%"
-        if "boss" in logged:
-            content += f" — {BLOONARIUS} {logged['boss']/total['boss']*100:.1f}%"
+        content = f"{emote} Overall: {amount_logged:.1f}%\n" + " — ".join(tile_completions)
         return content
 
     @staticmethod
