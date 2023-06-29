@@ -7,7 +7,7 @@ import bot.utils.discordutils
 from bot.exceptions import UnknownTile
 from bot.classes import ErrorHandlerCog
 import bot.utils.bloons
-from bot.utils.emojis import LEAST_TIERS, LEAST_CASH, BLOONARIUS, VORTEX, LYCH, TIME_ATTACK
+from bot.utils.emojis import LEAST_TIERS, LEAST_CASH, BLOONARIUS, VORTEX, LYCH, TIME_ATTACK, BLANK
 from bot.utils.images import IMG_LEAST_CASH, IMG_LEAST_TIERS, IMG_BLOONARIUS, IMG_VORTEX, IMG_LYCH, IMG_TIME_ATTACK
 import re
 from pprint import pprint
@@ -15,6 +15,8 @@ from typing import List, Dict, Optional
 
 
 thread_init_message = f"""
+### {BLANK}
+### {BLANK}
 # How to make a good post
 
 Other than posting the general strategy (e.g. "Sniper 025", "Gwen Solo", ...) there are other things you can say to make your report better:
