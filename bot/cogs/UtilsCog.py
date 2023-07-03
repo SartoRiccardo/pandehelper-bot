@@ -10,7 +10,7 @@ from bot.utils.Cache import Cache
 import discord
 from discord.ext import commands, tasks
 from bot.classes import ErrorHandlerCog
-from typing import List
+from typing import List, Optional
 
 
 class UtilsCog(ErrorHandlerCog):
@@ -181,10 +181,11 @@ class UtilsCog(ErrorHandlerCog):
 
     @discord.app_commands.command(name="tile",
                                   description="Check a tile's challenge data")
-    @discord.app_commands.describe(tile="The 3 letter tile code, or a relic name.")
+    @discord.app_commands.describe(tile="The 3 letter tile code, or a relic name.",
+                                   hide="Hide the output.")
     @discord.app_commands.guild_only()
     @bot.utils.discordutils.gatekeep()
-    async def cmd_tile(self, interaction: discord.Interaction, tile: str) -> None:
+    async def cmd_tile(self, interaction: discord.Interaction, tile: str, hide: Optional[bool] = True) -> None:
         tile = tile.upper()
         challenge_data = await asyncio.to_thread(self.fetch_challenge_data, tile)
         if challenge_data is None:
@@ -193,12 +194,14 @@ class UtilsCog(ErrorHandlerCog):
         embed = bot.utils.bloons.raw_challenge_to_embed(challenge_data)
         if embed is None:
             await interaction.response.send_message(
-                content="I don't have the challenge data for that tile!"
+                content="I don't have the challenge data for that tile!",
+                ephemeral=hide,
             )
             return
 
         await interaction.response.send_message(
-            embed=embed
+            embed=embed,
+            ephemeral=hide,
         )
 
     @discord.app_commands.command(name="raceregs",

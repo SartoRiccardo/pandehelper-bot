@@ -57,7 +57,7 @@ class TrackerCog(ErrorHandlerCog):
                                interaction: discord.Interaction,
                                channel: discord.TextChannel,
                                season: Optional[int] = 0,
-                               hide: Optional[bool] = True) -> None:
+                               hide: Optional[bool] = False) -> None:
         if channel.id not in (await bot.db.queries.tracked_channels()):
             await interaction.response.send_message("That channel is not being tracked!", ephemeral=True)
             return
@@ -103,7 +103,7 @@ class TrackerCog(ErrorHandlerCog):
     @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def cmd_member_tickets(self, interaction: discord.Interaction, channel: discord.TextChannel,
                                  member: discord.Member, season: Optional[int] = 0,
-                                 hide: Optional[bool] = True) -> None:
+                                 hide: Optional[bool] = False) -> None:
         if channel.id not in (await bot.db.queries.tracked_channels()):
             await interaction.response.send_message("That channel is not being tracked!", ephemeral=True)
             return
