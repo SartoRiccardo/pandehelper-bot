@@ -11,7 +11,6 @@ class BannerSelect(discord.ui.Select):
                  select_idx: int = 0,
                  preview_list: bool = False,
                  callback: Callable = None):
-        banners = sorted(banners, key=lambda x: x[0])
         options = [
             discord.SelectOption(label=code, emoji=X if claimed else ARROW_RIGHT)
             for code, claimed in banners
@@ -45,6 +44,7 @@ class PlannerUserView(discord.ui.View):
                  refresh_planner: Callable,
                  timeout: float = None):
         super().__init__(timeout=timeout)
+        banners = sorted(banners, key=lambda x: x[0])
         self.banners = banners
         self.planner_channel_id = planner_channel_id
         self.refresh_planner = refresh_planner
