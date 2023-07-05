@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from bloonspy import Client
+from bloonspy.model.btd6 import TeamStatus
 import discord
 from discord.ext import tasks, commands
 import time
@@ -109,8 +110,8 @@ class LeaderboardCog(ErrorHandlerCog):
             placement = f"`{i+1}`"
             if i < len(placements_emojis):
                 placement = placements_emojis[i]
-            # if team.disbanded:
-            #     placement = "❌"
+            if team.status == TeamStatus.DISBANDED:
+                placement = "❌"
 
             team_name = team.name.split("-")[0]
             message_current += "\n" + row_template.format(placement, team_name, team.score)
