@@ -62,7 +62,7 @@ class PlannerUserView(discord.ui.View):
             banner_idx += 25
 
     async def switch_tile(self, interaction: discord.Interaction, tile: str) -> None:
-        response_content, should_refresh = await self.switch_tile_callback(interaction.user.id, self.planner_channel_id, tile)
+        response_content, should_refresh = await self.switch_tile_callback(interaction.user, self.planner_channel_id, tile)
         await interaction.response.send_message(
             content=response_content,
             ephemeral=True

@@ -392,7 +392,7 @@ class PlannerCog(ErrorHandlerCog):
                 f"<#{planner['ping_channel']}>" if planner['ping_channel'] else
                     "⚠️ None *(the bot will not ping at all)*️",
                 f"<@&{planner['ping_role']}>" if planner['ping_role'] else
-                    "⚠️ None *(will ping `@here` instead)*"
+                    "⚠️ None *(anyone can claim tiles & will ping `@here` instead)*"
             ), PlannerAdminView(channel,
                                 self.send_planner_msg,
                                 self.edit_tile_time,
@@ -490,29 +490,36 @@ class PlannerCog(ErrorHandlerCog):
         await bot.utils.discordutils.update_messages(self.bot.user, planner_content, channel)
 
     @staticmethod
-    async def switch_tile_claim(user: int, planner_channel_id: int, tile: str) -> Tuple[str, bool]:
+    async def switch_tile_claim(user: discord.Member, planner_channel_id: int, tile: str) -> Tuple[str, bool]:
         """Claims or unclaims a tile for an user.
 
-        :param user: The ID of the user who wants to claim the tile.
+        :param user: The member who wants to claim the tile.
         :param planner_channel_id: The Planner channel ID.
         :param tile: The ID of the tile.
         :return: A message to give to the user.
         """
+        planner_info = await bot.db.queries.get_planner(planner_channel_id)
+        if planner_info is None:
+            return "This channel is not a planner channel...?", False
+        if planner_info["ping_role"] is not None and \
+                discord.utils.get(user.roles, id=planner_info["ping_role"]) is None:
+            return f"You need the <@&{planner_info['ping_role']}> role to claim tiles!", False
+
         tile_status = await bot.db.queries.planner_get_tile_status(tile, planner_channel_id)
         if tile_status is None:
             return "That tile isn't in the planner...?", False
-        claimed_by_user = await bot.db.queries.get_claims_by(user, planner_channel_id)
+        claimed_by_user = await bot.db.queries.get_claims_by(user.id, planner_channel_id)
 
         response = "That tile's not claimed by you! Hands off! 💢"
         refresh = False
-        if tile_status["user_id"] == user:
+        if tile_status["user_id"] == user.id:
             await bot.db.queries.planner_unclaim_tile(tile, planner_channel_id)
             response = f"You have unclaimed `{tile}`!"
             refresh = True
         elif len(claimed_by_user) >= 4:
             response = "You already have 4 tiles claimed. You can't claim any more."
         elif tile_status["user_id"] is None:
-            await bot.db.queries.planner_claim_tile(user, tile, planner_channel_id)
+            await bot.db.queries.planner_claim_tile(user.id, tile, planner_channel_id)
             response = f"You have claimed `{tile}`!\n*Select it again if you want to unclaim it.*"
             refresh = True
 
