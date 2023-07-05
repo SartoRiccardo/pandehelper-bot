@@ -27,7 +27,7 @@ PLANNER_TABLE_HEADER = """
 ————  +  ——————————————
 """[1:]
 PLANNER_TABLE_EMPTY = "https://cdn.discordapp.com/attachments/924255725390270474/1122521704829292555/IMG_0401.png"
-PLANNER_TABLE_ROW = "{0} `{1}`  |  <t:{2}:t> (<t:{2}:R>){3}\n"
+PLANNER_TABLE_ROW = "{0} `{1}`  |  <t:{2}:T> (<t:{2}:R>){3}\n"
 
 
 class PlannerCog(ErrorHandlerCog):

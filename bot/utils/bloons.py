@@ -42,6 +42,9 @@ TOWER_CATEGORY = {
     "EngineerMonkey": "Support",
     "BeastHandler": "Support",
 }
+CODE_TO_COORDS = {
+    "MRX": (0, 0, 0),
+}
 
 
 def get_ct_number_during(time: datetime.datetime, breakpoint_on_event_start: bool = True) -> int:
@@ -283,3 +286,15 @@ def relic_to_tile_code(relic: str) -> str or None:
                 if tile["RelicType"] == key:
                     return tile["Code"]
     return None
+
+
+def get_map_image(team_pov: int = 0):
+    tiles = fetch_all_tiles()
+    ct_num = tiles[0]["EventNumber"]
+    map_path = f"files/img/map/ct{ct_num}-{team_pov}.png"
+    if not os.path.exists(map_path):
+        make_map(map_path, tiles)
+
+
+def make_map(path, tiles):
+    pass
