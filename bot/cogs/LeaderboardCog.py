@@ -82,16 +82,20 @@ class LeaderboardCog(ErrorHandlerCog):
 
     @tasks.loop(seconds=10)
     async def track_leaderboard(self) -> None:
-        msg_header = "Team                                                 |    Points (Gained)" + "\n" + \
-                     "------------------------------   +  ----------------------"
-        placements_emojis = [TOP_1_GLOBAL, TOP_2_GLOBAL, TOP_3_GLOBAL] + [TOP_25_GLOBAL]*(25-3)
-        row_template = "{} `{: <20}`    | `{: <7,}`"
-        eco_template = " ({} `{: <4}`)"
-
         now = datetime.now()
         if now < self.next_update:
             return
         self.next_update += timedelta(hours=1)
+
+        msg_header = ("Team                                                 |    Points\n"
+                      "———————————————— + —————") \
+                     if self.first_run else \
+                     ("Team                                                 |    Points         (Gained)\n"
+                      "———————————————— + ————————————")
+        placements_emojis = [TOP_1_GLOBAL, TOP_2_GLOBAL, TOP_3_GLOBAL] + [TOP_25_GLOBAL]*(25-3)
+        row_template = "{} `{: <20}`    | `{: <7,}`"
+        eco_template = " ({} `{: <4}`)"
+
         current_event = (await asyncio.to_thread(Client.contested_territories))[0]
         if current_event.id != self.current_ct_id:
             self.current_ct_id = current_event.id
