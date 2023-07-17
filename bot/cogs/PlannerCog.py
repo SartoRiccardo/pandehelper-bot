@@ -449,13 +449,13 @@ class PlannerCog(ErrorHandlerCog):
         banner_codes = await self.get_banner_tile_list()
         banners = await bot.db.queries.planner.get_planned_banners(channel, banner_codes)
         ct_start, ct_end = bot.utils.bloons.get_current_ct_period()
-        print(ct_end-timedelta(hours=12))
         next_reset_day = ct_start + timedelta(hours=((now-ct_start).days+1)*24)
         emojis_explanations = {
             EXPIRE_DONT_RECAP: None,
             EXPIRE_AFTER_RESET: None,
         }
-        for banner in banners:
+        for i in range(len(banners)):
+            banner = banners[i]
             expire_at = banner.claimed_at + timedelta(days=1)
             emoji_claim = EXPIRE_LATER
             if expire_at >= ct_end-timedelta(hours=12):
@@ -481,6 +481,14 @@ class PlannerCog(ErrorHandlerCog):
                 claimer=f"   →  <@{banner.claimed_by}>" if banner.claimed_by is not None else ""
             )
 
+            if i == len(banners)-1:
+                append_explanation = "\n"
+                for emoji in emojis_explanations:
+                    if emojis_explanations[emoji] is not None:
+                        append_explanation += f"\nⓘ {emoji} *{emojis_explanations[emoji]}*"
+                if len(append_explanation) > 1:
+                    new_row += append_explanation
+
             if len(new_row) + len(tile_table) > 2000:
                 messages.append((tile_table, None))
                 tile_table = ""
@@ -488,13 +496,6 @@ class PlannerCog(ErrorHandlerCog):
 
         if len(banners) == 0:
             tile_table = PLANNER_TABLE_EMPTY
-        else:
-            append_explanation = "\n"
-            for emoji in emojis_explanations:
-                if emojis_explanations[emoji] is not None:
-                    append_explanation += f"\nⓘ {emoji} *{emojis_explanations[emoji]}*"
-            if len(append_explanation) > 1:
-                tile_table += append_explanation
 
         banner_claims = [(banner.tile, banner.claimed_by is not None) for banner in banners]
         messages.append((
