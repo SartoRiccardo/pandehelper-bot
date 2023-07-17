@@ -26,7 +26,7 @@ PLANNER_ADMIN_PANEL = """
 PLANNER_HR = "```\n \n```"
 PLANNER_TABLE_HEADER = """
 # Tiles & Expiration
-————  +  ——————————————
+——————- + -——————————————
 """[1:]
 PLANNER_TABLE_EMPTY = "https://cdn.discordapp.com/attachments/924255725390270474/1122521704829292555/IMG_0401.png"
 PLANNER_TABLE_ROW = "{emoji_claim} {emoji_tile} `{tile}`  |  "
@@ -127,6 +127,7 @@ class PlannerCog(ErrorHandlerCog):
             self.next_check_unclaimed += timedelta(minutes=PlannerCog.CHECK_EVERY_UNCLAIMED)
 
         banner_codes = await self.get_banner_tile_list()
+        _cts, ct_end = bot.utils.bloons.get_current_ct_period()
         planners = await bot.db.queries.planner.get_planners(only_active=True)
         for planner in planners:
             pings = await self.check_planner_reminder(
@@ -134,7 +135,7 @@ class PlannerCog(ErrorHandlerCog):
                 planner.ping_channel,
                 banner_codes,
                 check_from,
-                check_to,
+                min(check_to, ct_end-timedelta(hours=12)),
                 check_to_unclaimed if check_unclaimed else None
             )
             if len(pings.keys()) > 0:
@@ -171,11 +172,13 @@ class PlannerCog(ErrorHandlerCog):
             if b.claimed_by not in pings:
                 pings[b.claimed_by] = []
             pings[b.claimed_by].append(b.tile)
+
         for unclaimed_b in banners_unclaimed:
             if None not in pings:
                 pings[None] = []
             if unclaimed_b.tile not in pings[None]:
                 pings[None].append(unclaimed_b.tile)
+
         return pings
 
     async def send_reminder(self,
@@ -256,6 +259,10 @@ class PlannerCog(ErrorHandlerCog):
         Checks if a banner has just decayed and pings the team in the appropriate channel.
         """
         now = datetime.now()
+        _cts, ct_end = bot.utils.bloons.get_current_ct_period()
+        if now >= ct_end-timedelta(hours=12):
+            return
+
         one_day = timedelta(days=1)
         update_expire_list = False
         for banner in self.banner_decays:
