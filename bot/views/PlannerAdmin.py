@@ -1,5 +1,5 @@
 import discord
-import bot.db.queries
+import bot.db.queries.planner
 from datetime import datetime, timedelta
 from typing import Callable, Any
 
@@ -154,7 +154,7 @@ class PlannerAdminView(discord.ui.View):
         )
 
     async def switch_planner(self, interaction: discord.Interaction, new_active: bool) -> None:
-        await bot.db.queries.turn_planner(self.planner_id, new_active)
+        await bot.db.queries.planner.turn_planner(self.planner_id, new_active)
         await interaction.response.send_message(
             content=f"The planner has been turned {'on' if new_active else 'off'}!",
             ephemeral=True
@@ -162,7 +162,7 @@ class PlannerAdminView(discord.ui.View):
         await self.refresh_planner(self.planner_id)
 
     async def clear_planner(self, interaction: discord.Interaction):
-        await bot.db.queries.set_clear_time(self.planner_id, datetime.now())
+        await bot.db.queries.planner.set_clear_time(self.planner_id, datetime.now())
         await interaction.response.send_message(
             content=f"Cleared the planner!",
             ephemeral=True

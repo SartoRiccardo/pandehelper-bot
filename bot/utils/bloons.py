@@ -69,9 +69,9 @@ def get_current_ct_number(breakpoint_on_event_start: bool = True) -> int:
 def raw_challenge_to_embed(challenge) -> discord.Embed or None:
     tile = challenge["Code"]
     tile_type_url = REGULAR_IMG
-    if challenge['TileType'] == "TeamFirstCapture":
-        return None
-    elif challenge['TileType'] == "Banner":
+    # if challenge['TileType'] == "TeamFirstCapture":
+    #     return None
+    if challenge['TileType'] == "Banner":
         tile_type_url = BANNER_IMG
     elif challenge['TileType'] == "Relic":
         if challenge['RelicType'] in RELICS_IMG:

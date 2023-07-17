@@ -3,11 +3,10 @@ import re
 import bloonspy
 import bloonspy.exceptions
 import bot.utils.io
-import bot.db.queries
+import bot.db.queries.oak
 import discord
 from discord.ext import commands
 from bot.classes import ErrorHandlerCog
-from typing import List
 from bot.views import AccountChooserView
 
 
@@ -28,7 +27,8 @@ class VerifyCog(ErrorHandlerCog):
     @verify_group.command(name="account",
                           description="Verify who you are in Bloons TD 6!")
     @discord.app_commands.describe(oak="Your OAK (leave blank if you don't know what that is)")
-    async def cmd_verify(self, interaction: discord.Interaction, oak: str = None) -> None:
+    @discord.app_commands.rename(str_oak=oak)
+    async def cmd_verify(self, interaction: discord.Interaction, str_oak: str = None) -> None:
         user = interaction.user
         instructions = "__**About verification**__\n" \
                        "To know who you are, I need your **Open Access Key (OAK)**. This is a bit of text that " \
@@ -47,14 +47,14 @@ class VerifyCog(ErrorHandlerCog):
                        "__**More information**__\n" \
                        "Ninja Kiwi talking about OAKs: https://support.ninjakiwi.com/hc/en-us/articles/13438499873937\n"
 
-        await interaction.response.defer(ephemeral=oak is not None)
+        await interaction.response.defer(ephemeral=str_oak is not None)
 
-        if oak is None:
-            oak = await bot.db.queries.get_main_oak(user.id)
+        if str_oak is None:
+            oak = await bot.db.queries.oak.get_main_oak(user.id)
             bloons_user = None
             if oak:
                 try:
-                    bloons_user = bloonspy.Client.get_user(oak)
+                    bloons_user = bloonspy.Client.get_user(oak.key)
                 except bloonspy.exceptions.NotFound:
                     pass
 
@@ -72,7 +72,7 @@ class VerifyCog(ErrorHandlerCog):
                 await interaction.edit_original_response(content=instructions)
             return
 
-        if re.match(r"oak_[\da-z]{32}", oak) is None:
+        if re.match(r"oak_[\da-z]{32}", str_oak) is None:
             await interaction.edit_original_response(
                 content="Your OAK is not well formatted! it should be `oak_` followed by 32 numbers and/or lowercase "
                         "letters!\n\n"
@@ -80,15 +80,15 @@ class VerifyCog(ErrorHandlerCog):
             )
             return
 
-        if await bot.db.queries.is_oak_registered(oak):
+        if await bot.db.queries.oak.is_oak_registered(str_oak):
             await interaction.edit_original_response(
                 content="That OAK is already registered!",
             )
 
         try:
-            bloons_user = bloonspy.Client.get_user(oak)
+            bloons_user = bloonspy.Client.get_user(str_oak)
             is_veteran = bloons_user.veteran_rank > 0
-            await bot.db.queries.set_oak(user.id, oak)
+            await bot.db.queries.oak.set_oak(user.id, str_oak)
             await interaction.edit_original_response(
                 content=f"You've verified yourself as {bloons_user.name}! "
                         f"({f'Vet{bloons_user.veteran_rank}' if is_veteran else f'Lv{bloons_user.rank}'})\n\n"
@@ -102,9 +102,9 @@ class VerifyCog(ErrorHandlerCog):
     @verify_group.command(name="main",
                           description="Choose one of your accounts as your main one")
     async def cmd_set_main(self, interaction: discord.Interaction) -> None:
-        oaks = await bot.db.queries.get_oaks(interaction.user.id)
+        oaks = await bot.db.queries.oak.get_oaks(interaction.user.id)
         users = await asyncio.gather(*[
-            self.get_user(oak["oak"])
+            self.get_user(oak.key)
             for oak in oaks
         ])
         users = [
@@ -136,9 +136,9 @@ class VerifyCog(ErrorHandlerCog):
     @discord.app_commands.command(name="unverify",
                                   description="Remove one or more accounts from the bot")
     async def cmd_unverify(self, interaction: discord.Interaction) -> None:
-        oaks = await bot.db.queries.get_oaks(interaction.user.id)
+        oaks = await bot.db.queries.oak.get_oaks(interaction.user.id)
         users = await asyncio.gather(*[
-            self.get_user(oak["oak"])
+            self.get_user(oak.key)
             for oak in oaks
         ])
         users = [
@@ -175,7 +175,7 @@ class VerifyCog(ErrorHandlerCog):
                             user: bloonspy.User,
                             oak: str,
                             edit: bool = True) -> None:
-        await bot.db.queries.del_oak(interaction.user.id, oak)
+        await bot.db.queries.oak.del_oak(interaction.user.id, oak)
         content = f"Your account is no longer associated to **{user.name}**!"
         if edit:
             await interaction.response.edit_message(content=content, view=None)
@@ -187,7 +187,7 @@ class VerifyCog(ErrorHandlerCog):
                             user: bloonspy.User,
                             oak: str,
                             edit: bool = True) -> None:
-        await bot.db.queries.set_main_oak(interaction.user.id, oak)
+        await bot.db.queries.oak.set_main_oak(interaction.user.id, oak)
         content = f"Your main account is now **{user.name}**!"
         if edit:
             await interaction.response.edit_message(content=content, view=None)

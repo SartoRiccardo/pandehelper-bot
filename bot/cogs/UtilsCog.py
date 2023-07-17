@@ -5,7 +5,6 @@ import os
 import bot.utils.io
 import bot.utils.bloons
 import bot.utils.discordutils
-import bot.db.queries
 from bot.utils.Cache import Cache
 import discord
 from discord.ext import commands, tasks

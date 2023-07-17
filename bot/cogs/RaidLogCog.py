@@ -2,7 +2,7 @@ import discord
 from datetime import datetime, timedelta
 from discord.ext import commands, tasks
 import asyncio
-import bot.db.queries
+import bot.db.queries.tilestrat
 import bot.utils.discordutils
 from bot.exceptions import UnknownTile
 from bot.classes import ErrorHandlerCog
@@ -10,7 +10,6 @@ import bot.utils.bloons
 from bot.utils.emojis import LEAST_TIERS, LEAST_CASH, BLOONARIUS, VORTEX, LYCH, TIME_ATTACK, BLANK
 from bot.utils.images import IMG_LEAST_CASH, IMG_LEAST_TIERS, IMG_BLOONARIUS, IMG_VORTEX, IMG_LYCH, IMG_TIME_ATTACK
 import re
-from pprint import pprint
 from typing import List, Dict, Optional
 
 
@@ -128,7 +127,7 @@ class RaidLogCog(ErrorHandlerCog):
         await self.search_tile(interaction, tile_code)
 
     async def search_tile(self, interaction: discord.Interaction, tile_code: str) -> None:
-        forum_id = await bot.db.queries.get_tile_strat_forum(interaction.guild_id)
+        forum_id = await bot.db.queries.tilestrat.get_tile_strat_forum(interaction.guild_id)
         if forum_id is None:
             await interaction.response.send_message(
                 "You don't have a Tile Strats forum set! Run /tilestratforum create or /tilestratforum set to have one.",
@@ -237,7 +236,7 @@ class RaidLogCog(ErrorHandlerCog):
     @discord.app_commands.guild_only()
     @bot.utils.discordutils.gatekeep()
     async def cmd_stats(self, interaction: discord.Interaction, season: Optional[int] = None) -> None:
-        forum_id = await bot.db.queries.get_tile_strat_forum(interaction.guild_id)
+        forum_id = await bot.db.queries.tilestrat.get_tile_strat_forum(interaction.guild_id)
         if forum_id is None:
             await interaction.response.send_message(
                 "You don't have a Tile Strats forum set! Run /tilestratforum create or /tilestratforum set to have one.",
@@ -375,7 +374,7 @@ class RaidLogCog(ErrorHandlerCog):
     @discord.app_commands.guild_only()
     @bot.utils.discordutils.gatekeep()
     async def cmd_unset_raidlog(self, interaction: discord.Interaction) -> None:
-        await bot.db.queries.del_tile_strat_forum(interaction.guild_id)
+        await bot.db.queries.tilestrat.del_tile_strat_forum(interaction.guild_id)
         await interaction.response.send_message(
             "Done! You server no longer has a tile strat forum!"
         )
@@ -463,7 +462,7 @@ class RaidLogCog(ErrorHandlerCog):
 
     @staticmethod
     async def set_raidlog(interaction: discord.Interaction, forum: discord.ForumChannel):
-        await bot.db.queries.set_tile_strat_forum(interaction.guild_id, forum.id)
+        await bot.db.queries.tilestrat.set_tile_strat_forum(interaction.guild_id, forum.id)
         await interaction.response.send_message(
             f"Done! <#{forum.id}> is now your Tile Strats forum!"
         )

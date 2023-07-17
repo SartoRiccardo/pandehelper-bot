@@ -3,196 +3,31 @@ import datetime
 import bot.db.connection
 import bot.utils.bloons
 from typing import List, Dict, Tuple, Any, Literal
-from .model.TileCapture import TileCapture
+from ..model.Planner import Planner
+from ..model.PlannedTile import PlannedTile
 postgres = bot.db.connection.postgres
 bloons = bot.utils.bloons
 
-# I really need to format this into different files huh
-# I'll do that... someday
-
 
 @postgres
-async def track_channel(channel: int, conn=None) -> None:
-    await conn.execute("""
-            INSERT INTO teams (channel) VALUES ($1)
-                ON CONFLICT DO NOTHING
-            """, channel)
-
-
-@postgres
-async def untrack_channel(channel: int, conn=None) -> None:
-    await conn.execute("DELETE FROM teams WHERE channel=$1",
-                       channel)
-
-
-@postgres
-async def get_ticket_overview(channel: int, event: int = 0, conn=None) -> Dict[int, List[List[TileCapture]]]:
-    if event == 0:
-        event = bloons.get_ct_number_during(datetime.datetime.now())
-    event_start = bloons.FIRST_CT_START + datetime.timedelta(days=bloons.EVENT_DURATION*2 * (event-1))
-    event_end = event_start + datetime.timedelta(days=bloons.EVENT_DURATION)
-    result = await conn.fetch("""
-        SELECT * FROM claims
-            WHERE channel=$1
-              AND claimed_at >= $2
-              AND claimed_at <= $3
-        """, channel, event_start, event_end)
-
-    claims = {}
-    for record in result:
-        uid = record["userid"]
-        if uid not in claims:
-            claims[uid] = []
-            for _ in range(bloons.EVENT_DURATION):
-                claims[uid].append([])
-        day = (record["claimed_at"] - event_start).days
-        if 0 <= day < bloons.EVENT_DURATION:
-            claims[uid][day].append(
-                TileCapture(uid, record["tile"], channel, record["message"], record["claimed_at"])
-            )
-    return claims
-
-
-@postgres
-async def get_tickets_from(member_id: int, channel: int, event: int = 0, conn=None) -> List[List[TileCapture]]:
-    if event == 0:
-        event = bloons.get_ct_number_during(datetime.datetime.now())
-    event_start = bloons.FIRST_CT_START + datetime.timedelta(days=bloons.EVENT_DURATION*2 * (event-1))
-    event_end = event_start + datetime.timedelta(days=bloons.EVENT_DURATION)
-    result = await conn.fetch("""
-        SELECT * FROM claims
-            WHERE channel=$1
-              AND userid=$2
-              AND claimed_at >= $3
-              AND claimed_at <= $4
-        """, channel, member_id, event_start, event_end)
-
-    claims = []
-    for _ in range(bloons.EVENT_DURATION):
-        claims.append([])
-    for record in result:
-        day = (record["claimed_at"] - event_start).days
-        if 0 <= day < bloons.EVENT_DURATION:
-            claims[day].append(
-                TileCapture(member_id, record["tile"], channel, record["message"], record["claimed_at"])
-            )
-    return claims
-
-
-@postgres
-async def tracked_channels(conn=None) -> List[int]:
-    payload = await conn.fetch("SELECT channel FROM teams")
-    channels = [row["channel"] for row in payload]
-    return channels
-
-
-@postgres
-async def is_channel_tracked(channel_id: int, conn=None) -> bool:
-    payload = await conn.fetch("SELECT channel FROM teams WHERE channel = $1", channel_id)
-    return len(payload) > 0
-
-
-@postgres
-async def capture(channel: int, user: int, tile: str, message: int, conn=None) -> None:
-    await conn.execute("""
-            INSERT INTO claims (userid, tile, channel, message, claimed_at) VALUES ($1, $2, $3, $4, $5)
-                ON CONFLICT DO NOTHING
-        """, user, tile, channel, message, datetime.datetime.now())
-
-
-@postgres
-async def uncapture(message: int, conn=None) -> None:
-    await conn.execute("DELETE FROM claims WHERE message=$1", message)
-
-
-@postgres
-async def add_leaderboard_channel(guild: int, channel: int, conn=None) -> None:
-    await conn.execute("""
-                INSERT INTO lbchannels (guild, channel) VALUES ($1, $2)
-                    ON CONFLICT DO NOTHING
-                """, guild, channel)
-
-
-@postgres
-async def remove_leaderboard_channel(guild: int, channel: int, conn=None) -> None:
-    await conn.execute("DELETE FROM lbchannels WHERE guild=$1 AND channel=$2",
-                       guild, channel)
-
-
-@postgres
-async def leaderboard_channels(conn=None) -> List[Tuple[int, int]]:
-    payload = await conn.fetch("SELECT guild, channel FROM lbchannels")
-    return [(row["guild"], row["channel"]) for row in payload]
-
-
-@postgres
-async def get_oaks(user: int, conn=None) -> List[Dict[str, Any]]:
-    payload = await conn.fetch("""
-        SELECT oak, is_main
-        FROM btd6players
-        WHERE userid=$1
-        ORDER BY
-            is_main DESC,
-            oak
-    """, user)
-    return payload
-
-
-async def get_main_oak(user: int) -> str or None:
-    oaks = await get_oaks(user)
-    return oaks[0] if len(oaks) > 0 else None
-
-
-@postgres
-async def set_main_oak(user: int, oak: str, conn=None) -> None:
-    await conn.execute("""
-        UPDATE btd6players
-        SET is_main=(oak=$2)
-        WHERE userid=$1
-    """, user, oak)
-
-
-@postgres
-async def is_oak_registered(oak: str, conn=None) -> bool:
-    return len(await conn.fetch("SELECT * FROM btd6players WHERE oak=$1", oak)) > 0
-
-
-@postgres
-async def set_oak(user: int, oak: str, conn=None) -> None:
-    await conn.execute("""
-        INSERT INTO btd6players (userid, oak, is_main)
-        VALUES (
-            $1, $2,
-            (SELECT COUNT(*)=0 FROM btd6players WHERE userid=$1)
-        )
-    """, user, oak)
-    pass
-
-
-@postgres
-async def del_oak(user: int, oak: str, conn=None) -> None:
-    await conn.execute("""
-        DELETE FROM btd6players
-        WHERE userid=$1
-            AND oak=$2
-    """, user, oak)
-
-
-@postgres
-async def get_planners(only_active: bool = False, conn=None) -> List[Dict[str, Any]]:
+async def get_planners(only_active: bool = False, conn=None) -> List[Planner]:
     only_active_q = " WHERE is_active" if only_active else ""
     planners = await conn.fetch("SELECT * FROM planners" + only_active_q)
-    return planners
+    return [Planner(row["planner_channel"], row["claims_channel"], row["ping_role"], row["ping_channel"],
+                    row["cleared_at"], row["is_active"])
+            for row in planners]
 
 
 @postgres
-async def get_planner(planner_id: int, conn=None) -> Dict[str, Any] or None:
+async def get_planner(planner_id: int, conn=None) -> Planner or None:
     results = await conn.fetch("""
         SELECT *
         FROM planners
         WHERE planner_channel=$1
     """, planner_id)
-    return results[0] if len(results) else None
+    return Planner(results[0]["planner_channel"], results[0]["claims_channel"], results[0]["ping_role"],
+                   results[0]["ping_channel"], results[0]["cleared_at"], results[0]["is_active"]) \
+        if len(results) else None
 
 
 @postgres
@@ -243,12 +78,12 @@ async def get_planned_banners(planner_channel: int,
                               banner_codes: List[str],
                               expire_between: Tuple[datetime.datetime, datetime.datetime] or None = None,
                               claimed_status: Literal["UNCLAIMED", "CLAIMED", "ANY"] = "ANY",
-                              conn=None) -> List[Dict[str, Any]]:
+                              conn=None) -> List[PlannedTile]:
     event = bloons.get_current_ct_number()
     event_start = bloons.FIRST_CT_START + datetime.timedelta(days=bloons.EVENT_DURATION*2 * (event-1))
     banner_captures = """
         SELECT c.tile AS tile, c.claimed_at AS claimed_at, ptc.user_id AS user_id,
-            p.claims_channel, p.ping_role, p.ping_channel
+            p.claims_channel, p.ping_role, p.ping_channel, p.planner_channel
         FROM (claims c
         JOIN planners p
             ON c.channel = p.claims_channel)
@@ -276,7 +111,7 @@ async def get_planned_banners(planner_channel: int,
         claim_q = "AND bcap.user_id IS NOT NULL"
 
     banners = await conn.fetch(f"""
-        SELECT bcap.tile, bcap.claimed_at, bcap.user_id, claims_channel, ping_role, ping_channel
+        SELECT bcap.tile, bcap.claimed_at, bcap.user_id, claims_channel, ping_role, ping_channel, planner_channel
         FROM ({banner_captures}) bcap
         WHERE claimed_at = (
             SELECT MAX(claimed_at)
@@ -287,17 +122,20 @@ async def get_planned_banners(planner_channel: int,
             OR claimed_at >= (SELECT clear_time FROM planners WHERE planner_channel = $3)
         )
     """ + between_q + claim_q, event_start, banner_codes, planner_channel, *extra_args)
-    return banners
+    return [PlannedTile(row["tile"], row["claimed_at"], row["user_id"], row["planner_channel"], row["claims_channel"], row["ping_role"],
+                        row["ping_channel"])
+            for row in banners]
 
 
 @postgres
 async def get_banner_closest_to_expire(banner_codes: List[str],
                                        from_date: datetime.datetime,
-                                       conn=None) -> List[Dict[str, Any]]:
+                                       conn=None) -> List[PlannedTile]:
     one_day = datetime.timedelta(days=1)
     banner_captures = """
             SELECT p.planner_channel AS planner_channel, c.tile AS tile, c.claimed_at AS claimed_at,
-                    ptc.user_id AS user_id, p.ping_channel as ping_channel, p.ping_role AS ping_role
+                    ptc.user_id AS user_id, p.ping_channel as ping_channel, p.ping_role AS ping_role,
+                    p.claims_channel AS claims_channel
             FROM (claims c
             JOIN planners p
                 ON c.channel = p.claims_channel)
@@ -309,7 +147,7 @@ async def get_banner_closest_to_expire(banner_codes: List[str],
         """
     banner_claims = f"""
             SELECT bcap.planner_channel, bcap.tile, bcap.claimed_at, bcap.user_id, bcap.ping_channel,
-                    bcap.ping_role
+                    bcap.ping_role, bcap.claims_channel
             FROM ({banner_captures}) bcap
             WHERE claimed_at = (
                 SELECT MAX(claimed_at)
@@ -330,7 +168,9 @@ async def get_banner_closest_to_expire(banner_codes: List[str],
                 WHERE bclaim.planner_channel = bclaims2.planner_channel
             )
         """, banner_codes, from_date-one_day)
-    return banners
+    return [PlannedTile(row["tile"], row["claimed_at"], row["user_id"], row["planner_channel"], row["claims_channel"],
+                        row["ping_channel"], row["ping_role"])
+            for row in banners]
 
 
 @postgres
@@ -402,7 +242,7 @@ async def planner_delete_config(
 
 
 @postgres
-async def get_planner_linked_to(tile_claim_ch: int, conn=None) -> int or None:
+async def get_planner_linked_to(tile_claim_ch: int, conn=None) -> int:
     channel = await conn.fetch("""
         SELECT planner_channel
         FROM planners
@@ -438,7 +278,7 @@ async def edit_tile_capture_time(channel_id: int,
                                  planner_clear_time: datetime.datetime or None = None,
                                  conn=None) -> bool:
     event = bloons.get_current_ct_number()
-    event_start = bloons.FIRST_CT_START + datetime.timedelta(days=bloons.EVENT_DURATION*2 * (event-1))
+    event_start = bloons.FIRST_CT_START + datetime.timedelta(days=bloons.EVENT_DURATION * 2 * (event - 1))
     min_time_to_edit = event_start if planner_clear_time is None else max(event_start, planner_clear_time)
     updated = await conn.execute("""
         UPDATE claims
@@ -455,23 +295,3 @@ async def edit_tile_capture_time(channel_id: int,
     """, new_time, tile, channel_id, min_time_to_edit)
     updated_rows = int(updated[7:])
     return updated_rows > 0
-
-
-@postgres
-async def get_tile_strat_forum(guild_id: int, conn=None) -> int or None:
-    payload = await conn.fetch("SELECT forumid FROM tilestratforums WHERE guildid=$1", guild_id)
-    return payload[0]["forumid"] if len(payload) > 0 else None
-
-
-@postgres
-async def set_tile_strat_forum(guild_id: int, forum_id: int, conn=None) -> None:
-    saved_forum_id = await get_tile_strat_forum(guild_id)
-    if saved_forum_id:
-        await conn.execute("UPDATE tilestratforums SET forumid=$2 WHERE guildid=$1", guild_id, forum_id)
-    else:
-        await conn.execute("INSERT INTO tilestratforums(guildid, forumid) VALUES ($1, $2)", guild_id, forum_id)
-
-
-@postgres
-async def del_tile_strat_forum(guild_id: int, conn=None) -> None:
-    await conn.execute("DELETE FROM tilestratforums WHERE guildid=$1", guild_id)

@@ -5,7 +5,7 @@ import discord
 from discord.ext import tasks, commands
 import time
 import asyncio
-import bot.db.queries
+import bot.db.queries.leaderboard
 import bot.utils.io
 from bot.classes import ErrorHandlerCog
 from typing import Dict, List
@@ -68,7 +68,7 @@ class LeaderboardCog(ErrorHandlerCog):
     @discord.app_commands.default_permissions(administrator=True)
     @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def cmd_add_leaderboard(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
-        await bot.db.queries.add_leaderboard_channel(interaction.guild.id, channel.id)
+        await bot.db.queries.queries.add_leaderboard_channel(interaction.guild.id, channel.id)
         await interaction.response.send_message(f"Leaderboard added to <#{channel.id}>!", ephemeral=True)
 
     @leaderboard_group.command(name="remove", description="Remove a leaderboard from a channel.")
@@ -77,7 +77,7 @@ class LeaderboardCog(ErrorHandlerCog):
     @discord.app_commands.default_permissions(administrator=True)
     @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def cmd_remove_leaderboard(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
-        await bot.db.queries.remove_leaderboard_channel(interaction.guild.id, channel.id)
+        await bot.db.queries.queries.remove_leaderboard_channel(interaction.guild.id, channel.id)
         await interaction.response.send_message(f"Leaderboard removed from <#{channel.id}>!", ephemeral=True)
 
     @tasks.loop(seconds=10)
@@ -143,14 +143,15 @@ class LeaderboardCog(ErrorHandlerCog):
         await self.save_state()
 
     async def send_leaderboard(self, messages: List[str]) -> None:
-        channels = await bot.db.queries.leaderboard_channels()
-        for guild_id, channel_id in channels:
+        channels = await bot.db.queries.leaderboard.leaderboard_channels()
+        for leaderboard in channels:
+            guild_id, channel_id = leaderboard.guild_id, leaderboard.channel_id
             guild = self.bot.get_guild(guild_id)
             if guild is None:
                 try:
                     guild = await self.bot.fetch_guild(guild_id)
                 except discord.NotFound:
-                    await bot.db.queries.remove_leaderboard_channel(guild_id, channel_id)
+                    await bot.db.queries.leaderboard.remove_leaderboard_channel(guild_id, channel_id)
                     continue
 
             channel = guild.get_channel(channel_id)
@@ -158,7 +159,7 @@ class LeaderboardCog(ErrorHandlerCog):
                 try:
                     channel = await guild.fetch_channel(channel_id)
                 except discord.NotFound:
-                    await bot.db.queries.remove_leaderboard_channel(guild_id, channel_id)
+                    await bot.db.queries.leaderboard.remove_leaderboard_channel(guild_id, channel_id)
                     continue
 
             await bot.utils.discordutils.update_messages(

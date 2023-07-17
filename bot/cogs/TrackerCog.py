@@ -3,7 +3,7 @@ import datetime
 import discord
 from discord.ext import commands
 import re
-import bot.db.queries
+import bot.db.queries.tickets
 import bot.utils.bloons
 from bot.classes import ErrorHandlerCog
 from typing import Optional
@@ -35,7 +35,7 @@ class TrackerCog(ErrorHandlerCog):
     @discord.app_commands.default_permissions(administrator=True)
     @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def cmd_track(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
-        await bot.db.queries.track_channel(channel.id)
+        await bot.db.queries.tickets.track_channel(channel.id)
         await interaction.response.send_message(f"I am now tracking <#{channel.id}>", ephemeral=True)
 
     @tickets_group.command(name="untrack", description="Stop tracking a channel.")
@@ -44,7 +44,7 @@ class TrackerCog(ErrorHandlerCog):
     @discord.app_commands.default_permissions(administrator=True)
     @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def cmd_untrack(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
-        await bot.db.queries.untrack_channel(channel.id)
+        await bot.db.queries.tickets.untrack_channel(channel.id)
         await interaction.response.send_message(f"I am no longer tracking <#{channel.id}>", ephemeral=True)
 
     @tickets_group.command(name="view", description="See how many tickets each member used.")
@@ -58,7 +58,7 @@ class TrackerCog(ErrorHandlerCog):
                                channel: discord.TextChannel,
                                season: Optional[int] = 0,
                                hide: Optional[bool] = False) -> None:
-        if channel.id not in (await bot.db.queries.tracked_channels()):
+        if channel.id not in (await bot.db.queries.tickets.tracked_channels()):
             await interaction.response.send_message("That channel is not being tracked!", ephemeral=True)
             return
 
@@ -68,7 +68,7 @@ class TrackerCog(ErrorHandlerCog):
         # separator = "------------- + --- + --  + --  + --  + --- + --  + ---\n"
         row = "`{:10.10}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}`\n"
 
-        claims = await bot.db.queries.get_ticket_overview(channel.id, season)
+        claims = await bot.db.queries.tickets.get_ticket_overview(channel.id, season)
 
         async def get_member(uid: int) -> discord.Member:
             member = interaction.guild.get_member(uid)
@@ -104,14 +104,14 @@ class TrackerCog(ErrorHandlerCog):
     async def cmd_member_tickets(self, interaction: discord.Interaction, channel: discord.TextChannel,
                                  member: discord.Member, season: Optional[int] = 0,
                                  hide: Optional[bool] = False) -> None:
-        if channel.id not in (await bot.db.queries.tracked_channels()):
+        if channel.id not in (await bot.db.queries.tickets.tracked_channels()):
             await interaction.response.send_message("That channel is not being tracked!", ephemeral=True)
             return
 
         await interaction.response.send_message("Just a moment...", ephemeral=hide)
         if season == 0:
             season = bot.utils.bloons.get_ct_number_during(datetime.datetime.now())
-        member_activity = await bot.db.queries.get_tickets_from(member.id, channel.id, season)
+        member_activity = await bot.db.queries.tickets.get_tickets_from(member.id, channel.id, season)
 
         embed = discord.Embed(
             title=f"{member.display_name}'s Tickets (CT {season})",
@@ -133,7 +133,7 @@ class TrackerCog(ErrorHandlerCog):
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent) -> None:
         if str(payload.emoji) not in tracked_emojis or \
-                payload.channel_id not in (await bot.db.queries.tracked_channels()):
+                payload.channel_id not in (await bot.db.queries.tickets.tracked_channels()):
             return
 
         tile_re = r"(?:[a-gA-G][a-gA-G][a-hA-H]|[Mm][Rr][Xx]|[Zz]{3})"
@@ -143,7 +143,7 @@ class TrackerCog(ErrorHandlerCog):
         if match is None:
             return
         tile = match.group(0).upper()
-        await bot.db.queries.capture(payload.channel_id, message.author.id, tile, payload.message_id)
+        await bot.db.queries.tickets.capture(payload.channel_id, message.author.id, tile, payload.message_id)
 
         # Forward event to those who are listening
         for cog_name in self.bot.cogs:
@@ -154,7 +154,7 @@ class TrackerCog(ErrorHandlerCog):
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent) -> None:
         if str(payload.emoji) not in tracked_emojis or \
-                payload.channel_id not in (await bot.db.queries.tracked_channels()):
+                payload.channel_id not in (await bot.db.queries.tickets.tracked_channels()):
             return
 
         channel = self.bot.get_channel(payload.channel_id)
@@ -162,7 +162,7 @@ class TrackerCog(ErrorHandlerCog):
         for reaction in message.reactions:
             if reaction.emoji in tracked_emojis:
                 return
-        await bot.db.queries.uncapture(payload.message_id)
+        await bot.db.queries.tickets.uncapture(payload.message_id)
 
 
 async def setup(bot: commands.Bot) -> None:
