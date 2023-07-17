@@ -14,7 +14,7 @@ async def get_planners(only_active: bool = False, conn=None) -> List[Planner]:
     only_active_q = " WHERE is_active" if only_active else ""
     planners = await conn.fetch("SELECT * FROM planners" + only_active_q)
     return [Planner(row["planner_channel"], row["claims_channel"], row["ping_role"], row["ping_channel"],
-                    row["cleared_at"], row["is_active"])
+                    row["clear_time"], row["is_active"])
             for row in planners]
 
 
@@ -26,7 +26,7 @@ async def get_planner(planner_id: int, conn=None) -> Planner or None:
         WHERE planner_channel=$1
     """, planner_id)
     return Planner(results[0]["planner_channel"], results[0]["claims_channel"], results[0]["ping_role"],
-                   results[0]["ping_channel"], results[0]["cleared_at"], results[0]["is_active"]) \
+                   results[0]["ping_channel"], results[0]["clear_time"], results[0]["is_active"]) \
         if len(results) else None
 
 

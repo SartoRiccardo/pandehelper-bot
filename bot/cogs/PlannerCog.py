@@ -404,8 +404,8 @@ class PlannerCog(ErrorHandlerCog):
         if planner is None:
             return []
 
-        planner_status = "🟢 ONLINE" if planner["is_active"] else "🔴 OFFLINE *(won't ping)*"
-        if not planner['ping_channel']:
+        planner_status = "🟢 ONLINE" if planner.is_active else "🔴 OFFLINE *(won't ping)*"
+        if not planner.ping_channel:
             planner_status = "⚠️ CONFIGURATION UNFINISHED *(won't work)*"
 
         messages = [
