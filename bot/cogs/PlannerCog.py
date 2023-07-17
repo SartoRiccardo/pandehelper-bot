@@ -59,6 +59,7 @@ class PlannerCog(ErrorHandlerCog):
         self.next_check = next_check
         self.next_check_unclaimed = next_check
         self.banner_decays = {}
+        self.next_planner_refreshes = {}
         self.last_check_end = self.next_check
         self._banner_list: Cache or None = None
 
@@ -90,10 +91,17 @@ class PlannerCog(ErrorHandlerCog):
         for v in views:
             self.bot.add_view(v)
         self.check_reminders.start()
+
         banner_list = await self.get_banner_tile_list()
         self.banner_decays = await bot.db.queries.planner.get_banner_closest_to_expire(banner_list,
                                                                                        datetime.now())
         self.check_decay.start()
+
+        next_refresh = datetime.now().replace(second=0, microsecond=0, minute=0) + timedelta(hours=1)
+        planners = await bot.db.queries.planner.get_planners()
+        for p in planners:
+            self.next_planner_refreshes[p.planner_channel] = next_refresh
+        self.check_planner_refresh.start()
 
     def cog_unload(self) -> None:
         self.check_reminders.cancel()
@@ -290,6 +298,14 @@ class PlannerCog(ErrorHandlerCog):
         await ping_channel.send(
             content=message
         )
+
+    @tasks.loop(seconds=30)
+    async def check_planner_refresh(self) -> None:
+        now = datetime.now()
+        for planner_channel in self.next_planner_refreshes:
+            if self.next_planner_refreshes[planner_channel] > now:
+                continue
+            await self.send_planner_msg(planner_channel)
 
     @planner_group.command(name="new", description="Create a new Planner channel.")
     @discord.app_commands.guild_only()
@@ -549,6 +565,7 @@ class PlannerCog(ErrorHandlerCog):
                 return
 
         planner_content = await self.get_planner_msg(channel_id)
+        self.next_planner_refreshes[channel_id] = datetime.now() + timedelta(hours=1)
         await bot.utils.discordutils.update_messages(self.bot.user, planner_content, channel)
 
     @staticmethod
