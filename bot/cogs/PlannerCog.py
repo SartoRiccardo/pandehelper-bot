@@ -12,6 +12,7 @@ from typing import List, Tuple, Union, Optional, Dict
 from bot.utils.emojis import BANNER
 from bot.views import PlannerUserView, PlannerAdminView
 from bot.utils.Cache import Cache
+from bot.utils.emojis import EXPIRE_LATER, EXPIRE_DONT_RECAP, EXPIRE_AFTER_RESET, EXPIRE_STALE, EXPIRE_2HR, EXPIRE_3HR
 
 
 PLANNER_ADMIN_PANEL = """
@@ -28,7 +29,9 @@ PLANNER_TABLE_HEADER = """
 ————  +  ——————————————
 """[1:]
 PLANNER_TABLE_EMPTY = "https://cdn.discordapp.com/attachments/924255725390270474/1122521704829292555/IMG_0401.png"
-PLANNER_TABLE_ROW = "{0} `{1}`  |  <t:{2}:T> (<t:{2}:R>){3}\n"
+PLANNER_TABLE_ROW = "{emoji_claim} {emoji_tile} `{tile}`  |  "
+PLANNER_TABLE_ROW_TIME = "<t:{expire_at}:T> (<t:{expire_at}:R>){claimer}\n"
+PLANNER_TABLE_ROW_STALE = "⚠️ **__STALE SINCE <t:{expire_at}:R>__** ⚠️"
 
 
 class PlannerCog(ErrorHandlerCog):
@@ -425,14 +428,42 @@ class PlannerCog(ErrorHandlerCog):
             (PLANNER_HR, None),
         ]
 
+        now = datetime.now()
         tile_table = PLANNER_TABLE_HEADER
         banner_codes = await self.get_banner_tile_list()
         banners = await bot.db.queries.planner.get_planned_banners(channel, banner_codes)
+        ct_start, ct_end = bot.utils.bloons.get_current_ct_period()
+        next_reset_day = ct_start + timedelta(hours=((now-ct_start).days+1)*24)
+        emojis_explanations = {
+            EXPIRE_DONT_RECAP: None,
+            EXPIRE_AFTER_RESET: None,
+        }
         for banner in banners:
+            expire_at = banner.claimed_at + timedelta(days=1)
+            emoji_claim = EXPIRE_LATER
+            if expire_at >= ct_end-timedelta(hours=12):
+                emoji_claim = EXPIRE_DONT_RECAP
+                emojis_explanations[EXPIRE_DONT_RECAP] = "Should __not__ be refreshed"
+            elif expire_at < now:
+                emoji_claim = EXPIRE_STALE
+            elif now < next_reset_day <= expire_at:
+                emoji_claim = EXPIRE_AFTER_RESET
+                emojis_explanations[EXPIRE_AFTER_RESET] = "Expires after reset"
+            elif expire_at-now < timedelta(hours=2):
+                emoji_claim = EXPIRE_2HR
+            elif expire_at-now < timedelta(hours=3):
+                emoji_claim = EXPIRE_3HR
+
+            row_second_part = PLANNER_TABLE_ROW_STALE if emoji_claim == EXPIRE_STALE else PLANNER_TABLE_ROW_TIME
             new_row = PLANNER_TABLE_ROW.format(
-                BANNER, banner.tile, int((banner.claimed_at + timedelta(days=1)).timestamp()),
-                f"   →  <@{banner.claimed_by}>" if banner.claimed_by is not None else ""
+                emoji_claim=emoji_claim,
+                emoji_tile=BANNER,
+                tile=banner.tile,
+            ) + row_second_part.format(
+                expire_at=int(expire_at.timestamp()),
+                claimer=f"   →  <@{banner.claimed_by}>" if banner.claimed_by is not None else ""
             )
+
             if len(new_row) + len(tile_table) > 2000:
                 messages.append((tile_table, None))
                 tile_table = ""
@@ -440,6 +471,13 @@ class PlannerCog(ErrorHandlerCog):
 
         if len(banners) == 0:
             tile_table = PLANNER_TABLE_EMPTY
+        else:
+            append_explanation = "\n"
+            for emoji in emojis_explanations:
+                if emojis_explanations[emoji] is not None:
+                    append_explanation += f"\nⓘ {emoji} *{emojis_explanations[emoji]}*"
+            if len(append_explanation) > 1:
+                tile_table += append_explanation
 
         banner_claims = [(banner.tile, banner.claimed_by is not None) for banner in banners]
         messages.append((

@@ -3,6 +3,7 @@ import discord
 import re
 import os
 import json
+from typing import Tuple
 from bot.utils.emojis import NO_SELLING, NO_KNOWLEDGE, CERAM_HEALTH, MOAB_HEALTH, MOAB_SPEED, BLOON_SPEED, \
     BLOONARIUS, VORTEX, LYCH, LEAST_CASH, LEAST_TIERS, TIME_ATTACK, MAX_TOWERS, REGROW_RATE, CASH
 from bot.utils.images import BANNER_IMG, REGULAR_IMG, RELICS_IMG, RELIC_IMG, MAPS, IMG_BLOONARIUS, \
@@ -64,6 +65,12 @@ def get_ct_number_during(time: datetime.datetime, breakpoint_on_event_start: boo
 
 def get_current_ct_number(breakpoint_on_event_start: bool = True) -> int:
     return get_ct_number_during(datetime.datetime.now(), breakpoint_on_event_start)
+
+
+def get_current_ct_period() -> Tuple[datetime.datetime, datetime.datetime]:
+    current = get_current_ct_number()
+    start = FIRST_CT_START + datetime.timedelta(days=EVENT_DURATION*current)
+    return start, start+datetime.timedelta(days=EVENT_DURATION)
 
 
 def raw_challenge_to_embed(challenge) -> discord.Embed or None:

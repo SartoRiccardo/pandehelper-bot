@@ -10,6 +10,12 @@ NEW_TEAM = "🆕"
 
 # Planner
 BANNER = "<:banner:1119000355133464637>"
+EXPIRE_STALE = "🔴"
+EXPIRE_2HR = "🟠"
+EXPIRE_3HR = "🟡"
+EXPIRE_LATER = "🟢"
+EXPIRE_AFTER_RESET = "⏩"
+EXPIRE_DONT_RECAP = "⛔"
 
 # Challenges
 NO_KNOWLEDGE = "<:no_knowledge:1120391759420207104>"
