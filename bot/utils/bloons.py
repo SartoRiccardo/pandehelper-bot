@@ -68,7 +68,7 @@ def get_current_ct_number(breakpoint_on_event_start: bool = True) -> int:
 
 
 def get_current_ct_period() -> Tuple[datetime.datetime, datetime.datetime]:
-    current = get_current_ct_number()
+    current = get_current_ct_number()-1
     start = FIRST_CT_START + datetime.timedelta(days=EVENT_DURATION*current*2)
     return start, start+datetime.timedelta(days=EVENT_DURATION)
 

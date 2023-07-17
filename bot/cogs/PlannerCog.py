@@ -449,6 +449,7 @@ class PlannerCog(ErrorHandlerCog):
         banner_codes = await self.get_banner_tile_list()
         banners = await bot.db.queries.planner.get_planned_banners(channel, banner_codes)
         ct_start, ct_end = bot.utils.bloons.get_current_ct_period()
+        print(ct_end-timedelta(hours=12))
         next_reset_day = ct_start + timedelta(hours=((now-ct_start).days+1)*24)
         emojis_explanations = {
             EXPIRE_DONT_RECAP: None,
