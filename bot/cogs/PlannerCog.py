@@ -557,12 +557,14 @@ class PlannerCog(ErrorHandlerCog):
         :param claim_channel: The ID of the Ticket Tracker channel.
         :param _claimer: The ID of the user who claimed it.
         """
-        if tile not in await self.get_banner_tile_list():
+        banner_list = await self.get_banner_tile_list()
+        if tile not in banner_list:
             return
         planner_id = await bot.db.queries.planner.get_planner_linked_to(claim_channel)
         if planner_id is None:
             return
         await bot.db.queries.planner.planner_unclaim_tile(tile, planner_id)
+        self.banner_decays = await bot.db.queries.planner.get_banner_closest_to_expire(banner_list, datetime.now())
         await self.send_planner_msg(planner_id)
 
     @discord.app_commands.checks.has_permissions(manage_guild=True)
