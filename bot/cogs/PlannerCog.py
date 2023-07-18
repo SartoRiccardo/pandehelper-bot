@@ -12,7 +12,8 @@ from typing import List, Tuple, Union, Optional, Dict
 from bot.utils.emojis import BANNER
 from bot.views import PlannerUserView, PlannerAdminView
 from bot.utils.Cache import Cache
-from bot.utils.emojis import EXPIRE_LATER, EXPIRE_DONT_RECAP, EXPIRE_AFTER_RESET, EXPIRE_STALE, EXPIRE_2HR, EXPIRE_3HR
+from bot.utils.emojis import EXPIRE_LATER, EXPIRE_DONT_RECAP, EXPIRE_AFTER_RESET, EXPIRE_STALE, EXPIRE_2HR, \
+    EXPIRE_3HR, BLANK
 
 
 PLANNER_ADMIN_PANEL = """
@@ -491,19 +492,23 @@ class PlannerCog(ErrorHandlerCog):
                 claimer=f"   →  <@{banner.claimed_by}>" if banner.claimed_by is not None else ""
             )
 
-            if i == len(banners)-1:
-                append_explanation = "\n"
-                for emoji in emojis_explanations:
-                    if emojis_explanations[emoji] is not None:
-                        append_explanation += f"\nⓘ {emoji} *{emojis_explanations[emoji]}*"
-                if len(append_explanation) > 1:
-                    new_row += append_explanation
 
             if len(new_row) + len(tile_table) > 2000:
                 messages.append((tile_table, None))
                 tile_table = ""
             tile_table += new_row
             banner_claims.append((banner.tile, banner.claimed_by is not None))
+
+        append_explanation = "\n"
+        for emoji in emojis_explanations:
+            if emojis_explanations[emoji] is not None:
+                append_explanation += f"\nⓘ {emoji} *{emojis_explanations[emoji]}*"
+        if len(append_explanation) > 1:
+            if len(tile_table) + len(append_explanation) > 2000:
+                messages.append((tile_table, None))
+                tile_table = BLANK + append_explanation
+            else:
+                tile_table += append_explanation
 
         if len(banner_claims) == 0:
             tile_table = PLANNER_TABLE_EMPTY
