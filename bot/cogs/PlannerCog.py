@@ -461,9 +461,12 @@ class PlannerCog(ErrorHandlerCog):
             EXPIRE_DONT_RECAP: None,
             EXPIRE_AFTER_RESET: None,
         }
+        banner_claims = []
         for i in range(len(banners)):
             banner = banners[i]
             expire_at = banner.claimed_at + timedelta(days=1)
+            if expire_at > ct_end:
+                continue
             emoji_claim = EXPIRE_LATER
             if expire_at >= ct_end-timedelta(hours=12):
                 emoji_claim = EXPIRE_DONT_RECAP
@@ -500,11 +503,11 @@ class PlannerCog(ErrorHandlerCog):
                 messages.append((tile_table, None))
                 tile_table = ""
             tile_table += new_row
+            banner_claims.append((banner.tile, banner.claimed_by is not None))
 
-        if len(banners) == 0:
+        if len(banner_claims) == 0:
             tile_table = PLANNER_TABLE_EMPTY
 
-        banner_claims = [(banner.tile, banner.claimed_by is not None) for banner in banners]
         messages.append((
             tile_table,
             PlannerUserView(banner_claims, channel,
