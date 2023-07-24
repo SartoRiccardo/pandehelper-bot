@@ -42,6 +42,7 @@ class WelcomeCog(ErrorHandlerCog):
             WAITING_ROOM_NAME, topic=str(member.id),
             overwrites={
                 **recruitment_category.overwrites,
+                pandemonium.default_role: discord.PermissionOverwrite(read_messages=False),
                 member: discord.PermissionOverwrite(read_messages=True),
             }
         )
