@@ -40,7 +40,10 @@ class WelcomeCog(ErrorHandlerCog):
 
         new_ch = await recruitment_category.create_text_channel(
             WAITING_ROOM_NAME, topic=str(member.id),
-            overwrites={member: discord.PermissionOverwrite(read_messages=True)}
+            overwrites={
+                **recruitment_category.overwrites,
+                member: discord.PermissionOverwrite(read_messages=True),
+            }
         )
         await new_ch.send(WELCOME_MSG.format(member.id))
 
