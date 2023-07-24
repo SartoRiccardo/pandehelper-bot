@@ -235,6 +235,42 @@ class UtilsCog(ErrorHandlerCog):
             content=f"`{'` `'.join(race_regs)}`"
         )
 
+    @discord.app_commands.command(name="team-timezones",
+                                  description="Get an idea of where a team's roster lives.")
+    @discord.app_commands.describe(team_role="The role that every member of the team has.")
+    @discord.app_commands.default_permissions(administrator=True)
+    @discord.app_commands.checks.has_permissions(manage_guild=True)
+    @discord.app_commands.guild_only()
+    @bot.utils.discordutils.gatekeep()
+    async def cmd_roster_timezones(self, interaction: discord.Interaction, team_role: discord.Role) -> None:
+        timezone_roles = {
+            1053808789696024676: [],
+            1053808801272311830: [],
+            1101112063276884060: [],
+        }
+        timezone_unknown = []
+
+        for member in team_role.members:
+            found_timezone = False
+            for role in member.roles:
+                if role.id in timezone_roles:
+                    timezone_roles[role.id].append(member)
+                    found_timezone = True
+                    break
+            if not found_timezone:
+                timezone_unknown.append(member)
+
+        embed = discord.Embed(title=f"{team_role.name.capitalize()} Team Timezones",
+                              colour=discord.Colour.orange())
+        for role_id in timezone_roles:
+            tz_role = discord.utils.get(interaction.guild.roles, id=role_id)
+            member_list = timezone_roles[role_id]
+            embed.add_field(name=tz_role.name, value="\n".join([m.display_name for m in member_list]))
+        if len(timezone_unknown) > 0:
+            embed.add_field(name="Unknown", value="\n".join([m.display_name for m in timezone_unknown]))
+
+        await interaction.response.send_message(embed=embed)
+
     @staticmethod
     def fetch_challenge_data(tile: str):
         path = f"bot/files/json/tiles/{tile}.json"
