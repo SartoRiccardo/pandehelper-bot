@@ -265,7 +265,7 @@ class UtilsCog(ErrorHandlerCog):
         for role_id in timezone_roles:
             tz_role = discord.utils.get(interaction.guild.roles, id=role_id)
             member_list = timezone_roles[role_id]
-            embed.add_field(name=tz_role.name.title(), value="\n".join([m.display_name for m in member_list]))
+            embed.add_field(name=tz_role.name.title(), value="\n".join([m.mention for m in member_list]))
         if len(timezone_unknown) > 0:
             embed.add_field(name="Unknown", value="\n".join([m.mention for m in timezone_unknown]))
         embed.set_footer(text=f"Number of members: {len(team_role.members)}")
