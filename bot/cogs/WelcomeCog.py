@@ -62,7 +62,7 @@ class WelcomeCog(ErrorHandlerCog):
         else:
             return
 
-        recruitment_category = discord.utils.get(pandemonium.categories, id=RECRUITMENT_CID)
+        recruitment_category = discord.utils.get(pandemonium.categories, id=self.RECRUITMENT_CID)
         if recruitment_category is None:
             return
         for channel in recruitment_category.text_channels:
