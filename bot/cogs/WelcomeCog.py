@@ -4,13 +4,12 @@ from discord.ext import commands
 from bot.classes import ErrorHandlerCog
 
 
-WAITING_ROOM_NAME = "📚・challenger-{}"
-PANDEMONIUM_GID = 860146839181459466
-RECRUITMENT_CID = 1005681268844924958
-WELCOME_MSG = "Welcome, <@{}>! Please check out <#1102652581026725970>"
-
-
 class WelcomeCog(ErrorHandlerCog):
+    WAITING_ROOM_NAME = "🫵・challenger-{}"
+    PANDEMONIUM_GID = 860146839181459466
+    RECRUITMENT_CID = 1005681268844924958
+    WELCOME_MSG = "Welcome, <@{}>! Please check out <#1102652581026725970>"
+
     def __init__(self, bot: commands.Bot) -> None:
         super().__init__(bot)
 
@@ -27,20 +26,20 @@ class WelcomeCog(ErrorHandlerCog):
 
     @commands.Cog.listener()
     async def on_raw_member_remove(self, payload: discord.RawMemberRemoveEvent) -> None:
-        if payload.guild_id != PANDEMONIUM_GID:
+        if payload.guild_id != self.PANDEMONIUM_GID:
             return
         await self.remove_waiting_room(payload.user, guild_id=payload.guild_id)
 
     async def create_waiting_room(self, member: discord.Member) -> None:
-        if member.guild.id != PANDEMONIUM_GID:
+        if member.guild.id != self.PANDEMONIUM_GID:
             return
         pandemonium = member.guild
-        recruitment_category = discord.utils.get(pandemonium.categories, id=RECRUITMENT_CID)
+        recruitment_category = discord.utils.get(pandemonium.categories, id=self.RECRUITMENT_CID)
         if recruitment_category is None:
             return
 
         new_ch = await recruitment_category.create_text_channel(
-            WAITING_ROOM_NAME.format(self.username_to_text_channel(member.name)),
+            self.WAITING_ROOM_NAME.format(self.username_to_text_channel(member.name)),
             topic=str(member.id),
             overwrites={
                 **recruitment_category.overwrites,
@@ -48,7 +47,7 @@ class WelcomeCog(ErrorHandlerCog):
                 member: discord.PermissionOverwrite(read_messages=True),
             }
         )
-        await new_ch.send(WELCOME_MSG.format(member.id))
+        await new_ch.send(self.WELCOME_MSG.format(member.id))
 
     async def remove_waiting_room(self, member: discord.Member | discord.User, guild_id: int = None) -> None:
         if member.guild.id != PANDEMONIUM_GID:
@@ -72,7 +71,7 @@ class WelcomeCog(ErrorHandlerCog):
                 return
 
     @staticmethod
-    async def username_to_text_channel(username: str) -> str:
+    def username_to_text_channel(username: str) -> str:
         username = username.lower()
         filtered = ""
         keep = string.ascii_lowercase + string.digits
