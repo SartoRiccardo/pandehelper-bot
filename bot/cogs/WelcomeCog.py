@@ -50,7 +50,7 @@ class WelcomeCog(ErrorHandlerCog):
         await new_ch.send(self.WELCOME_MSG.format(member.id))
 
     async def remove_waiting_room(self, member: discord.Member | discord.User, guild_id: int = None) -> None:
-        if member.guild.id != PANDEMONIUM_GID:
+        if member.guild.id != self.PANDEMONIUM_GID:
             return
 
         if isinstance(member, discord.Member):
