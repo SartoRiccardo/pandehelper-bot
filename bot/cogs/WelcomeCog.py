@@ -1,9 +1,10 @@
+import string
 import discord
 from discord.ext import commands
 from bot.classes import ErrorHandlerCog
 
 
-WAITING_ROOM_NAME = "📚・waiting-room"
+WAITING_ROOM_NAME = "📚・challenger-{}"
 PANDEMONIUM_GID = 860146839181459466
 RECRUITMENT_CID = 1005681268844924958
 WELCOME_MSG = "Welcome, <@{}>! Please check out <#1102652581026725970>"
@@ -39,7 +40,8 @@ class WelcomeCog(ErrorHandlerCog):
             return
 
         new_ch = await recruitment_category.create_text_channel(
-            WAITING_ROOM_NAME, topic=str(member.id),
+            WAITING_ROOM_NAME.format(self.username_to_text_channel(member.name)),
+            topic=str(member.id),
             overwrites={
                 **recruitment_category.overwrites,
                 pandemonium.default_role: discord.PermissionOverwrite(read_messages=False),
@@ -68,6 +70,16 @@ class WelcomeCog(ErrorHandlerCog):
             if channel.topic == str(member.id):
                 await channel.delete()
                 return
+
+    @staticmethod
+    async def username_to_text_channel(username: str) -> str:
+        username = username.lower()
+        filtered = ""
+        keep = string.ascii_lowercase + string.digits
+        for letter in username:
+            if letter in keep:
+                filtered += letter
+        return filtered
 
 
 async def setup(bot: commands.Bot) -> None:
