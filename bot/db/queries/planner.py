@@ -79,8 +79,7 @@ async def get_planned_banners(planner_channel: int,
                               expire_between: Tuple[datetime.datetime, datetime.datetime] or None = None,
                               claimed_status: Literal["UNCLAIMED", "CLAIMED", "ANY"] = "ANY",
                               conn=None) -> List[PlannedTile]:
-    event = bloons.get_current_ct_number()
-    event_start = bloons.FIRST_CT_START + datetime.timedelta(days=bloons.EVENT_DURATION*2 * (event-1))
+    event_start, _event_end = bloons.get_current_ct_period()
     banner_captures = """
         SELECT c.tile AS tile, c.claimed_at AS claimed_at, ptc.user_id AS user_id,
             p.claims_channel, p.ping_role, p.ping_channel, p.planner_channel
@@ -277,8 +276,7 @@ async def edit_tile_capture_time(channel_id: int,
                                  new_time: datetime.datetime,
                                  planner_clear_time: datetime.datetime or None = None,
                                  conn=None) -> bool:
-    event = bloons.get_current_ct_number()
-    event_start = bloons.FIRST_CT_START + datetime.timedelta(days=bloons.EVENT_DURATION * 2 * (event - 1))
+    event_start, _event_end = bloons.get_current_ct_period()
     min_time_to_edit = event_start if planner_clear_time is None else max(event_start, planner_clear_time)
     updated = await conn.execute("""
         UPDATE claims

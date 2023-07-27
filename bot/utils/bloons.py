@@ -10,7 +10,12 @@ from bot.utils.images import BANNER_IMG, REGULAR_IMG, RELICS_IMG, RELIC_IMG, MAP
     IMG_LYCH, IMG_VORTEX, IMG_LEAST_CASH, IMG_LEAST_TIERS, IMG_TIME_ATTACK
 
 
-FIRST_CT_START = datetime.datetime.strptime('2022-08-09 22', '%Y-%m-%d %H')
+EVENT_EPOCHS = [
+    (0, datetime.datetime.fromtimestamp(0)),
+    (1, datetime.datetime.fromtimestamp(1660075200)),
+    (26, datetime.datetime.fromtimestamp(1690927200)),
+]
+
 EVENT_DURATION = 7
 DEFAULT_STARTING_LIVES = {
     "Easy": 200,
@@ -57,20 +62,47 @@ def get_ct_number_during(time: datetime.datetime, breakpoint_on_event_start: boo
     will count as part of the last CT, if `False` it will count as the next.
     :return:
     """
-    start = FIRST_CT_START
+    i = 0
+    while i+1 < len(EVENT_EPOCHS) and time >= EVENT_EPOCHS[i+1][1]:
+        i += 1
+    event_start, epoch_start = EVENT_EPOCHS[i]
+    next_epoch_event_start = 1000
+    if i+1 < len(EVENT_EPOCHS):
+        next_epoch_event_start = EVENT_EPOCHS[i+1][0]
+
     if not breakpoint_on_event_start:
-        start -= datetime.timedelta(days=EVENT_DURATION)
-    return int((time-start).days / (EVENT_DURATION*2)) + 1
+        epoch_start -= datetime.timedelta(days=EVENT_DURATION)
+    return min(
+        int((time-epoch_start).days / (EVENT_DURATION*2)) + event_start,
+        next_epoch_event_start-1
+    )
 
 
 def get_current_ct_number(breakpoint_on_event_start: bool = True) -> int:
     return get_ct_number_during(datetime.datetime.now(), breakpoint_on_event_start)
 
 
-def get_current_ct_period() -> Tuple[datetime.datetime, datetime.datetime]:
-    current = get_current_ct_number()-1
-    start = FIRST_CT_START + datetime.timedelta(days=EVENT_DURATION*current*2)
+def get_ct_period_during(time: datetime.datetime = None,
+                         event: int = None) -> Tuple[datetime.datetime, datetime.datetime]:
+    if time is None and event is None:
+        return datetime.datetime.fromtimestamp(0), datetime.datetime.fromtimestamp(0)
+
+    if event:
+        current = event
+    elif time:
+        current = get_ct_number_during(time)
+
+    i = 0
+    while i+1 < len(EVENT_EPOCHS) and current >= EVENT_EPOCHS[i+1][0]:
+        i += 1
+    event_start, epoch_start = EVENT_EPOCHS[i]
+
+    start = epoch_start + datetime.timedelta(days=EVENT_DURATION*(current-event_start)*2)
     return start, start+datetime.timedelta(days=EVENT_DURATION)
+
+
+def get_current_ct_period() -> Tuple[datetime.datetime, datetime.datetime]:
+    return get_ct_period_during(time=datetime.datetime.now())
 
 
 def raw_challenge_to_embed(challenge) -> discord.Embed or None:

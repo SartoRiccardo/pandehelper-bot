@@ -227,8 +227,7 @@ class UtilsCog(ErrorHandlerCog):
                 if tile["GameData"]["subGameType"] == 2 and tile['TileType'] == "Regular":
                     race_regs.append(tile["Code"])
             current_ct_num = bot.utils.bloons.get_current_ct_number()
-            next_ct_start = bot.utils.bloons.FIRST_CT_START + \
-                            datetime.timedelta(days=bot.utils.bloons.EVENT_DURATION*2*current_ct_num)
+            next_ct_start, _ncte = bot.utils.bloons.get_ct_period_during(event=current_ct_num+1)
             self.raceregs = Cache(race_regs, next_ct_start)
 
         await interaction.response.send_message(

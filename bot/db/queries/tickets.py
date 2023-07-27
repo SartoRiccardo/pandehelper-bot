@@ -26,8 +26,7 @@ async def untrack_channel(channel: int, conn=None) -> None:
 async def get_ticket_overview(channel: int, event: int = 0, conn=None) -> Dict[int, List[List[TileCapture]]]:
     if event == 0:
         event = bloons.get_ct_number_during(datetime.datetime.now())
-    event_start = bloons.FIRST_CT_START + datetime.timedelta(days=bloons.EVENT_DURATION*2 * (event-1))
-    event_end = event_start + datetime.timedelta(days=bloons.EVENT_DURATION)
+    event_start, event_end = bloons.get_ct_period_during(event=event)
     result = await conn.fetch("""
         SELECT * FROM claims
             WHERE channel=$1
@@ -54,8 +53,7 @@ async def get_ticket_overview(channel: int, event: int = 0, conn=None) -> Dict[i
 async def get_tickets_from(member_id: int, channel: int, event: int = 0, conn=None) -> List[List[TileCapture]]:
     if event == 0:
         event = bloons.get_ct_number_during(datetime.datetime.now())
-    event_start = bloons.FIRST_CT_START + datetime.timedelta(days=bloons.EVENT_DURATION*2 * (event-1))
-    event_end = event_start + datetime.timedelta(days=bloons.EVENT_DURATION)
+    event_start, event_end = bloons.get_ct_period_during(event=event)
     result = await conn.fetch("""
         SELECT * FROM claims
             WHERE channel=$1
