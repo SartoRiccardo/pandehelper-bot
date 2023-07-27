@@ -106,6 +106,9 @@ def get_current_ct_period() -> Tuple[datetime.datetime, datetime.datetime]:
 
 
 def raw_challenge_to_embed(challenge) -> discord.Embed or None:
+    event_number = challenge["EventNumber"]
+    # event_number = get_current_ct_number()
+
     tile = challenge["Code"]
     tile_type_url = REGULAR_IMG
     # if challenge['TileType'] == "TeamFirstCapture":
@@ -218,7 +221,7 @@ def raw_challenge_to_embed(challenge) -> discord.Embed or None:
     )
 
     embed.set_author(
-        name=f"Contested Territory #{get_current_ct_number()} — Tile {tile}",
+        name=f"Contested Territory #{event_number} — Tile {tile}",
         icon_url=tile_type_url,
     )
     embed.set_image(url=MAPS[challenge['selectedMap']])
