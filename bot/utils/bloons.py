@@ -224,7 +224,8 @@ def raw_challenge_to_embed(challenge) -> discord.Embed or None:
         name=f"Contested Territory #{event_number} — Tile {tile}",
         icon_url=tile_type_url,
     )
-    embed.set_image(url=MAPS[challenge['selectedMap']])
+    map_key = challenge["selectedMap"] if challenge["selectedMap"] in MAPS else None
+    embed.set_image(url=MAPS[map_key])
     embed.set_thumbnail(url=challenge_thmb)
 
     if all_heros_enabled:
