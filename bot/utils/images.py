@@ -44,7 +44,7 @@ RELICS_IMG = {
     'RoundingUp': 'https://cdn.discordapp.com/attachments/924255725390270474/1120404338460864592/RoundingUp.png',
     'RoyalTreatment': 'https://cdn.discordapp.com/attachments/924255725390270474/1120404338758651974/RoyalTreatment.png',
     'Sharpsplosion': 'https://cdn.discordapp.com/attachments/924255725390270474/1120404338989342780/Sharpsplosion.png',
-    'Sms': 'https://cdn.discordapp.com/attachments/924255725390270474/1120404355678486620/Sms.png',
+    'SuperMonkeyStorm': 'https://cdn.discordapp.com/attachments/924255725390270474/1120404355678486620/Sms.png',
     'StartingStash': 'https://cdn.discordapp.com/attachments/924255725390270474/1120404355980480572/StartingStash.png',
     'SupportSimians': 'https://cdn.discordapp.com/attachments/924255725390270474/1120404356278267954/SupportSimians.png',
     'Techbot': 'https://cdn.discordapp.com/attachments/924255725390270474/1120404356626403549/Techbot.png',
