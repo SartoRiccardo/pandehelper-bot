@@ -160,7 +160,7 @@ class RaidLogCog(ErrorHandlerCog):
         old_strats = []
         found = None
         for thread in forum_channel.threads:
-            if tile_code in thread.name.upper():
+            if thread.name.upper().endswith(tile_code):
                 if current_event_tag in [tag.name for tag in thread.applied_tags]:
                     found = thread
                     await interaction.edit_original_response(
@@ -171,7 +171,7 @@ class RaidLogCog(ErrorHandlerCog):
                     old_strats.append(thread)
 
         async for thread in forum_channel.archived_threads(limit=None):
-            if tile_code in thread.name.upper():
+            if thread.name.upper().endswith(tile_code):
                 if current_event_tag in [tag.name for tag in thread.applied_tags]:
                     found = thread
                     await interaction.edit_original_response(
@@ -400,7 +400,7 @@ class RaidLogCog(ErrorHandlerCog):
             old_threads: List[discord.Thread],
             loading: bool = False
     ) -> discord.Embed:
-        content = f"Click [HERE]({RaidLogCog.get_channel_url(thread)}) to go jump to the thread!"
+        content = ""
 
         tile_types = {
             "Least Cash": {"image": IMG_LEAST_CASH, "emoji": LEAST_CASH},
@@ -443,13 +443,16 @@ class RaidLogCog(ErrorHandlerCog):
             prev_strats = "\n".join(threads_str)
 
         if loading:
-            content += "\n\nChecking for past threads for this tile code..."
+            content += "Checking for past threads for this tile code..."
 
         embed = discord.Embed(
             title=thread.name,
             description=content,
-            color=discord.Color.orange()
+            color=discord.Color.orange(),
+            url=RaidLogCog.get_channel_url(thread),
         )
+        if len(content) > 0:
+            embed.description = content
         if len(thumb_url) > 0:
             embed.set_thumbnail(url=thumb_url)
         if len(prev_strats) > 0:
