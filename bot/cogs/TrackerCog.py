@@ -125,7 +125,7 @@ class TrackerCog(ErrorHandlerCog):
                 # TODO Adding the message URL makes the field hit character limit if you claim more than 9 tiles a day. Add pagination.
                 # message_url = f"https://discord.com/channels/{interaction.guild.id}/{channel_id}/{claim.message_id}"
                 # claims_message += f"• `{claim.tile}` <t:{int(claim.claimed_at.timestamp())}:t> ([jump]({message_url}))\n"
-                claims_message += f"• `{claim.tile}` <t:{int(claim.claimed_at.timestamp())}:t>\n"
+                claims_message += f"- `{claim.tile}` <t:{int(claim.claimed_at.timestamp())}:t>\n"
             if len(claims_message) > 0:
                 embed.add_field(name=f"Day {i+1}", value=claims_message, inline=False)
         await interaction.edit_original_response(content="", embed=embed)
@@ -148,8 +148,8 @@ class TrackerCog(ErrorHandlerCog):
         # Forward event to those who are listening
         for cog_name in self.bot.cogs:
             cog = self.bot.cogs[cog_name]
-            if hasattr(cog, "on_tile_claimed"):
-                await cog.on_tile_claimed(tile, payload.channel_id, message.author.id)
+            if hasattr(cog, "on_tile_captured"):
+                await cog.on_tile_captured(tile, payload.channel_id, message.author.id)
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent) -> None:
@@ -162,7 +162,14 @@ class TrackerCog(ErrorHandlerCog):
         for reaction in message.reactions:
             if reaction.emoji in tracked_emojis:
                 return
+        capture = await bot.db.queries.tickets.get_capture_by_message(payload.message_id)
         await bot.db.queries.tickets.uncapture(payload.message_id)
+
+        # Forward event to those who are listening
+        for cog_name in self.bot.cogs:
+            cog = self.bot.cogs[cog_name]
+            if hasattr(cog, "on_tile_uncaptured"):
+                await cog.on_tile_uncaptured(capture.tile, capture.channel_id, capture.user_id)
 
 
 async def setup(bot: commands.Bot) -> None:

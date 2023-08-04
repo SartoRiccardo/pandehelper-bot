@@ -13,8 +13,8 @@ bloons = bot.utils.bloons
 async def get_planners(only_active: bool = False, conn=None) -> List[Planner]:
     only_active_q = " WHERE is_active" if only_active else ""
     planners = await conn.fetch("SELECT * FROM planners" + only_active_q)
-    return [Planner(row["planner_channel"], row["claims_channel"], row["ping_role"], row["ping_channel"],
-                    row["clear_time"], row["is_active"])
+    return [Planner(row["planner_channel"], row["claims_channel"], row["ping_role"], row["ping_role_with_tickets"],
+                    row["ping_channel"], row["clear_time"], row["is_active"])
             for row in planners]
 
 
@@ -26,7 +26,8 @@ async def get_planner(planner_id: int, conn=None) -> Planner or None:
         WHERE planner_channel=$1
     """, planner_id)
     return Planner(results[0]["planner_channel"], results[0]["claims_channel"], results[0]["ping_role"],
-                   results[0]["ping_channel"], results[0]["clear_time"], results[0]["is_active"]) \
+                   results[0]["ping_role_with_tickets"], results[0]["ping_channel"], results[0]["clear_time"],
+                   results[0]["is_active"]) \
         if len(results) else None
 
 
@@ -121,8 +122,8 @@ async def get_planned_banners(planner_channel: int,
             OR claimed_at >= (SELECT clear_time FROM planners WHERE planner_channel = $3)
         )
     """ + between_q + claim_q, event_start, banner_codes, planner_channel, *extra_args)
-    return [PlannedTile(row["tile"], row["claimed_at"], row["user_id"], row["planner_channel"], row["claims_channel"], row["ping_role"],
-                        row["ping_channel"])
+    return [PlannedTile(row["tile"], row["claimed_at"], row["user_id"], row["planner_channel"], row["claims_channel"],
+                        row["ping_role"], row["ping_channel"])
             for row in banners]
 
 
@@ -140,7 +141,7 @@ async def get_banner_closest_to_expire(banner_codes: List[str],
                 ON c.channel = p.claims_channel)
             LEFT JOIN plannertileclaims ptc
                 ON p.planner_channel = ptc.planner_channel AND c.tile = ptc.tile
-            WHERE claimed_at >= $2
+            WHERE c.claimed_at >= $2
                 AND c.tile = ANY($1::VARCHAR(3)[])
             ORDER BY c.claimed_at ASC
         """
@@ -175,9 +176,9 @@ async def get_banner_closest_to_expire(banner_codes: List[str],
 @postgres
 async def planner_claim_tile(user: int, tile: str, planner_channel: int, conn=None) -> None:
     await conn.execute("""
-        INSERT INTO plannertileclaims(user_id, planner_channel, tile)
-        VALUES($1, $2, $3)
-    """, user, planner_channel, tile)
+        INSERT INTO plannertileclaims(user_id, planner_channel, tile, claimed_at)
+        VALUES($1, $2, $3, $4)
+    """, user, planner_channel, tile, datetime.datetime.now())
 
 
 @postgres
@@ -187,7 +188,7 @@ async def planner_unclaim_tile(tile: str, planner_channel: int, conn=None) -> No
     """, planner_channel, tile)
 
 
-async def planner_get_tile_status(tile: str, planner_channel: int) -> Dict[str, Any] or None:
+async def planner_get_tile_status(tile: str, planner_channel: int) -> PlannedTile or None:
     tiles = await get_planned_banners(planner_channel, [tile])
     return tiles[0] if len(tiles) else None
 
@@ -197,6 +198,7 @@ async def planner_update_config(
         planner: int,
         ping_ch: int or None = None,
         ping_role: int or None = None,
+        ping_role_with_tickets: int or None = None,
         tile_claim_ch: int or None = None,
         conn=None) -> None:
     fields = []
@@ -210,6 +212,9 @@ async def planner_update_config(
     if tile_claim_ch is not None:
         values.append(tile_claim_ch)
         fields.append(f"claims_channel=${len(values)+1}")
+    if ping_role_with_tickets is not None:
+        values.append(ping_role_with_tickets)
+        fields.append(f"ping_role_with_tickets=${len(values)+1}")
 
     if len(fields) == 0:
         return
@@ -223,6 +228,7 @@ async def planner_delete_config(
         planner: int,
         ping_ch: bool = False,
         ping_role: bool = False,
+        ping_role_with_tickets: bool = False,
         tile_claim_ch: bool = False,
         conn=None) -> None:
     fields = []
@@ -232,6 +238,8 @@ async def planner_delete_config(
         fields.append(f"ping_role=$2")
     if tile_claim_ch is not None:
         fields.append(f"claims_channel=$2")
+    if ping_role_with_tickets is not None:
+        fields.append(f"ping_role_with_tickets=$2")
 
     if len(fields) == 0:
         return
@@ -252,12 +260,18 @@ async def get_planner_linked_to(tile_claim_ch: int, conn=None) -> int:
 
 @postgres
 async def get_claims_by(user: int, planner_channel: int, conn=None) -> List[Dict[str, Any]]:
+    event_start, _ee = bot.utils.bloons.get_current_ct_period()
     return await conn.fetch("""
         SELECT *
         FROM plannertileclaims
         WHERE user_id = $1
             AND planner_channel = $2
-    """, user, planner_channel)
+            AND claimed_at >= $3
+            AND (
+                (SELECT clear_time FROM planners WHERE planner_channel = $2) IS NULL OR
+                claimed_at >= (SELECT clear_time FROM planners WHERE planner_channel = $2)
+            )
+    """, user, planner_channel, event_start)
 
 
 @postgres

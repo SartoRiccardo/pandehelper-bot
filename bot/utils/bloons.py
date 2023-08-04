@@ -105,6 +105,15 @@ def get_current_ct_period() -> Tuple[datetime.datetime, datetime.datetime]:
     return get_ct_period_during(time=datetime.datetime.now())
 
 
+def get_ct_day_during(time: datetime.datetime) -> int:
+    start, _end = get_ct_period_during(time)
+    return (time-start).days + 1
+
+
+def get_current_ct_day() -> int:
+    return get_ct_day_during(datetime.datetime.now())
+
+
 def raw_challenge_to_embed(challenge) -> discord.Embed or None:
     event_number = challenge["EventNumber"]
     # event_number = get_current_ct_number()

@@ -3,6 +3,7 @@ import json
 import discord
 from discord.ext import tasks, commands
 import asyncio
+import bot.db.model
 import bot.db.queries.planner
 import bot.db.queries.tickets
 import bot.utils.io
@@ -62,6 +63,7 @@ class PlannerCog(ErrorHandlerCog):
         self.banner_decays = {}
         self.next_planner_refreshes = {}
         self.last_check_end = self.next_check
+        self.ct_day = 0
         self._banner_list: Cache or None = None
 
     async def load_state(self) -> None:
@@ -104,9 +106,13 @@ class PlannerCog(ErrorHandlerCog):
             self.next_planner_refreshes[p.planner_channel] = next_refresh
         self.check_planner_refresh.start()
 
+        self.check_reset.start()
+
     def cog_unload(self) -> None:
         self.check_reminders.cancel()
         self.check_decay.cancel()
+        self.check_planner_refresh.cancel()
+        self.check_reset.cancel()
 
     @tasks.loop(seconds=10)
     async def check_reminders(self) -> None:
@@ -144,7 +150,7 @@ class PlannerCog(ErrorHandlerCog):
                     pings,
                     planner.planner_channel,
                     planner.ping_channel,
-                    planner.ping_role,
+                    planner.ping_role_with_tickets if planner.ping_role_with_tickets else planner.team_role,
                 )
         await self.save_state()
 
@@ -273,8 +279,9 @@ class PlannerCog(ErrorHandlerCog):
                 if not planner.is_active:
                     continue
                 banner_data = await bot.db.queries.planner.planner_get_tile_status(banner.tile, banner.planner_channel)
+                ping_role = planner.ping_role_with_tickets if planner.ping_role_with_tickets else planner.ping_role
                 await self.send_decay_ping(banner.planner_channel, banner_data.ping_channel,
-                                           banner.tile, banner_data.claimed_by, banner_data.ping_role)
+                                           banner.tile, banner_data.claimed_by, ping_role)
 
         if update_expire_list:
             banner_list = await self.get_banner_tile_list()
@@ -314,6 +321,28 @@ class PlannerCog(ErrorHandlerCog):
             if self.next_planner_refreshes[planner_channel] > now:
                 continue
             await self.send_planner_msg(planner_channel)
+
+    @tasks.loop(seconds=60)
+    async def check_reset(self) -> None:
+        """Calls functions at every CT Day reset"""
+        current_day = bot.utils.bloons.get_current_ct_day()
+        if current_day == self.ct_day:
+            return
+        self.ct_day = current_day
+        # await self.reassign_has_tickets_roles()
+
+    async def reassign_has_tickets_roles(self) -> None:
+        """
+        For every planner & its team, checks ticket counts and reassigns the "has tickets"
+        role to whoever necessary.
+        """
+        planners = await bot.db.queries.planner.get_planners()
+        for pln in planners:
+            planner_ch = self.bot.get_channel(pln.planner_channel)
+            checks = []
+            for member in planner_ch.guild.get_role(pln.team_role).members:
+                checks.append(self.check_has_tickets_role(member, pln))
+            await asyncio.gather(*checks)
 
     @planner_group.command(name="new", description="Create a new Planner channel.")
     @discord.app_commands.guild_only()
@@ -435,15 +464,20 @@ class PlannerCog(ErrorHandlerCog):
         if not planner.ping_channel:
             planner_status = "⚠️ CONFIGURATION UNFINISHED *(won't work)*"
 
+        ping_role_msg = "⚠️ None *(anyone can claim tiles & will ping `@here` instead)*"
+        if planner.ping_role:
+            ping_role_msg = f"<@&{planner.ping_role}>"
+            if planner.ping_role_with_tickets:
+                ping_role_msg += f"\n - Team Role (with tickets): <@&{planner.ping_role_with_tickets}>"
+
         messages = [
             (PLANNER_ADMIN_PANEL.format(
                 planner_status,
                 f"<#{planner.claims_channel}>" if planner.claims_channel else
-                    "⚠️ None *(members will have to register captures manually)*️",
+                "⚠️ None *(members will have to register captures manually)*️",
                 f"<#{planner.ping_channel}>" if planner.ping_channel else
-                    "⚠️ None *(the bot will not ping at all)*️",
-                f"<@&{planner.ping_role}>" if planner.ping_role else
-                    "⚠️ None *(anyone can claim tiles & will ping `@here` instead)*"
+                "⚠️ None *(the bot will not ping at all)*️",
+                ping_role_msg
             ), PlannerAdminView(channel,
                                 self.send_planner_msg,
                                 self.edit_tile_time,
@@ -619,25 +653,55 @@ class PlannerCog(ErrorHandlerCog):
             response = f"You have claimed `{tile}`!\n*Select it again if you want to unclaim it.*"
             refresh = True
 
+        if refresh:
+            await PlannerCog.check_has_tickets_role(user, planner_info)
+
         return response, refresh
 
-    async def on_tile_claimed(self, tile: str, claim_channel: int, _claimer: int) -> None:
+    async def on_tile_captured(self, tile: str, claim_channel: int, claimer: int) -> None:
         """
         Event fired when a tile gets claimed.
 
         :param tile: The ID of the tile.
         :param claim_channel: The ID of the Ticket Tracker channel.
-        :param _claimer: The ID of the user who claimed it.
+        :param claimer: The ID of the user who captured it.
         """
-        banner_list = await self.get_banner_tile_list()
-        if tile not in banner_list:
-            return
+        await self.handle_tile_capture(tile, claim_channel, claimer)
+
+    async def on_tile_uncaptured(self, tile: str, claim_channel: int, claimer: int) -> None:
+        """
+        Event fired when a tile gets uncaptured.
+
+        :param tile: The ID of the tile.
+        :param claim_channel: The ID of the Ticket Tracker channel.
+        :param claimer: The ID of the user who uncaptured it.
+        """
+        await self.handle_tile_capture(tile, claim_channel, claimer, is_capture=False)
+
+    async def handle_tile_capture(self, tile: str, claim_channel: int, claimer: int, is_capture: bool = True) -> None:
         planner_id = await bot.db.queries.planner.get_planner_linked_to(claim_channel)
         if planner_id is None:
             return
-        await bot.db.queries.planner.planner_unclaim_tile(tile, planner_id)
-        self.banner_decays = await bot.db.queries.planner.get_banner_closest_to_expire(banner_list, datetime.now())
-        await self.send_planner_msg(planner_id)
+        if is_capture:
+            await bot.db.queries.planner.planner_unclaim_tile(tile, planner_id)
+
+        # Create the "with tickets" role if it doesn't exist
+        planner = await bot.db.queries.planner.get_planner(planner_id)
+        if not planner.ping_role_with_tickets:
+            new_ping_role = await self.create_ping_role(planner)
+            await bot.db.queries.planner.planner_update_config(
+                planner.planner_channel,
+                ping_role_with_tickets=new_ping_role.id
+            )
+        else:
+            channel = self.bot.get_channel(claim_channel)
+            await self.check_has_tickets_role(channel.guild.get_member(claimer), planner)
+
+        # Update planner if necessary
+        banner_list = await self.get_banner_tile_list()
+        if tile in banner_list:
+            self.banner_decays = await bot.db.queries.planner.get_banner_closest_to_expire(banner_list, datetime.now())
+            await self.send_planner_msg(planner_id)
 
     @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def edit_tile_time(self,
@@ -668,13 +732,90 @@ class PlannerCog(ErrorHandlerCog):
         )
         await self.send_planner_msg(planner_id)
 
+        tile_status = await bot.db.queries.planner.planner_get_tile_status(tile, planner_id)
+        member = interaction.guild.get_member(tile_status.claimed_by)
+        await self.check_has_tickets_role(member, planner_info)
+
     async def force_unclaim(self, interaction: discord.Interaction, planner_id: int, tile: str) -> None:
+        prev_status = await bot.db.queries.planner.planner_get_tile_status(tile, planner_id)
         await bot.db.queries.planner.planner_unclaim_tile(tile, planner_id)
         await interaction.response.send_message(
             content=f"All done! `{tile}` is now unclaimed.",
             ephemeral=True
         )
         await self.send_planner_msg(planner_id)
+
+        if prev_status.claimed_by is None:
+            return
+        member = interaction.guild.get_member(prev_status.claimed_by)
+        planner = await bot.db.queries.planner.get_planner(planner_id)
+        await self.check_has_tickets_role(member, planner)
+
+    async def create_ping_role(self, planner: bot.db.model.Planner.Planner) -> discord.Role or None:
+        """
+        Creates the role that will be assigned to people in the team who still have
+        tickets to spend. Assigns it to the whole team, where required.
+        :param planner: The planner channel's data.
+        :return: The newly created role.
+        """
+        channel = self.bot.get_channel(planner.planner_channel)
+        if channel is None:
+            try:
+                channel = await self.bot.fetch_channel(planner.planner_channel)
+            except discord.NotFound:
+                return None
+
+        team_role = discord.utils.get(channel.guild.roles, id=planner.ping_role)
+        if team_role is None:
+            return None
+
+        new_role = await channel.guild.create_role(name=f"{team_role.name} (has tickets)")
+
+        ret = new_role
+        if not planner.claims_channel:
+            return ret
+
+        checks = []
+        for member in team_role.members:
+            checks.append(self.check_has_tickets_role(member, planner))
+        await asyncio.gather(*checks)
+
+        return ret
+
+    @staticmethod
+    async def check_has_tickets_role(member: discord.Member, planner: bot.db.model.Planner.Planner) -> None:
+        """
+        Checks if the "has tickets" role should be added or removed.
+        :param member: The member to check.
+        :param planner: The planner to check for.
+        """
+        if planner.ping_role_with_tickets is None:
+            return
+        ping_role = member.guild.get_role(planner.ping_role_with_tickets)
+        if ping_role is None:
+            await bot.db.queries.planner.planner_delete_config(ping_role_with_tickets=True)
+            return
+
+        today_ticket_idx = min(bot.utils.bloons.get_current_ct_day() - 1, 6)
+        tickets_used = len(
+            (await bot.db.queries.tickets.get_tickets_from(member.id, planner.claims_channel))[today_ticket_idx]
+        )
+
+        # TODO only count claimed tiles *that expire before reset*
+        member_claims = await bot.db.queries.planner.get_claims_by(member.id, planner.planner_channel)
+        tile_codes = [claim["tile"] for claim in member_claims]
+        tile_infos = await bot.db.queries.planner.get_planned_banners(planner.planner_channel, tile_codes)
+        today = bot.utils.bloons.get_current_ct_day()
+        for ti in tile_infos:
+            expire_in_day = bot.utils.bloons.get_ct_day_during(ti.claimed_at + timedelta(days=1))
+            if expire_in_day == today:
+                tickets_used += 1
+
+        has_role = discord.utils.get(member.roles, id=planner.ping_role_with_tickets) is not None
+        if has_role and tickets_used >= 4:
+            await member.remove_roles(ping_role)
+        elif not has_role and tickets_used < 4:
+            await member.add_roles(ping_role)
 
 
 async def setup(bot: commands.Bot) -> None:

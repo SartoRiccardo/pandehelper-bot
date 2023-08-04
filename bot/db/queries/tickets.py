@@ -98,3 +98,13 @@ async def capture(channel: int, user: int, tile: str, message: int, conn=None) -
 @postgres
 async def uncapture(message: int, conn=None) -> None:
     await conn.execute("DELETE FROM claims WHERE message=$1", message)
+
+
+@postgres
+async def get_capture_by_message(message: int, conn=None) -> TileCapture or None:
+    payload = await conn.fetch("SELECT * FROM claims WHERE message=$1", message)
+    if len(payload) == 0:
+        return None
+
+    return TileCapture(payload[0]["userid"], payload[0]["tile"], payload[0]["channel"], payload[0]["message"],
+                       payload[0]["claimed_at"])
