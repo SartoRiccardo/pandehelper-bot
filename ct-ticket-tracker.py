@@ -27,6 +27,8 @@ class CtTicketTracker(commands.Bot):
             "UtilsCog",
             #"VerifyCog",
             "PlannerCog",
+            "WelcomeCog",
+            "TilesCog",
         ]
         for cog in cogs:
             await self.load_extension(f"bot.cogs.{cog}")

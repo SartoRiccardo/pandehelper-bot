@@ -1,7 +1,5 @@
 import asyncio
 import datetime
-import json
-import os
 import bot.utils.io
 import bot.utils.bloons
 import bot.utils.discordutils
@@ -9,7 +7,7 @@ from bot.utils.Cache import Cache
 import discord
 from discord.ext import commands, tasks
 from bot.classes import ErrorHandlerCog
-from typing import List, Optional
+from typing import List
 
 
 class UtilsCog(ErrorHandlerCog):
@@ -20,7 +18,8 @@ class UtilsCog(ErrorHandlerCog):
                "Type the command with no parameters to see all available tags.",
         "github": "Get a link to the bot's repo. It's open source!",
         "invite": "Invite the bot to your server!",
-        "now": "Now!"
+        "now": "Now!",
+        "roster-timezones": "Check the timezones for a team's roster.",
     }
 
     def __init__(self, bot: commands.Bot) -> None:
@@ -178,62 +177,6 @@ class UtilsCog(ErrorHandlerCog):
             content=f"`{int(now.timestamp())}` <t:{int(now.timestamp())}>"
         )
 
-    @discord.app_commands.command(name="tile",
-                                  description="Check a tile's challenge data")
-    @discord.app_commands.describe(tile="The 3 letter tile code, or a relic name.",
-                                   hide="Hide the output.")
-    @discord.app_commands.guild_only()
-    @bot.utils.discordutils.gatekeep()
-    async def cmd_tile(self, interaction: discord.Interaction, tile: str, hide: Optional[bool] = True) -> None:
-        tile = tile.upper()
-        challenge_data = await asyncio.to_thread(self.fetch_challenge_data, tile)
-        if challenge_data is None:
-            tile = await asyncio.to_thread(bot.utils.bloons.relic_to_tile_code, tile)
-            challenge_data = await asyncio.to_thread(self.fetch_challenge_data, tile)
-        embed = bot.utils.bloons.raw_challenge_to_embed(challenge_data)
-        if embed is None:
-            await interaction.response.send_message(
-                content="I don't have the challenge data for that tile!",
-                ephemeral=hide,
-            )
-            return
-
-        await interaction.response.send_message(
-            embed=embed,
-            ephemeral=hide,
-        )
-
-    @discord.app_commands.command(name="raceregs",
-                                  description="Get a list of all race regs.")
-    @discord.app_commands.guild_only()
-    @bot.utils.discordutils.gatekeep()
-    async def cmd_raceregs(self, interaction: discord.Interaction) -> None:
-        if self.raceregs is not None and self.raceregs.valid:
-            race_regs = self.raceregs.value
-        else:
-            tiles_path = "bot/files/json/tiles/"
-            tiles = os.listdir(tiles_path)
-            coros = []
-            for filename in tiles:
-                tile = filename[:3]
-                coros.append(asyncio.to_thread(self.fetch_challenge_data, tile))
-            tiles_data = await asyncio.gather(*coros)
-
-            race_regs = []
-            for tile in tiles_data:
-                if "TileType" not in tile or "subGameType" not in tile["GameData"]:
-                    print(tile)
-                    continue
-                if tile["GameData"]["subGameType"] == 2 and tile['TileType'] == "Regular":
-                    race_regs.append(tile["Code"])
-            current_ct_num = bot.utils.bloons.get_current_ct_number()
-            next_ct_start, _ncte = bot.utils.bloons.get_ct_period_during(event=current_ct_num+1)
-            self.raceregs = Cache(race_regs, next_ct_start)
-
-        await interaction.response.send_message(
-            content=f"`{'` `'.join(race_regs)}`"
-        )
-
     @discord.app_commands.command(name="team-timezones",
                                   description="Get an idea of where a team's roster lives.")
     @discord.app_commands.describe(team_role="The role that every member of the team has.")
@@ -270,16 +213,6 @@ class UtilsCog(ErrorHandlerCog):
         embed.set_footer(text=f"Number of members: {len(team_role.members)}")
 
         await interaction.response.send_message(embed=embed)
-
-    @staticmethod
-    def fetch_challenge_data(tile: str):
-        path = f"bot/files/json/tiles/{tile}.json"
-        if not os.path.exists(path):
-            return None
-        fin = open(path)
-        data = json.loads(fin.read())
-        fin.close()
-        return data
 
 
 async def setup(bot: commands.Bot) -> None:
