@@ -339,8 +339,19 @@ class PlannerCog(ErrorHandlerCog):
         planners = await bot.db.queries.planner.get_planners()
         for pln in planners:
             planner_ch = self.bot.get_channel(pln.planner_channel)
+            if planner_ch is None:
+                try:
+                    planner_ch = await self.bot.fetch_channel(pln.planner_channel)
+                except discord.NotFound:
+                    return
+
+            role = discord.utils.get(planner_ch.guild.roles, id=pln.team_role)
+            if role is None:
+                roles = await planner_ch.guild.fetch_roles()
+                role = discord.utils.get(roles, id=pln.team_role)
+
             checks = []
-            for member in planner_ch.guild.get_role(pln.team_role).members:
+            for member in role.members:
                 checks.append(self.check_has_tickets_role(member, pln))
             await asyncio.gather(*checks)
 
@@ -714,8 +725,8 @@ class PlannerCog(ErrorHandlerCog):
             return
         claims_channel = planner_info.claims_channel
         banner_list = await self.get_banner_tile_list()
-        self.banner_decays = await bot.db.queries.planner.get_banner_closest_to_expire(banner_list, datetime.now())
         success = await bot.db.queries.planner.edit_tile_capture_time(claims_channel, tile, new_time - timedelta(days=1))
+        self.banner_decays = await bot.db.queries.planner.get_banner_closest_to_expire(banner_list, datetime.now())
         message = f"Got it! `{tile}` will decay at " \
                   f"<t:{int(new_time.timestamp())}:t> (<t:{int(new_time.timestamp())}:R>)"
         if not success:
@@ -733,8 +744,9 @@ class PlannerCog(ErrorHandlerCog):
         await self.send_planner_msg(planner_id)
 
         tile_status = await bot.db.queries.planner.planner_get_tile_status(tile, planner_id)
-        member = interaction.guild.get_member(tile_status.claimed_by)
-        await self.check_has_tickets_role(member, planner_info)
+        if tile_status.claimed_by:
+            member = interaction.guild.get_member(tile_status.claimed_by)
+            await self.check_has_tickets_role(member, planner_info)
 
     async def force_unclaim(self, interaction: discord.Interaction, planner_id: int, tile: str) -> None:
         prev_status = await bot.db.queries.planner.planner_get_tile_status(tile, planner_id)
