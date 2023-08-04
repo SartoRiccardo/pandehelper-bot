@@ -329,7 +329,7 @@ class PlannerCog(ErrorHandlerCog):
         if current_day == self.ct_day:
             return
         self.ct_day = current_day
-        # await self.reassign_has_tickets_roles()
+        await self.reassign_has_tickets_roles()
 
     async def reassign_has_tickets_roles(self) -> None:
         """
