@@ -68,7 +68,7 @@ class LeaderboardCog(ErrorHandlerCog):
     @discord.app_commands.default_permissions(administrator=True)
     @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def cmd_add_leaderboard(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
-        await bot.db.queries.queries.add_leaderboard_channel(interaction.guild.id, channel.id)
+        await bot.db.queries.leaderboard.add_leaderboard_channel(interaction.guild.id, channel.id)
         await interaction.response.send_message(f"Leaderboard added to <#{channel.id}>!", ephemeral=True)
 
     @leaderboard_group.command(name="remove", description="Remove a leaderboard from a channel.")
@@ -77,7 +77,7 @@ class LeaderboardCog(ErrorHandlerCog):
     @discord.app_commands.default_permissions(administrator=True)
     @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def cmd_remove_leaderboard(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
-        await bot.db.queries.queries.remove_leaderboard_channel(interaction.guild.id, channel.id)
+        await bot.db.queries.leaderboard.remove_leaderboard_channel(interaction.guild.id, channel.id)
         await interaction.response.send_message(f"Leaderboard removed from <#{channel.id}>!", ephemeral=True)
 
     @tasks.loop(seconds=10)
@@ -114,8 +114,8 @@ class LeaderboardCog(ErrorHandlerCog):
             placement = f"`{i+1}`"
             if i < len(placements_emojis):
                 placement = placements_emojis[i]
-            if team.status == TeamStatus.DISBANDED:
-                placement = "❌"
+            # if team.status == TeamStatus.DISBANDED:
+            #     placement = "❌"
 
             team_name = team.name.split("-")[0]
             message_current += "\n" + row_template.format(placement, team_name, team.score)
