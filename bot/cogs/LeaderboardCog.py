@@ -69,7 +69,11 @@ class LeaderboardCog(ErrorHandlerCog):
     @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def cmd_add_leaderboard(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
         await bot.db.queries.leaderboard.add_leaderboard_channel(interaction.guild.id, channel.id)
-        await interaction.response.send_message(f"Leaderboard added to <#{channel.id}>!", ephemeral=True)
+        await interaction.response.send_message(
+            content=f"Leaderboard added to <#{channel.id}>!\n"
+                    "*It will start appearing when it gets updated next.*",
+            ephemeral=True,
+        )
 
     @leaderboard_group.command(name="remove", description="Remove a leaderboard from a channel.")
     @discord.app_commands.describe(channel="The channel to remove it from.")
@@ -78,7 +82,11 @@ class LeaderboardCog(ErrorHandlerCog):
     @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def cmd_remove_leaderboard(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
         await bot.db.queries.leaderboard.remove_leaderboard_channel(interaction.guild.id, channel.id)
-        await interaction.response.send_message(f"Leaderboard removed from <#{channel.id}>!", ephemeral=True)
+        await interaction.response.send_message(
+            content=f"Leaderboard removed from <#{channel.id}>!\n"
+                    "*That channel will no longer be updated.*",
+            ephemeral=True,
+        )
 
     @tasks.loop(seconds=10)
     async def track_leaderboard(self) -> None:
