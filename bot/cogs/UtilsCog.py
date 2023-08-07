@@ -164,7 +164,7 @@ class UtilsCog(ErrorHandlerCog):
     @discord.app_commands.command(name="invite",
                                   description="Invite Pandemonium Helper to your server!")
     async def cmd_invite(self, interaction: discord.Interaction) -> None:
-        url = "https://discord.com/api/oauth2/authorize?client_id=1088892665422151710&permissions=51539946512&scope=bot"
+        url = "https://discord.com/api/oauth2/authorize?client_id=1088892665422151710&permissions=51808381968&scope=bot"
         await interaction.response.send_message(
             content=f"Wanna invite me to your server? Use [this invite link]({url})!"
         )
