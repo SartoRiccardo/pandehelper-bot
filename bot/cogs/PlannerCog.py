@@ -628,7 +628,10 @@ class PlannerCog(ErrorHandlerCog):
 
         planner_content = await self.get_planner_msg(channel_id)
         self.next_planner_refreshes[channel_id] = datetime.now() + timedelta(hours=1)
-        await bot.utils.discordutils.update_messages(self.bot.user, planner_content, channel)
+        try:
+            await bot.utils.discordutils.update_messages(self.bot.user, planner_content, channel)
+        except discord.Forbidden:
+            pass
 
     @staticmethod
     async def switch_tile_claim(user: discord.Member, planner_channel_id: int, tile: str) -> Tuple[str, bool]:

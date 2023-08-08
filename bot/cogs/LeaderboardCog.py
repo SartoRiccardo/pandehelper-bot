@@ -169,12 +169,14 @@ class LeaderboardCog(ErrorHandlerCog):
                 except discord.NotFound:
                     await bot.db.queries.leaderboard.remove_leaderboard_channel(guild_id, channel_id)
                     continue
-
-            await bot.utils.discordutils.update_messages(
-                self.bot.user,
-                [(x, None) for x in messages],
-                channel
-            )
+            try:
+                await bot.utils.discordutils.update_messages(
+                    self.bot.user,
+                    [(x, None) for x in messages],
+                    channel
+                )
+            except discord.Forbidden:
+                pass
 
 
 async def setup(bot: commands.Bot) -> None:
