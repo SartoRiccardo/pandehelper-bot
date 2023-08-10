@@ -123,6 +123,10 @@ class PlannerCog(ErrorHandlerCog):
         now = datetime.now()
         if now < self.next_check:
             return
+        _cts, ct_end = bot.utils.bloons.get_current_ct_period()
+        if now >= ct_end-timedelta(hours=12):
+            return
+
         check_from = max(self.next_check, self.last_check_end)
         check_to = self.next_check + timedelta(minutes=PlannerCog.CHECK_EVERY*2)
         check_to_unclaimed = self.next_check_unclaimed + timedelta(minutes=PlannerCog.CHECK_EVERY_UNCLAIMED*2)
@@ -237,29 +241,6 @@ class PlannerCog(ErrorHandlerCog):
             content=message
         )
 
-    # TODO
-    # async def get_members_with_tickets(self, planner_id: int) -> List[discord.Member]:
-    #     planner_info = await bot.db.queries.planner.get_planner(planner_id)
-    #
-    #     planner_channel = self.bot.get_channel(planner_id)
-    #     if planner_channel is None:
-    #         planner_channel = await self.bot.fetch_channel(planner_id)
-    #     if planner_channel is None:
-    #         return []
-    #
-    #     role = discord.utils.get(planner_channel.guild.roles, id=planner_info.ping_role)
-    #     if role is None:
-    #         return []
-    #
-    #     members = []
-    #     for member in role.members:
-    #         tickets_used = 0
-    #         member_tickets = await bot.db.queries.tickets.get_tickets_from(member.id, planner_info[""])
-    #         banners_claimed = 0
-    #         if tickets_used+banners_claimed < 4:
-    #             members.append(member)
-    #     return members
-
     @tasks.loop(seconds=5)
     async def check_decay(self) -> None:
         """
@@ -329,7 +310,8 @@ class PlannerCog(ErrorHandlerCog):
         if current_day == self.ct_day:
             return
         self.ct_day = current_day
-        await self.reassign_has_tickets_roles()
+        if self.ct_day > 7:
+            await self.reassign_has_tickets_roles()
 
     async def reassign_has_tickets_roles(self) -> None:
         """
