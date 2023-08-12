@@ -54,7 +54,7 @@ Posts the global leaderboard hourly & calculates eco. Note that eco calcs are no
 Various miscellaneous utilities that don't really fit in any other cog.
 
 ### `Verify`
-Ties an user's OAK to their Discord account. Unused in my own hosted instance, due to the OAKs being currently useless for CT, but the modules is there and fully functional should it become relevant.
+Ties an user's OAK to their Discord account. Unused in my own hosted instance, due to the OAKs being currently useless for CT, but the module is there and fully functional should it become relevant.
 You can code other uses for OAK-Discord connections if you want, such as a special role if you have certain badges, etc...
 
 ### `Planner`
