@@ -121,6 +121,7 @@ MAPS = {
     "Ravine": "https://cdn.discordapp.com/attachments/699781597515481159/833343569778835477/1000.png",
     "Blons": "https://cdn.discordapp.com/attachments/699781597515481159/841569553381195826/1000.png",
     "Sanctuary": "https://cdn.discordapp.com/attachments/770247322633633792/851658653336731678/Screenshot_200.png",
+    "WaterPark": "https://i.imgur.com/OVektwK.png"
     None: "https://media.discordapp.net/attachments/1130842114520002672/1135682198574477332/unfortunate.png"
 }
 
