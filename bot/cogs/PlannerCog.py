@@ -310,7 +310,7 @@ class PlannerCog(ErrorHandlerCog):
         if current_day == self.ct_day:
             return
         self.ct_day = current_day
-        if self.ct_day > 7:
+        if self.ct_day <= 7:
             await self.reassign_has_tickets_roles()
 
     async def reassign_has_tickets_roles(self) -> None:
