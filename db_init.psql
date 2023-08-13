@@ -45,6 +45,14 @@ CREATE TABLE IF NOT EXISTS plannertileclaims (
     PRIMARY KEY(user_id, planner_channel, tile)
 );
 
+CREATE TABLE IF NOT EXISTS plannertrackedtiles (
+    tile VARCHAR(3) NOT NULL,
+    expires_after_hr INT NOT NULL,
+    registered_at TIMESTAMP NOT NULL,
+    planner_channel BIGINT NOT NULL,
+    PRIMARY KEY(tile, planner_channel)
+);
+
 CREATE TABLE IF NOT EXISTS tilestratforums (
     guildid BIGINT NOT NULL,
     forumid BIGINT NOT NULL,
@@ -58,4 +66,7 @@ ALTER TABLE planners ADD CONSTRAINT fk_teams_1
     FOREIGN KEY (claims_channel) REFERENCES teams(channel) ON DELETE NO ACTION;
 
 ALTER TABLE plannertileclaims ADD CONSTRAINT fk_planners_1
+    FOREIGN KEY (planner_channel) REFERENCES planners(planner_channel) ON DELETE CASCADE;
+
+ALTER TABLE plannertrackedtiles ADD CONSTRAINT fk_planners_1
     FOREIGN KEY (planner_channel) REFERENCES planners(planner_channel) ON DELETE CASCADE;

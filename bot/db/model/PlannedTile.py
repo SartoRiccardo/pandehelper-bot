@@ -11,3 +11,4 @@ class PlannedTile:
     claims_channel: int = field(repr=False)
     ping_role: int = field(repr=False)
     ping_channel: int = field(repr=False)
+    expires_in_hr: int = field(repr=True, default=24)

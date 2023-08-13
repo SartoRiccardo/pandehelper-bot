@@ -16,7 +16,7 @@ EVENT_EPOCHS = [
     (26, datetime.datetime.fromtimestamp(1690927200)),
 ]
 
-EVENT_DURATION = 7
+EVENT_DURATION = 14
 DEFAULT_STARTING_LIVES = {
     "Easy": 200,
     "Medium": 150,

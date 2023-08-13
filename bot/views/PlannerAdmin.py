@@ -77,7 +77,10 @@ class ForceUnclaimButton(discord.ui.Button):
 
 class TimeEditModal(discord.ui.Modal, title="Edit a Tile's Expiration Time"):
     tile_code = discord.ui.TextInput(label="Tile Code", min_length=3, max_length=3, placeholder="FFB", required=True)
-    expire_time = discord.ui.TextInput(label="Stale in", placeholder="13:55", min_length=3, max_length=5, required=True)
+    expire_time = discord.ui.TextInput(
+        label="Stale in", placeholder="13:55 (exactly as seen in-game)",
+        min_length=3, max_length=5, required=True
+    )
 
     def __init__(self, planner_id: int, edit_tile_callback: Callable, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -128,6 +131,62 @@ class EditTimeButton(discord.ui.Button):
         await interaction.response.send_modal(TimeEditModal(self.planner_id, self.edit_time_callback))
 
 
+class AddRemoveTileModal(discord.ui.Modal, title="Add or Remove a Tile"):
+    tile_code = discord.ui.TextInput(label="Tile Code", min_length=3, max_length=3, placeholder="FFB", required=True)
+    recap_after = discord.ui.TextInput(
+        label="Recapture After (hours)", placeholder="24 (leave blank to remove the tile)",
+        min_length=0, max_length=2, required=False,
+    )
+
+    def __init__(self, planner_id: int,
+                 add_callback: Callable,
+                 remove_callback: Callable,
+                 *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.planner_id = planner_id
+        self.add_callback = add_callback
+        self.remove_callback = remove_callback
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        tile_code = self.tile_code.value.upper()
+        remove_tile = len(self.recap_after.value) == 0
+        if not remove_tile and (
+                not self.recap_after.value.isnumeric() or
+                int(self.recap_after.value) < 4):
+            await interaction.response.send_message(
+                content="Invalid format for `Recapture After`! Must be a number "
+                        "greater than 4!\n",
+                ephemeral=True,
+            )
+            return
+
+        if remove_tile:
+            await self.remove_callback(interaction, self.planner_id, tile_code)
+        else:
+            await self.add_callback(interaction, self.planner_id, tile_code, int(self.recap_after.value))
+
+
+class AddRemoveTileButton(discord.ui.Button):
+    def __init__(self,
+                 add_callback: Callable,
+                 remove_callback: Callable,
+                 planner_id: int):
+        self.add_callback = add_callback
+        self.remove_callback = remove_callback
+        self.planner_id = planner_id
+        super().__init__(
+            label="Add/Remove Tile",
+            custom_id=f"planner:admin:addrm-tile:{planner_id}"[:100],
+            style=discord.ButtonStyle.gray
+        )
+
+    @check_manage_guild
+    async def callback(self, interaction: discord.Interaction) -> Any:
+        await interaction.response.send_modal(
+            AddRemoveTileModal(self.planner_id, self.add_callback, self.remove_callback)
+        )
+
+
 class PlannerAdminView(discord.ui.View):
     """A list of actions usable by admins in the team."""
     def __init__(self,
@@ -135,6 +194,8 @@ class PlannerAdminView(discord.ui.View):
                  refresh_planner: Callable,
                  edit_time: Callable,
                  force_unclaim: Callable,
+                 add_planner_tile: Callable,
+                 remove_planner_tile: Callable,
                  planner_active: bool,
                  timeout: float = None):
         super().__init__(timeout=timeout)
@@ -151,6 +212,9 @@ class PlannerAdminView(discord.ui.View):
         )
         self.add_item(
             ForceUnclaimButton(force_unclaim, self.planner_id)
+        )
+        self.add_item(
+            AddRemoveTileButton(add_planner_tile, remove_planner_tile, self.planner_id)
         )
 
     async def switch_planner(self, interaction: discord.Interaction, new_active: bool) -> None:

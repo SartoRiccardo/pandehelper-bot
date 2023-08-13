@@ -61,7 +61,8 @@ You can code other uses for OAK-Discord connections if you want, such as a speci
 The current best planner bot around.
 Posts an overview of tiles that must be constantly refreshed (e.g. banners), when they'll expire, and allows users to claim them early so the team can plan out recaptures.
 When pinging people for missed recaptures, only pings people who still have tickets left.
-Best used in combination with the `Tracker` cog, but is fully functional without it as well.
+
+Needs to be used in combination with the `Tracker` cog to function.
 
 ### `Owner`
 Commands only accessible to the bot's owner, such as loading/unloading cogs and syncing the command tree.

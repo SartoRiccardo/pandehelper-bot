@@ -75,102 +75,117 @@ async def change_planner(
 
 
 @postgres
-async def get_planned_banners(planner_channel: int,
-                              banner_codes: List[str],
-                              expire_between: Tuple[datetime.datetime, datetime.datetime] or None = None,
-                              claimed_status: Literal["UNCLAIMED", "CLAIMED", "ANY"] = "ANY",
-                              conn=None) -> List[PlannedTile]:
+async def get_planned_tiles(planner_channel: int,
+                            tile_codes: List[str],
+                            expire_between: Tuple[datetime.datetime, datetime.datetime] or None = None,
+                            claimed_status: Literal["UNCLAIMED", "CLAIMED", "ANY"] = "ANY",
+                            conn=None) -> List[PlannedTile]:
     event_start, _event_end = bloons.get_current_ct_period()
-    banner_captures = """
-        SELECT c.tile AS tile, c.claimed_at AS claimed_at, ptc.user_id AS user_id,
-            p.claims_channel, p.ping_role, p.ping_channel, p.planner_channel
-        FROM (claims c
-        JOIN planners p
-            ON c.channel = p.claims_channel)
-        LEFT JOIN plannertileclaims ptc
-            ON p.planner_channel = ptc.planner_channel AND c.tile = ptc.tile
+    tile_captures = """
+        SELECT c.tile, c.claimed_at, ptc.user_id, p.claims_channel, p.ping_role, p.ping_channel, p.planner_channel,
+            ptt.expires_after_hr, c.claimed_at + MAKE_INTERVAL(hours => ptt.expires_after_hr) AS expires_at
+        FROM (
+            claims c JOIN planners p ON c.channel = p.claims_channel
+            JOIN plannertrackedtiles ptt
+                ON ptt.planner_channel = p.planner_channel
+                    AND ptt.tile = c.tile
+            ) LEFT JOIN plannertileclaims ptc
+                ON p.planner_channel = ptc.planner_channel AND c.tile = ptc.tile
         WHERE p.planner_channel = $3
             AND c.claimed_at >= $1
             AND c.tile = ANY($2::VARCHAR(3)[])
-        ORDER BY c.claimed_at ASC
+        ORDER BY expires_at ASC
     """
 
     extra_args = []
-    between_q = ""
+    q_between = ""
     if expire_between is not None:
-        extra_args.append(expire_between[0] - datetime.timedelta(days=1))
-        extra_args.append(expire_between[1] - datetime.timedelta(days=1))
-        between_q = """
-            AND claimed_at >= $4
-            AND claimed_at < $5
+        q_between = f"""
+            AND expires_at >= ${len(extra_args) + 4}
+            AND expires_at < ${len(extra_args) + 5}
         """
-    claim_q = ""
+        extra_args.append(expire_between[0])
+        extra_args.append(expire_between[1])
+    q_claim = ""
     if claimed_status == "UNCLAIMED":
-        claim_q = "AND bcap.user_id IS NULL"
+        q_claim = "AND tcap.user_id IS NULL"
     elif claimed_status == "CLAIMED":
-        claim_q = "AND bcap.user_id IS NOT NULL"
+        q_claim = "AND tcap.user_id IS NOT NULL"
 
     banners = await conn.fetch(f"""
-        SELECT bcap.tile, bcap.claimed_at, bcap.user_id, claims_channel, ping_role, ping_channel, planner_channel
-        FROM ({banner_captures}) bcap
+        SELECT *
+        FROM ({tile_captures}) tcap
         WHERE claimed_at = (
             SELECT MAX(claimed_at)
-            FROM ({banner_captures}) bcap2
-            WHERE bcap.tile = bcap2.tile
+            FROM ({tile_captures}) tcap2
+            WHERE tcap.tile = tcap2.tile
         ) AND (
             (SELECT clear_time FROM planners WHERE planner_channel = $3) IS NULL
             OR claimed_at >= (SELECT clear_time FROM planners WHERE planner_channel = $3)
         )
-    """ + between_q + claim_q, event_start, banner_codes, planner_channel, *extra_args)
+        {q_between}
+        {q_claim}
+    """, event_start, tile_codes, planner_channel, *extra_args)
     return [PlannedTile(row["tile"], row["claimed_at"], row["user_id"], row["planner_channel"], row["claims_channel"],
-                        row["ping_role"], row["ping_channel"])
+                        row["ping_role"], row["ping_channel"], row["expires_after_hr"])
             for row in banners]
 
 
 @postgres
-async def get_banner_closest_to_expire(banner_codes: List[str],
-                                       from_date: datetime.datetime,
-                                       conn=None) -> List[PlannedTile]:
-    one_day = datetime.timedelta(days=1)
-    banner_captures = """
-            SELECT p.planner_channel AS planner_channel, c.tile AS tile, c.claimed_at AS claimed_at,
-                    ptc.user_id AS user_id, p.ping_channel as ping_channel, p.ping_role AS ping_role,
-                    p.claims_channel AS claims_channel
-            FROM (claims c
-            JOIN planners p
-                ON c.channel = p.claims_channel)
+async def get_tile_closest_to_expire(from_date: datetime.datetime,
+                                     conn=None) -> List[PlannedTile]:
+    clear_time = "(SELECT clear_time FROM planners p2 WHERE p.planner_channel = p2.planner_channel)"
+    # Gets all tiles that expire after from_date
+    tile_captures = f"""
+        SELECT p.planner_channel, c.tile, p.claims_channel, ptc.user_id, p.ping_channel, p.ping_role, c.claimed_at,
+                c.claimed_at + MAKE_INTERVAL(hours => ptt.expires_after_hr) AS expires_at, ptt.expires_after_hr
+        FROM (
+            claims c JOIN planners p ON c.channel = p.claims_channel
+            JOIN plannertrackedtiles ptt
+                ON ptt.planner_channel = p.planner_channel
+                    AND ptt.tile = c.tile
+            )
             LEFT JOIN plannertileclaims ptc
                 ON p.planner_channel = ptc.planner_channel AND c.tile = ptc.tile
-            WHERE c.claimed_at >= $2
-                AND c.tile = ANY($1::VARCHAR(3)[])
-            ORDER BY c.claimed_at ASC
-        """
-    banner_claims = f"""
-            SELECT bcap.planner_channel, bcap.tile, bcap.claimed_at, bcap.user_id, bcap.ping_channel,
-                    bcap.ping_role, bcap.claims_channel
-            FROM ({banner_captures}) bcap
-            WHERE claimed_at = (
-                SELECT MAX(claimed_at)
-                FROM ({banner_captures}) bcap2
-                WHERE bcap.tile = bcap2.tile
-                    AND bcap.planner_channel = bcap2.planner_channel
-            ) AND (
-                (SELECT clear_time FROM planners WHERE planner_channel = bcap.planner_channel) IS NULL
-                OR claimed_at >= (SELECT clear_time FROM planners WHERE planner_channel = bcap.planner_channel)
+        WHERE c.claimed_at + MAKE_INTERVAL(hours => ptt.expires_after_hr) >= $1 
+            AND (
+                {clear_time} IS NULL
+                OR c.claimed_at >= {clear_time}
             )
-        """
-    banners = await conn.fetch(f"""
-            SELECT *
-            FROM ({banner_claims}) bclaim
-            WHERE bclaim.claimed_at = (
-                SELECT MIN(bclaims2.claimed_at)
-                FROM ({banner_claims}) bclaims2
-                WHERE bclaim.planner_channel = bclaims2.planner_channel
-            )
-        """, banner_codes, from_date-one_day)
+    """
+
+    # Get the latest capture of each tile, for each claim channel
+    # For example, for these rows
+    #  tile |     captured_at
+    # ------+---------------------
+    #   FFB | 2023-01-01 10:00:00
+    #   FFB | 2023-01-01 11:00:00
+    #   FFB | 2023-01-01 09:00:00
+    # It will leave row 2 and filter out the rest.
+    latest_tile_captures = f"""
+        SELECT *
+        FROM ({tile_captures}) tcap
+        WHERE claimed_at = (
+            SELECT MAX(claimed_at)
+            FROM ({tile_captures}) tcap2
+            WHERE tcap.tile = tcap2.tile
+                AND tcap.claims_channel = tcap2.claims_channel
+        )
+    """
+
+    # Get the tile that expirest the soonest for each planner
+    tiles = await conn.fetch(f"""
+        SELECT *
+        FROM ({latest_tile_captures}) tcap
+        WHERE tcap.expires_at = (
+            SELECT MIN(tcap2.expires_at)
+            FROM ({latest_tile_captures}) tcap2
+            WHERE tcap2.planner_channel = tcap.planner_channel
+        )
+    """, from_date)
     return [PlannedTile(row["tile"], row["claimed_at"], row["user_id"], row["planner_channel"], row["claims_channel"],
-                        row["ping_channel"], row["ping_role"])
-            for row in banners]
+                        row["ping_channel"], row["ping_role"], row["expires_after_hr"])
+            for row in tiles]
 
 
 @postgres
@@ -189,7 +204,7 @@ async def planner_unclaim_tile(tile: str, planner_channel: int, conn=None) -> No
 
 
 async def planner_get_tile_status(tile: str, planner_channel: int) -> PlannedTile or None:
-    tiles = await get_planned_banners(planner_channel, [tile])
+    tiles = await get_planned_tiles(planner_channel, [tile])
     return tiles[0] if len(tiles) else None
 
 
@@ -307,3 +322,27 @@ async def edit_tile_capture_time(channel_id: int,
     """, new_time, tile, channel_id, min_time_to_edit)
     updated_rows = int(updated[7:])
     return updated_rows > 0
+
+
+@postgres
+async def remove_tile_from_planner(planner_id: int, tile: str, conn=None) -> None:
+    await conn.execute("""
+        DELETE FROM plannertrackedtiles WHERE planner_channel=$2 AND tile=$1
+    """, tile, planner_id)
+
+
+@postgres
+async def add_tile_to_planner(planner_id: int, tile: str, recap_after: int, conn=None) -> None:
+    await remove_tile_from_planner(planner_id, tile)
+    await conn.execute("""
+        INSERT INTO plannertrackedtiles (tile, expires_after_hr, registered_at, planner_channel)
+        VALUES ($1, $2, $3, $4)
+    """, tile, recap_after, datetime.datetime.now(), planner_id)
+
+
+@postgres
+async def get_planner_tracked_tiles(planner_id: int, conn=None) -> List[str]:
+    result = await conn.fetch("""
+        SELECT tile FROM plannertrackedtiles WHERE planner_channel=$1
+    """, planner_id)
+    return [r["tile"] for r in result]
