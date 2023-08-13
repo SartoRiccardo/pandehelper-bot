@@ -107,12 +107,14 @@ class PlannerCog(ErrorHandlerCog):
         self.check_planner_refresh.start()
 
         self.check_reset.start()
+        self.check_orphan_has_tickets_roles.start()
 
     def cog_unload(self) -> None:
         self.check_reminders.cancel()
         self.check_decay.cancel()
         self.check_planner_refresh.cancel()
         self.check_reset.cancel()
+        self.check_orphan_has_tickets_roles.cancel()
 
     @tasks.loop(seconds=10)
     async def check_reminders(self) -> None:
@@ -313,6 +315,15 @@ class PlannerCog(ErrorHandlerCog):
         if self.ct_day <= 7:
             await self.reassign_has_tickets_roles()
 
+    @tasks.loop(seconds=3600*24)
+    async def check_orphan_has_tickets_roles(self) -> None:
+        """
+        Removes the "has tickets" role once CT is over.
+        """
+        if 0 <= self.ct_day <= 7:
+            return
+        await self.remove_has_tickets_roles()
+
     async def reassign_has_tickets_roles(self) -> None:
         """
         For every planner & its team, checks ticket counts and reassigns the "has tickets"
@@ -325,7 +336,7 @@ class PlannerCog(ErrorHandlerCog):
                 try:
                     planner_ch = await self.bot.fetch_channel(pln.planner_channel)
                 except discord.NotFound:
-                    return
+                    continue
 
             role = discord.utils.get(planner_ch.guild.roles, id=pln.team_role)
             if role is None:
@@ -336,6 +347,31 @@ class PlannerCog(ErrorHandlerCog):
             for member in role.members:
                 checks.append(self.check_has_tickets_role(member, pln))
             await asyncio.gather(*checks)
+
+    async def remove_has_tickets_roles(self) -> None:
+        """Removes the has tickets role from all planners."""
+        # Lots of copied code with reassign_has_tickets_roles ahhhh
+        planners = await bot.db.queries.planner.get_planners()
+        for pln in planners:
+            if pln.ping_role_with_tickets is None:
+                continue
+
+            planner_ch = self.bot.get_channel(pln.planner_channel)
+            if planner_ch is None:
+                try:
+                    planner_ch = await self.bot.fetch_channel(pln.planner_channel)
+                except discord.NotFound:
+                    continue
+
+            role = discord.utils.get(planner_ch.guild.roles, id=pln.ping_role_with_tickets)
+            if role is None:
+                roles = await planner_ch.guild.fetch_roles()
+                role = discord.utils.get(roles, id=pln.ping_role_with_tickets)
+
+            removals = []
+            for member in role.members:
+                removals.append(member.remove_roles(role))
+            await asyncio.gather(*removals)
 
     @planner_group.command(name="new", description="Create a new Planner channel.")
     @discord.app_commands.guild_only()
@@ -439,7 +475,9 @@ class PlannerCog(ErrorHandlerCog):
 
         await bot.db.queries.planner.add_planner(channel.id)
         await interaction.response.send_message(
-            content=f"<#{channel.id}> is now a planner channel!",
+            content=f"<#{channel.id}> is now a planner channel!\n"
+                    "*Make sure my permissions are set correctly and I can write, see & delete messages in that "
+                    "channel, and create & assign user roles, or it won't work!*",
             ephemeral=True
         )
         await self.send_planner_msg(channel.id)
@@ -684,11 +722,14 @@ class PlannerCog(ErrorHandlerCog):
         # Create the "with tickets" role if it doesn't exist
         planner = await bot.db.queries.planner.get_planner(planner_id)
         if not planner.ping_role_with_tickets:
-            new_ping_role = await self.create_ping_role(planner)
-            await bot.db.queries.planner.planner_update_config(
-                planner.planner_channel,
-                ping_role_with_tickets=new_ping_role.id
-            )
+            try:
+                new_ping_role = await self.create_ping_role(planner)
+                await bot.db.queries.planner.planner_update_config(
+                    planner.planner_channel,
+                    ping_role_with_tickets=new_ping_role.id
+                )
+            except discord.Forbidden:
+                pass
         else:
             channel = self.bot.get_channel(claim_channel)
             await self.check_has_tickets_role(channel.guild.get_member(claimer), planner)

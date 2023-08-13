@@ -71,7 +71,8 @@ class LeaderboardCog(ErrorHandlerCog):
         await bot.db.queries.leaderboard.add_leaderboard_channel(interaction.guild.id, channel.id)
         await interaction.response.send_message(
             content=f"Leaderboard added to <#{channel.id}>!\n"
-                    "*It will start appearing when it gets updated next.*",
+                    "*It will start appearing when it gets updated next. Make sure my permissions are set correctly "
+                    "and I can write, see & delete messages in that channel!*",
             ephemeral=True,
         )
 
