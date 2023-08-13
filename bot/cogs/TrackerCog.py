@@ -21,6 +21,7 @@ class TrackerCog(ErrorHandlerCog):
             "untrack": "Stop tracking a channel for tile claims.",
             "view": "A table containing number of tickets used by each member on each day.",
             "member": "Detailed information about a specific member, showing which tiles were claimed and when.",
+            # "tile": "Detailed information about a tile, showing how many times it was captured, by whom, and when."
         }
     }
 

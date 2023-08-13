@@ -8,6 +8,10 @@ from bot.classes import ErrorHandlerCog
 
 
 class WelcomeCog(ErrorHandlerCog):
+    help_descriptions = {
+        None: "Manages private channels for recruitment purposes. Has no commands."
+    }
+
     WAITING_ROOM_NAME = "🫵・challenger-{}"
     PANDEMONIUM_GID = 860146839181459466
     RECRUITMENT_CID = 1005681268844924958

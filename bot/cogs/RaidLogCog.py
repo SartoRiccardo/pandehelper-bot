@@ -49,6 +49,7 @@ class RaidLogCog(ErrorHandlerCog):
             "create": "Creates a new Tile Strat forum. You can rename it & set the perms to whatever you want",
             "set": "Sets an existing channel as the Tile Strat forum. Using [[create]] is recommended though.",
             "unset": "Makes the bot stop tracking the current Tile Strat forum.",
+            "stats": "Show an overview of how many strategies have been logged so far."
         },
         "tilestrat": "Looks up a strat in the Tile Strat forum. If there isn't a thread for it, it "
                      "creates a new one, and deletes it if no messages are posted in it for 3 hours.",

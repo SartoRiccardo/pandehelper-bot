@@ -24,8 +24,9 @@ spawn_tile_codes = {
 
 class TilesCog(ErrorHandlerCog):
     help_descriptions = {
+        None: "Information about the map and its tiles.",
         "tile": "Check a CT tile's information.",
-        "spawnlock": "Check the 3 tiles next to a team's spawn."
+        "spawnlock": "Check the 3 tiles next to a team's spawn.",
     }
 
     def __init__(self, bot: commands.Bot) -> None:
