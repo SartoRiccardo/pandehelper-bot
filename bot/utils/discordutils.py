@@ -2,6 +2,7 @@ from typing import List, Tuple
 import bot.exceptions
 import discord
 import asyncio
+from discord.ext import commands
 
 
 async def update_messages(
@@ -69,3 +70,13 @@ def gatekeep():
             raise bot.exceptions.Gatekept()
         return has_access
     return discord.app_commands.check(check)
+
+
+def get_slash_command_id(bot: commands.Bot, command: str) -> int:
+    if not hasattr(bot, "synced_tree"):
+        return -1
+
+    for cmd in bot.synced_tree:
+        if cmd.name == command:
+            return cmd.id
+    return -1

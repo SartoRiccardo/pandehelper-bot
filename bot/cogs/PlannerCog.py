@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import json
+import re
 import discord
 from discord.ext import tasks, commands
 import asyncio
@@ -397,6 +398,9 @@ class PlannerCog(ErrorHandlerCog):
 
     @planner_group.command(name="add", description="Adds Planner to an existing channel.")
     @discord.app_commands.guild_only()
+    @discord.app_commands.describe(
+        channel="The channel you want to add the Planner to.",
+    )
     @discord.app_commands.default_permissions(administrator=True)
     @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def cmd_add_planner(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
@@ -458,6 +462,53 @@ class PlannerCog(ErrorHandlerCog):
         await interaction.response.send_message(
             content="All done! Check the planner's control panel!",
             ephemeral=True
+        )
+        await self.send_planner_msg(planner_channel.id)
+
+    @planner_group.command(
+        name="overwrite",
+        description="Overwrites which tiles are tracked in a Planner channel. "
+                    "It will assume they all expire in 24 hours."
+    )
+    @discord.app_commands.guild_only()
+    @discord.app_commands.describe(
+        planner_channel="The channel of the planner you want to overwrite the tiles for.",
+        tiles="Comma separated value of tile codes.",
+    )
+    @discord.app_commands.default_permissions(administrator=True)
+    @discord.app_commands.checks.has_permissions(manage_guild=True)
+    async def cmd_overwrite_tiles(self, interaction: discord.Interaction, planner_channel: discord.TextChannel, tiles: str) -> None:
+        tile_list = [t.upper() for t in tiles.split(",")]
+        tile_re = r"(?:M|[A-G])(?:R|[A-G])(?:X|[A-H])"
+        for tile in tile_list:
+            if len(tile) != 3 or re.match(tile_re, tile) is None:
+                await interaction.response.send_message(
+                    content=f"Invalid tile: `{tile}`",
+                    ephemeral=True,
+                )
+                return
+
+        if await bot.db.queries.planner.get_planner(planner_channel.id) is None:
+            await interaction.response.send_message(
+                content="That's not a planner channel!",
+                ephemeral=True,
+            )
+            return
+
+        currently_tracked = await bot.db.queries.planner.get_planner_tracked_tiles(planner_channel.id)
+        await asyncio.gather(*[
+            bot.db.queries.planner.remove_tile_from_planner(planner_channel.id, tile)
+            for tile in currently_tracked
+        ])
+
+        await asyncio.gather(*[
+            bot.db.queries.planner.add_tile_to_planner(planner_channel.id, tile, 24)
+            for tile in tile_list
+        ])
+
+        await interaction.response.send_message(
+            content="All done! The planner message will be updated in a bit...",
+            ephemeral=True,
         )
         await self.send_planner_msg(planner_channel.id)
 
@@ -791,8 +842,10 @@ class PlannerCog(ErrorHandlerCog):
 
     async def remove_planner_tile(self, interaction: discord.Interaction, planner_id: int, tile: str) -> None:
         await bot.db.queries.planner.remove_tile_from_planner(planner_id, tile)
+        overwrite_id = bot.utils.discordutils.get_slash_command_id(self.bot, "planner")
         await interaction.response.send_message(
-            content=f"All done! `{tile}` will no longer appear in the planner.",
+            content=f"All done! `{tile}` will no longer appear in the planner.\n"
+                    f"*Need to remove lots of tiles? Try using </planner overwrite:{overwrite_id}> instead!*",
             ephemeral=True
         )
         self.banner_decays = await bot.db.queries.planner.get_tile_closest_to_expire(datetime.now())
@@ -804,9 +857,11 @@ class PlannerCog(ErrorHandlerCog):
                                tile: str,
                                recap_after: int) -> None:
         await bot.db.queries.planner.add_tile_to_planner(planner_id, tile, recap_after)
+        overwrite_id = bot.utils.discordutils.get_slash_command_id(self.bot, "planner")
         await interaction.response.send_message(
-            content=f"All done! `{tile}` will appear in the planner.\n"
-                    "*If it doesn't appear, it's because it hasn't been claimed this event yet.*",
+            content=f"All done! `{tile}` will appear in the planner. If it doesn't appear, it's because it hasn't "
+                    f"been claimed this event yet.\n"
+                    f"*Need to add lots of tiles? Try using </planner overwrite:{overwrite_id}> instead!*",
             ephemeral=True
         )
         self.banner_decays = await bot.db.queries.planner.get_tile_closest_to_expire(datetime.now())
