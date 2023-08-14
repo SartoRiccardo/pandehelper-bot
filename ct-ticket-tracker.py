@@ -1,5 +1,7 @@
 import discord
+from datetime import datetime
 import bot.db.connection
+from bot import __version__
 from discord.ext import commands
 from config import TOKEN, APP_ID
 
@@ -16,6 +18,8 @@ class CtTicketTracker(commands.Bot):
             activity=discord.Game(name="/help"),
         )
         self.remove_command("help")
+        self.version = __version__
+        self.last_restart = datetime.now()
 
     async def setup_hook(self):
         await bot.db.connection.start()

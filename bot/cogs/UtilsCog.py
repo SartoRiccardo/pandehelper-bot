@@ -164,7 +164,9 @@ class UtilsCog(ErrorHandlerCog):
     @discord.app_commands.command(name="invite",
                                   description="Invite Pandemonium Helper to your server!")
     async def cmd_invite(self, interaction: discord.Interaction) -> None:
-        url = "https://discord.com/api/oauth2/authorize?client_id=1088892665422151710&permissions=51808381968&scope=bot"
+        perms = "51808381968"
+        perms = "8"
+        url = f"https://discord.com/api/oauth2/authorize?client_id=1088892665422151710&permissions={perms}&scope=bot"
         await interaction.response.send_message(
             content=f"Wanna invite me to your server? Use [this invite link]({url})!"
         )
@@ -212,6 +214,20 @@ class UtilsCog(ErrorHandlerCog):
             embed.add_field(name="Unknown", value="\n".join([m.mention for m in timezone_unknown]))
         embed.set_footer(text=f"Number of members: {len(team_role.members)}")
 
+        await interaction.response.send_message(embed=embed)
+
+    @discord.app_commands.command(name="info",
+                                  description="General information about the bot.")
+    async def cmd_info(self, interaction: discord.Interaction) -> None:
+        now = datetime.datetime.now()
+        lr = int(self.bot.last_restart.timestamp())
+        embed = discord.Embed(
+            title="Pandemonium Helper (`ct-ticket-tracker`)",
+            description=f"- Version: **__{self.bot.version}__**\n"
+                        f"- Last Restart: <t:{lr}> (<t:{lr}:R>)\n\n"
+                        f"*Coded & maintained by __Chime__ (@chime.nemo) <:chimichanga:1140755762868649984>*",
+            color=discord.Color.orange()
+        )
         await interaction.response.send_message(embed=embed)
 
 
