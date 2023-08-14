@@ -108,3 +108,20 @@ async def get_capture_by_message(message: int, conn=None) -> TileCapture or None
 
     return TileCapture(payload[0]["userid"], payload[0]["tile"], payload[0]["channel"], payload[0]["message"],
                        payload[0]["claimed_at"])
+
+
+@postgres
+async def get_tile_claims(tile: str, channel: int, event: int = 0, conn=None) -> list[TileCapture]:
+    if event == 0:
+        event_start, event_end = bloons.get_current_ct_period()
+    else:
+        event_start, event_end = bloons.get_ct_period_during(event=event)
+    tiles = await conn.fetch("""
+        SELECT * FROM CLAIMS
+        WHERE channel=$1
+          AND tile=$2
+          AND claimed_at >= $3
+          AND claimed_at <= $4
+        ORDER BY claimed_at ASC
+    """, channel, tile, event_start, event_end)
+    return [TileCapture(r["userid"], tile, channel, r["message"], r["claimed_at"]) for r in tiles]

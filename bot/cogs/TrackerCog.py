@@ -17,12 +17,13 @@ class TrackerCog(ErrorHandlerCog):
         "tickets": {
             "track": "Starts tracking a channel for tile claims. A tile is considered claimed when an user reacts "
                      "to a message with ✅ in that channel, and the message they reacted to contains a valid "
-                     "tile code. It also assumes everyone's reset is at the same time, which is the case for Competitive.\n"
+                     "tile code. It also assumes everyone's reset is at the same time, which is the case for "
+                     "Competitive.\n"
                      "*Example of a tracked channel:* https://i.imgur.com/JLOIwhd.png",
             "untrack": "Stop tracking a channel for tile claims.",
             "view": "A table containing number of tickets used by each member on each day.",
             "member": "Detailed information about a specific member, showing which tiles were claimed and when.",
-            # "tile": "Detailed information about a tile, showing how many times it was captured, by whom, and when."
+            "tile": "Detailed information about a tile, showing how many times it was captured, by whom, and when."
         }
     }
 
@@ -96,7 +97,6 @@ class TrackerCog(ErrorHandlerCog):
         await interaction.edit_original_response(content=message)
 
     @tickets_group.command(name="member", description="In-depth view of a member's used tickets.")
-    @discord.app_commands.describe()
     @discord.app_commands.describe(member="The member to check.",
                                    channel="The channel to check.",
                                    season="The CT season to check. Defaults to the current one.")
@@ -131,6 +131,65 @@ class TrackerCog(ErrorHandlerCog):
             if len(claims_message) > 0:
                 embed.add_field(name=f"Day {i+1}", value=claims_message, inline=False)
         await interaction.edit_original_response(content="", embed=embed)
+
+    @tickets_group.command(name="tile", description="In-depth view of a tile's capture history.")
+    @discord.app_commands.describe(tile="The tile to check.",
+                                   channel="The channel to check.",
+                                   season="The CT season to check. Defaults to the current one.",
+                                   hide="If True, the message will be ephemeral.")
+    @discord.app_commands.guild_only()
+    @discord.app_commands.default_permissions(administrator=True)
+    @discord.app_commands.checks.has_permissions(manage_guild=True)
+    async def cmd_tile_history(self, interaction: discord.InteractionResponse,
+                               channel: discord.TextChannel,
+                               tile: str,
+                               season: Optional[int] = 0,
+                               hide: Optional[bool] = False) -> None:
+        if channel.id not in (await bot.db.queries.tickets.tracked_channels()):
+            await interaction.response.send_message("That channel is not being tracked!", ephemeral=True)
+            return
+
+        tile = tile.upper()
+        tile_re = r"(?:[a-gA-G][a-gA-G][a-hA-H]|[Mm][Rr][Xx]|[Zz]{3})"
+        if re.search(tile_re, tile) is None:
+            await interaction.response.send_message(f"`{tile}` is not a valid tile code!", ephemeral=True)
+            return
+
+        await interaction.response.send_message("Just a moment...", ephemeral=hide)
+        if season == 0:
+            season = bot.utils.bloons.get_ct_number_during(datetime.datetime.now())
+        tile_claims = await bot.db.queries.tickets.get_tile_claims(tile, channel.id, season)
+
+        content_template = "- <t:{tile_timestamp}> <@{user_id}>"
+        content_parts = []
+        for tc in tile_claims:
+            content_parts.append(content_template.format(
+                tile_timestamp=int(tc.claimed_at.timestamp()),
+                user_id=tc.user_id,
+            ))
+
+        diff_template = " `+{days}{hours:>02}:{minutes:>02}:{seconds:>02}`"
+        for i in range(1, len(content_parts)):
+            cap_diff = tile_claims[i].claimed_at - tile_claims[i-1].claimed_at
+            days = "" if cap_diff.days == 0 else f"{cap_diff.days}d "
+            content_parts[i] += diff_template.format(
+                days=days, hours=int(cap_diff.seconds/3600),
+                minutes=int(cap_diff.seconds/60) % 60, seconds=cap_diff.seconds % 60
+            )
+
+        if len(tile_claims) == 0:
+            content = f"*This tile wasn't captured in CT {season}!*"
+        else:
+            content = "\n".join(content_parts)
+
+        await interaction.edit_original_response(
+            content="",
+            embed=discord.Embed(
+                title=f"{tile} Capture History (CT {season})",
+                description=content,
+                color=discord.Color.orange(),
+            ),
+        )
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent) -> None:
