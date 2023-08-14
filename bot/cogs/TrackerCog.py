@@ -17,7 +17,8 @@ class TrackerCog(ErrorHandlerCog):
         "tickets": {
             "track": "Starts tracking a channel for tile claims. A tile is considered claimed when an user reacts "
                      "to a message with ✅ in that channel, and the message they reacted to contains a valid "
-                     "tile code. It also assumes everyone's reset is at the same time.",
+                     "tile code. It also assumes everyone's reset is at the same time, which is the case for Competitive.\n"
+                     "*Example of a tracked channel:* https://i.imgur.com/JLOIwhd.png",
             "untrack": "Stop tracking a channel for tile claims.",
             "view": "A table containing number of tickets used by each member on each day.",
             "member": "Detailed information about a specific member, showing which tiles were claimed and when.",
