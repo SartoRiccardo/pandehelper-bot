@@ -24,7 +24,9 @@ PLANNER_ADMIN_PANEL = """
 - Tile Claim Channel: {}
 - Ping Channel: {}
 - Team Role: {}
-*To configure, use `/planner config`*
+__*To configure, use `/planner config`*__
+
+*Please don't send other messages in this channel! I'm gonna get really mad and accidentally ping everybody in an hour if you do because I should be the first thing you see in the channel.*
 """[1:-1]
 PLANNER_HR = "```\n \n```"
 PLANNER_TABLE_HEADER = """
