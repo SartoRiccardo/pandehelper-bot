@@ -47,7 +47,8 @@ class PlannerCog(ErrorHandlerCog):
         "planner": {
             "new": "Create a new Planner channel",
             "add": "Sets a channel as a Planner channel.\n"
-                   "__It is recommended to set it on a read-only channel.__",
+                   " __It is **mandatory** to set it on a read-only channel. "
+                   "**The bot should be the only account typing there**.__",
             "remove": "Removes the Planner from a channel previously added with [[add]].\n"
                       "__Won't delete the channel,__ but it will no longer be updated.",
             "config": "Configure the planner to make sure it works properly!",
