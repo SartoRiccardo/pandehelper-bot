@@ -9,7 +9,8 @@ async def update_messages(
         bot: discord.ClientUser,
         content: List[Tuple[str, discord.ui.View or None]],
         channel: discord.TextChannel,
-        tolerance: int = 0) -> None:
+        tolerance: int = 10,
+        delete_user_messages: bool = True) -> None:
     """Edits a bunch of messages to reflect some new content. If other users
     sent messages in the channel in the meanwhile, it deletes its own old messages
     and send the whole thing again, to make sure it's always the newest message sent.
@@ -18,9 +19,13 @@ async def update_messages(
     :param content: A list of messages to send and possibly a View or None.
     :param channel: The channel to send the message to.
     :param tolerance: How many non-bot messages it will tolerate before it decides to resend the whole thing.
+    :param delete_user_messages: If True, it will delete user messages in the way. Only does so if it updates
+                                 (so NOT if it resends) and will only delete the messages it "tolerated". So setting
+                                 tolerance=0 turns this off as well.
     """
     messages_to_change = []
     bot_messages = []
+    user_messages_delete = []
     modify = True
     tolerance_used = 0
     async for message in channel.history(limit=25):
@@ -35,6 +40,8 @@ async def update_messages(
         else:
             if modify:
                 tolerance_used += 1
+            if delete_user_messages and tolerance_used <= tolerance:
+                user_messages_delete.append(message)
             if len(content) != len(messages_to_change) and tolerance_used > tolerance:
                 messages_to_change = []
                 modify = False
@@ -43,7 +50,7 @@ async def update_messages(
         modify = False
 
     if modify:
-        coros = []
+        coros = [m.delete() for m in user_messages_delete]
         for i in range(len(content)):
             new_content, new_view = content[i]
             if new_view is None:
