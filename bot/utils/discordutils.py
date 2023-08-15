@@ -8,7 +8,8 @@ from discord.ext import commands
 async def update_messages(
         bot: discord.ClientUser,
         content: List[Tuple[str, discord.ui.View or None]],
-        channel: discord.TextChannel) -> None:
+        channel: discord.TextChannel,
+        tolerance: int = 0) -> None:
     """Edits a bunch of messages to reflect some new content. If other users
     sent messages in the channel in the meanwhile, it deletes its own old messages
     and send the whole thing again, to make sure it's always the newest message sent.
@@ -16,21 +17,28 @@ async def update_messages(
     :param bot: The bot user.
     :param content: A list of messages to send and possibly a View or None.
     :param channel: The channel to send the message to.
+    :param tolerance: How many non-bot messages it will tolerate before it decides to resend the whole thing.
     """
     messages_to_change = []
     bot_messages = []
     modify = True
+    tolerance_used = 0
     async for message in channel.history(limit=25):
         if message.author == bot:
+            tolerance_used = tolerance+1  # If there's any more user messages after this, break.
             if modify:
                 messages_to_change.insert(0, message)
             bot_messages.append(message)
             if len(content) < len(messages_to_change):
                 modify = False
                 messages_to_change = []
-        elif len(content) != len(messages_to_change):
-            messages_to_change = []
-            modify = False
+        else:
+            if modify:
+                tolerance_used += 1
+            if len(content) != len(messages_to_change) and tolerance_used > tolerance:
+                messages_to_change = []
+                modify = False
+
     if len(messages_to_change) != len(content):
         modify = False
 

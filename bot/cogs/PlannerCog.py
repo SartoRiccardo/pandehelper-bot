@@ -527,7 +527,9 @@ class PlannerCog(ErrorHandlerCog):
         await interaction.response.send_message(
             content=f"<#{channel.id}> is now a planner channel!\n"
                     "*Make sure my permissions are set correctly and I can write, see & delete messages in that "
-                    "channel, and create & assign user roles, or it won't work!*",
+                    "channel, and create & assign user roles, or it won't work!*\n"
+                    "**Also make sure __NOBODY__ types there. __Not even you!__ Only I should type there. "
+                    "It gets ugly if anybody else types there.",
             ephemeral=True
         )
         await self.send_planner_msg(channel.id)
@@ -701,7 +703,7 @@ class PlannerCog(ErrorHandlerCog):
         planner_content = await self.get_planner_msg(channel_id)
         self.next_planner_refreshes[channel_id] = datetime.now() + timedelta(hours=1)
         try:
-            await bot.utils.discordutils.update_messages(self.bot.user, planner_content, channel)
+            await bot.utils.discordutils.update_messages(self.bot.user, planner_content, channel, tolerance=5)
         except discord.Forbidden:
             pass
 

@@ -174,7 +174,8 @@ class LeaderboardCog(ErrorHandlerCog):
                 await bot.utils.discordutils.update_messages(
                     self.bot.user,
                     [(x, None) for x in messages],
-                    channel
+                    channel,
+                    tolerance=0
                 )
             except discord.Forbidden:
                 pass
