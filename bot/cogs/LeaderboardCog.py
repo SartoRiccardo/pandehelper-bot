@@ -143,7 +143,9 @@ class LeaderboardCog(ErrorHandlerCog):
 
         if len(messages) == 0:
             return
-        messages[len(messages)-1] += f"\n*Last updated: <t:{int(time.mktime(now.timetuple()))}:R>*"
+        messages[len(messages)-1] += f"\n\n*Teams:* {current_event.total_scores_team:,}  " \
+                                     f"⸰  *Players:* {current_event.total_scores_player:,}" \
+                                     f"\n*Last updated: <t:{int(now.timestamp())}:R>*"
         self.last_hour_score = current_hour_score
 
         await self.send_leaderboard(messages)
