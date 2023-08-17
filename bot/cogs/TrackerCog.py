@@ -15,15 +15,14 @@ tracked_emojis = ["🟩", "👌", "🟢", "✅", "👍"]
 class TrackerCog(ErrorHandlerCog):
     help_descriptions = {
         "tickets": {
-            "track": "Please check out [the wiki](https://github.com/SartoRiccardo/ct-ticket-tracker/wiki) for a "
+            "track": "Please check out [the wiki](<https://github.com/SartoRiccardo/ct-ticket-tracker/wiki>) for a "
                      "step-by-step setup guide!\n\n"
                      "Starts tracking a channel for tile captures. A tile is considered captured when an user reacts "
                      "to a message with ✅ in that channel, and the message they reacted to contains a valid "
                      "tile code. It also assumes everyone's reset is at the same time, which is the case for "
                      "Competitive.\n"
                      "Tile captures are only tracked during CT days. If you try to register a capture while a "
-                     "CT event is not active, the bot will just ignore it.\n"
-                     "*Example of a tracked channel:* https://i.imgur.com/JLOIwhd.png",
+                     "CT event is not active, the bot will just ignore it.",
             "untrack": "Stop tracking a channel for tile claims.",
             "view": "A table containing number of tickets used by each member on each day.",
             "member": "Detailed information about a specific member, showing which tiles were claimed and when.",

@@ -42,8 +42,8 @@ PLANNER_TABLE_ROW_STALE = "⚠️ **__STALE SINCE <t:{expire_at}:R>__** ⚠️\n
 class PlannerCog(ErrorHandlerCog):
     planner_group = discord.app_commands.Group(name="planner", description="Various CT Planner commands")
     help_descriptions = {
-        None: "Please check out [the wiki](https://github.com/SartoRiccardo/ct-ticket-tracker/wiki) for a step-by-step "
-              "setup guide!\n\n"
+        None: "Please check out [the wiki](<https://github.com/SartoRiccardo/ct-ticket-tracker/wiki>) for a "
+              "step-by-step setup guide!\n\n"
               "Creates a planner that tracks all banner decay times, pings when they decay, and lets users "
               "claim them beforehand. Works in tandem with the `tracker` module.",
         "planner": {
