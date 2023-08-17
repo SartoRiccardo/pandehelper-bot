@@ -113,7 +113,9 @@ class UtilsCog(ErrorHandlerCog):
             message = "This bot has many features, organized into \"modules\"! " \
                       "If you want info about a specific module, pass its name through the `module` " \
                       "parameter the next time you use /help!\n" \
-                      f"*Available modules:* `{'` `'.join(cogs)}`"
+                      f"*Available modules:* `{'`, `'.join(cogs)}`\n\n" \
+                      "Also be sure to check out [the wiki](https://github.com/SartoRiccardo/ct-ticket-tracker/wiki)" \
+                      "for help in setting up some of the more difficult to use modules!"
             await interaction.response.send_message(message, ephemeral=True)
             return
 

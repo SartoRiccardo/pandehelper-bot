@@ -15,7 +15,9 @@ tracked_emojis = ["🟩", "👌", "🟢", "✅", "👍"]
 class TrackerCog(ErrorHandlerCog):
     help_descriptions = {
         "tickets": {
-            "track": "Starts tracking a channel for tile captures. A tile is considered captured when an user reacts "
+            "track": "Please check out [the wiki](https://github.com/SartoRiccardo/ct-ticket-tracker/wiki) for a "
+                     "step-by-step setup guide!\n\n"
+                     "Starts tracking a channel for tile captures. A tile is considered captured when an user reacts "
                      "to a message with ✅ in that channel, and the message they reacted to contains a valid "
                      "tile code. It also assumes everyone's reset is at the same time, which is the case for "
                      "Competitive.\n"
