@@ -12,3 +12,7 @@ class PlannedTile:
     ping_role: int = field(repr=False)
     ping_channel: int = field(repr=False)
     expires_in_hr: int = field(repr=True, default=24)
+
+    @property
+    def expires_at(self) -> datetime.datetime:
+        return self.claimed_at + datetime.timedelta(hours=self.expires_in_hr)

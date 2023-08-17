@@ -77,7 +77,7 @@ async def change_planner(
 @postgres
 async def get_planned_tiles(planner_channel: int,
                             tile_codes: List[str],
-                            expire_between: Tuple[datetime.datetime, datetime.datetime] or None = None,
+                            expire_between: tuple[datetime.datetime, datetime.datetime] = None,
                             claimed_status: Literal["UNCLAIMED", "CLAIMED", "ANY"] = "ANY",
                             conn=None) -> List[PlannedTile]:
     event_start, _event_end = bloons.get_current_ct_period()

@@ -258,19 +258,44 @@ class PlannerCog(ErrorHandlerCog):
             return
 
         update_expire_list = False
+        send_ping_coros = []
         for banner in self.banner_decays:
-            if banner.claimed_at + timedelta(hours=banner.expires_in_hr) < now:
+            tile_expire_time = banner.claimed_at + timedelta(hours=banner.expires_in_hr)
+            if tile_expire_time < now:
                 update_expire_list = True
                 planner = await bot.db.queries.planner.get_planner(banner.planner_channel)
                 if not planner.is_active:
                     continue
-                banner_data = await bot.db.queries.planner.planner_get_tile_status(banner.tile, banner.planner_channel)
-                ping_role = planner.ping_role_with_tickets if planner.ping_role_with_tickets else planner.ping_role
-                await self.send_decay_ping(banner.planner_channel, banner_data.ping_channel,
-                                           banner.tile, banner_data.claimed_by, ping_role)
 
+                tiles_tracked = await bot.db.queries.planner.get_planner_tracked_tiles(planner.planner_channel)
+                tiles_expiring = await bot.db.queries.planner.get_planned_tiles(
+                    planner.planner_channel,
+                    tiles_tracked,
+                    expire_between=(tile_expire_time, now),
+                )
+                for exp_tile in tiles_expiring:
+                    send_ping_coros.append(
+                        self.decay_ping_when_ready(exp_tile, planner)
+                    )
+
+        await asyncio.gather(*send_ping_coros)
         if update_expire_list:
             self.banner_decays = await bot.db.queries.planner.get_tile_closest_to_expire(now)
+
+    async def decay_ping_when_ready(self,
+                                    tile: "bot.db.model.PlannedTile.PlannedTile",
+                                    planner: "bot.db.model.Planner.Planner") -> None:
+        now = datetime.now()
+        tile_data = await bot.db.queries.planner.planner_get_tile_status(tile.tile, tile.planner_channel)
+        ping_role = planner.ping_role_with_tickets if planner.ping_role_with_tickets else planner.ping_role
+
+        # This check never happens when called by check_decay since it only
+        # fetches tiles whose expires_at is strictly lower than now.
+        # if now < tile_data.expires_at:
+        #     await asyncio.sleep((tile_data.expires_at-now).total_seconds())
+
+        await self.send_decay_ping(tile.planner_channel, tile_data.ping_channel,
+                                   tile.tile, tile_data.claimed_by, ping_role)
 
     async def send_decay_ping(self,
                               planner_id: int,
