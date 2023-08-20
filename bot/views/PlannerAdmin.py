@@ -204,9 +204,9 @@ class PlannerAdminView(discord.ui.View):
         self.add_item(
             SwitchPlannerButton(self.switch_planner, planner_active, self.planner_id)
         )
-        self.add_item(
-            ClearPlannerButton(self.clear_planner, self.planner_id)
-        )
+        # self.add_item(
+        #     ClearPlannerButton(self.clear_planner, self.planner_id)
+        # )
         self.add_item(
             EditTimeButton(edit_time, self.planner_id)
         )
