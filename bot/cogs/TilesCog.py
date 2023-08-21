@@ -31,6 +31,7 @@ class TilesCog(ErrorHandlerCog):
 
     def __init__(self, bot: commands.Bot) -> None:
         super().__init__(bot)
+        self.raceregs: Cache or None = None
 
     @discord.app_commands.command(name="tile",
                                   description="Check a tile's challenge data")

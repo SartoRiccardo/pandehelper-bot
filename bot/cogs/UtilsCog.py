@@ -25,7 +25,6 @@ class UtilsCog(ErrorHandlerCog):
     def __init__(self, bot: commands.Bot) -> None:
         super().__init__(bot)
         self.tag_list: List[str] = []
-        self.raceregs: Cache or None = None
 
     def cog_load(self) -> None:
         self.update_tag_list.start()
