@@ -1,9 +1,7 @@
 from datetime import datetime, timedelta
-from bloonspy import Client
 from bloonspy.model.btd6 import TeamStatus
 import discord
 from discord.ext import tasks, commands
-import time
 import asyncio
 import bot.db.queries.leaderboard
 import bot.utils.io
@@ -105,7 +103,10 @@ class LeaderboardCog(ErrorHandlerCog):
         row_template = "{} `{: <20}`    | `{: <7,}`"
         eco_template = " ({} `{: <4}`)"
 
-        current_event = (await asyncio.to_thread(Client.contested_territories))[0]
+        current_event = await asyncio.to_thread(bot.utils.bloons.get_current_ct_event)
+        if current_event is None:
+            return
+
         if current_event.id != self.current_ct_id:
             self.current_ct_id = current_event.id
             self.last_hour_score = {}

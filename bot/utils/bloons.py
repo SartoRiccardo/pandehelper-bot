@@ -1,5 +1,6 @@
 import datetime
 import discord
+from bloonspy import Client, btd6
 import re
 import os
 import json
@@ -337,6 +338,15 @@ def relic_to_tile_code(relic: str) -> str or None:
             for tile in tiles:
                 if tile["RelicType"] == key:
                     return tile["Code"]
+    return None
+
+
+def get_current_ct_event() -> btd6.ContestedTerritoryEvent or None:
+    now = datetime.datetime.now()
+    events = Client.contested_territories()
+    for ct in events:
+        if ct.start <= now <= ct.end:
+            return ct
     return None
 
 
