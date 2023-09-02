@@ -345,7 +345,7 @@ def get_current_ct_event() -> btd6.ContestedTerritoryEvent or None:
     now = datetime.datetime.now()
     events = Client.contested_territories()
     for ct in events:
-        if ct.start <= now <= ct.end + datetime.timedelta(hours=1):
+        if ct.start <= now:
             return ct
     return None
 

@@ -30,12 +30,9 @@ python -m pip install -r requirements.txt
 5. Change the emojis in `bot/utils/emojis.py`, chances are they'll be broken
 6. Rename `bot/files/json/tags.example.json` into `bot/files/json/tags.json`
    1. Add/edit new tags if you want to
-7. Rename `bot/files/json/banners.example.json` into `bot/files/json/banners.json`
-   1. This file contains a list of banner tile codes that is used for the `Planner` cog. There is currently no command to update it so if you want to change it between CT events you have to rewrite the file yourself.
-   2. If you don't want to use the `Planner` cog, you can leave the file with an empty array, but it **must** exist and contain valid JSON.
-8. Run `ct-ticket-tracker.py`
-9. To register its commands, type `,,,sync` to register them in all servers, or `,,,sync .` if you just want to sync them in your current guild.
-10. If you want to load/unload specific cogs, type `,,,cog load [cogname]` or `,,,cog unload [cogname]`.
+7. Run `ct-ticket-tracker.py`
+8. To register its commands, type `,,,sync` to register them in all servers, or `,,,sync .` if you just want to sync them in your current guild.
+9. If you want to load/unload specific cogs, type `,,,cog load [cogname]` or `,,,cog unload [cogname]`.
     1. Use `,,,cog list` to check which cogs are currently loaded
     2. Cog names are in camelCase and do not include the word `Cog` at the end. E.g.: `,,,cog load leaderboard`, `,,,cog load raidLog`
 

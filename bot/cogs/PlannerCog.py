@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-import json
 import re
 import discord
 from discord.ext import tasks, commands
@@ -16,6 +15,7 @@ from bot.views import PlannerUserView, PlannerAdminView
 from bot.utils.Cache import Cache
 from bot.utils.emojis import EXPIRE_LATER, EXPIRE_DONT_RECAP, EXPIRE_AFTER_RESET, EXPIRE_STALE, EXPIRE_2HR, \
     EXPIRE_3HR, BLANK
+from bloonspy.model.btd6 import CtTileType, CtTile
 
 
 PLANNER_ADMIN_PANEL = """
@@ -707,16 +707,16 @@ class PlannerCog(ErrorHandlerCog):
     async def get_banner_tile_list(self) -> List[str]:
         """Returns a list of banner tile codes."""
         if self._banner_list is None or not self._banner_list.valid:
-            banner_list = await asyncio.to_thread(self.fetch_banner_tile_list)
-            self._banner_list = Cache(banner_list, datetime.now() + timedelta(days=5))
+            ct_event = await asyncio.to_thread(bot.utils.bloons.get_current_ct_event)
+            if ct_event is None:
+                return []
+            banner_tile_list = await asyncio.to_thread(ct_event.tiles)
+            banner_list = [
+                tile.id for tile in banner_tile_list
+                if tile.tile_type == CtTileType.BANNER
+            ]
+            self._banner_list = Cache(banner_list, datetime.now() + timedelta(hours=12))
         return self._banner_list.value
-
-    @staticmethod
-    def fetch_banner_tile_list() -> List[str]:
-        fin = open("bot/files/json/banners.json")
-        banners = json.loads(fin.read())
-        fin.close()
-        return banners
 
     async def send_planner_msg(self, channel_id: int) -> None:
         """(Re)sends the planner message.
