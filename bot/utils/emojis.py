@@ -1,3 +1,6 @@
+# Emotes from https://discord.gg/kwcUuaK4rt
+from bloonspy.model.btd6 import Relic
+
 
 # Misc
 X = "❌"
@@ -18,6 +21,54 @@ NEW_TEAM = "🆕"
 TILE_BANNER = "<:banner:1119000355133464637>"
 TILE_RELIC = "<:relic:1140324732529557606>"
 TILE_REGULAR = BLANK
+RELICS = {
+    Relic.ABILITIZED: "",
+    Relic.AIR_AND_SEA: "",
+    Relic.ALCHEMIST_TOUCH: "",
+    Relic.BIGGER_BLOON_SABOTAGE: "",
+    Relic.BOX_OF_CHOCOLATES: "",
+    Relic.BOX_OF_MONKEY: "",
+    Relic.BROKEN_HEART: "",
+    Relic.CAMO_FLOGGED: "",
+    Relic.CAMO_TRAP: "",
+    Relic.DEEP_HEAT: "",
+    Relic.DURABLE_SHOTS: "",
+    Relic.EL_DORADO: "",
+    Relic.EXTRA_EMPOWERED: "",
+    Relic.FLINT_TIPS: "",
+    Relic.FORTIFRIED: "",
+    Relic.GLUE_TRAP: "",
+    Relic.GOING_THE_DISTANCE: "",
+    Relic.HARD_BAKED: "",
+    Relic.HEARTLESS: "",
+    Relic.HERO_BOOST: "",
+    Relic.MAGIC_MONKEYS: "",
+    Relic.MANA_BULWARK: "",
+    Relic.MARCHING_BOOTS: "",
+    Relic.MILITARY_MONKEYS: "",
+    Relic.MOAB_CLASH: "",
+    Relic.MOAB_MINE: "",
+    Relic.MONKEY_BOOST: "",
+    Relic.MONKEY_SHIELD: TILE_RELIC,
+    Relic.MONKEY_SHIELD_MARK2: TILE_RELIC,
+    Relic.MONKEY_SHIELD_MARK3: TILE_RELIC,
+    Relic.MONKEY_TYCOON: TILE_RELIC,
+    Relic.OPEN_SEASON: TILE_RELIC,
+    Relic.PRIMARY_PRIMATES: "",
+    Relic.PSI_VISION: TILE_RELIC,
+    Relic.REGENERATION: "",
+    Relic.RESTORATION: "",
+    Relic.ROAD_SPIKES: "",
+    Relic.ROUNDING_UP: "",
+    Relic.ROYAL_TREATMENT: "",
+    Relic.SHARPSPLOSION: "",
+    Relic.STARTING_STASH: "",
+    Relic.SMS: "",
+    Relic.SUPPORT_SIMIANS: "",
+    Relic.TECHBOT: "",
+    Relic.THRIVE: "",
+    None: TILE_RELIC,
+}
 EXPIRE_STALE = "🔴"
 EXPIRE_2HR = "🟠"
 EXPIRE_3HR = "🟡"

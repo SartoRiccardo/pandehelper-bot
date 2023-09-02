@@ -10,7 +10,7 @@ import bot.utils.io
 import bot.utils.discordutils
 from bot.classes import ErrorHandlerCog
 from typing import List, Tuple, Union, Optional, Dict
-from bot.utils.emojis import TILE_BANNER, TILE_REGULAR, TILE_RELIC
+from bot.utils.emojis import TILE_BANNER, TILE_REGULAR, TILE_RELIC, RELICS
 from bot.views import PlannerUserView, PlannerAdminView
 from bot.utils.Cache import Cache
 from bot.utils.emojis import EXPIRE_LATER, EXPIRE_DONT_RECAP, EXPIRE_AFTER_RESET, EXPIRE_STALE, EXPIRE_2HR, \
@@ -18,6 +18,7 @@ from bot.utils.emojis import EXPIRE_LATER, EXPIRE_DONT_RECAP, EXPIRE_AFTER_RESET
 from bloonspy.model.btd6 import CtTileType, CtTile
 
 
+CT_DATA_CACHE_HR = 12
 PLANNER_ADMIN_PANEL = """
 # Control Panel
 - Status: {}
@@ -71,6 +72,7 @@ class PlannerCog(ErrorHandlerCog):
         self.last_check_end = self.next_check
         self.ct_day = 0
         self._banner_list: Cache or None = None
+        self._relic_list: Cache or None = None
 
     async def load_state(self) -> None:
         state = await asyncio.to_thread(bot.utils.io.get_cog_state, "planner")
@@ -601,6 +603,8 @@ class PlannerCog(ErrorHandlerCog):
         now = datetime.now()
         tile_table = PLANNER_TABLE_HEADER
         banner_codes = await self.get_banner_tile_list()
+        relic_tiles = await self.get_relic_tile_list()
+        relic_codes = [r.id for r in relic_tiles]
         tile_list = await bot.db.queries.planner.get_planner_tracked_tiles(channel)
         ct_start, ct_end = bot.utils.bloons.get_current_ct_period()
         if now < ct_end:
@@ -632,10 +636,18 @@ class PlannerCog(ErrorHandlerCog):
             elif expire_at-now < timedelta(hours=3):
                 emoji_claim = EXPIRE_3HR
 
+            emoji_tile = TILE_REGULAR
+            if tile.tile in banner_codes:
+                emoji_tile = TILE_BANNER
+            elif r_idx := relic_codes.index(tile.tile) > -1:
+                emoji_tile = TILE_RELIC
+                relic = relic_tiles[r_idx]
+                if relic.relic in RELICS.keys():
+                    emoji_tile = RELICS[relic.relic]
             row_second_part = PLANNER_TABLE_ROW_STALE if emoji_claim == EXPIRE_STALE else PLANNER_TABLE_ROW_TIME
             new_row = PLANNER_TABLE_ROW.format(
                 emoji_claim=emoji_claim,
-                emoji_tile=TILE_BANNER if tile.tile in banner_codes else TILE_REGULAR,
+                emoji_tile=emoji_tile,
                 tile=tile.tile,
             ) + row_second_part.format(
                 expire_at=int(expire_at.timestamp()),
@@ -715,8 +727,19 @@ class PlannerCog(ErrorHandlerCog):
                 tile.id for tile in banner_tile_list
                 if tile.tile_type == CtTileType.BANNER
             ]
-            self._banner_list = Cache(banner_list, datetime.now() + timedelta(hours=12))
+            self._banner_list = Cache(banner_list, datetime.now() + timedelta(hours=CT_DATA_CACHE_HR))
         return self._banner_list.value
+
+    async def get_relic_tile_list(self) -> List[CtTile]:
+        """Returns a list of relic tiles."""
+        if self._relic_list is None or not self._relic_list.valid:
+            ct_event = await asyncio.to_thread(bot.utils.bloons.get_current_ct_event)
+            if ct_event is None:
+                return []
+            relics = await asyncio.to_thread(ct_event.tiles)
+            relics = [r for r in relics if r.tile_type == CtTileType.RELIC]
+            self._relic_list = Cache(relics, datetime.now() + timedelta(hours=CT_DATA_CACHE_HR))
+        return self._relic_list.value
 
     async def send_planner_msg(self, channel_id: int) -> None:
         """(Re)sends the planner message.
