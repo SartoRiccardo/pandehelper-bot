@@ -362,7 +362,7 @@ class PlannerCog(ErrorHandlerCog):
             if planner_ch is None:
                 try:
                     planner_ch = await self.bot.fetch_channel(pln.planner_channel)
-                except discord.NotFound:
+                except (discord.NotFound, discord.Forbidden):
                     continue
 
             role = discord.utils.get(planner_ch.guild.roles, id=pln.team_role)
