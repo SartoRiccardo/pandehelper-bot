@@ -237,11 +237,12 @@ class PlannerCog(ErrorHandlerCog):
 
         ping_channel = self.bot.get_channel(ping_channel_id)
         if ping_channel is None:
-            ping_channel = await self.bot.fetch_channel(ping_channel_id)
-        if ping_channel is None:
-            await bot.db.queries.planner.planner_delete_config(planner_id, ping_channel=True)
-            await self.send_planner_msg(planner_id)
-            return
+            try:
+                ping_channel = await self.bot.fetch_channel(ping_channel_id)
+            except (discord.NotFound, discord.Forbidden):
+                await bot.db.queries.planner.planner_delete_config(planner_id, ping_channel=True)
+                await self.send_planner_msg(planner_id)
+                return None
 
         await ping_channel.send(
             content=message
@@ -305,11 +306,12 @@ class PlannerCog(ErrorHandlerCog):
                               role_id: int or None) -> None:
         ping_channel = self.bot.get_channel(ping_channel_id)
         if ping_channel is None:
-            ping_channel = await self.bot.fetch_channel(ping_channel_id)
-        if ping_channel is None:
-            await bot.db.queries.planner.planner_delete_config(planner_id, ping_channel=True)
-            await self.send_planner_msg(planner_id)
-            return
+            try:
+                ping_channel = await self.bot.fetch_channel(ping_channel_id)
+            except (discord.NotFound, discord.Forbidden):
+                await bot.db.queries.planner.planner_delete_config(planner_id, ping_channel=True)
+                await self.send_planner_msg(planner_id)
+                return None
 
         message = f"**TILE `{tile}` HAS JUST GONE STALE**, claim it now"
         if user_id:
@@ -363,6 +365,7 @@ class PlannerCog(ErrorHandlerCog):
                 try:
                     planner_ch = await self.bot.fetch_channel(pln.planner_channel)
                 except (discord.NotFound, discord.Forbidden):
+                    await bot.db.queries.planner.del_planner(pln.planner_channel)
                     continue
 
             role = discord.utils.get(planner_ch.guild.roles, id=pln.team_role)
@@ -387,7 +390,8 @@ class PlannerCog(ErrorHandlerCog):
             if planner_ch is None:
                 try:
                     planner_ch = await self.bot.fetch_channel(pln.planner_channel)
-                except discord.NotFound:
+                except (discord.NotFound, discord.Forbidden):
+                    await bot.db.queries.planner.del_planner(pln.planner_channel)
                     continue
 
             role = discord.utils.get(planner_ch.guild.roles, id=pln.ping_role_with_tickets)
@@ -727,7 +731,7 @@ class PlannerCog(ErrorHandlerCog):
         if channel is None:
             try:
                 channel = await self.bot.fetch_channel(channel_id)
-            except discord.NotFound:
+            except (discord.NotFound, discord.Forbidden):
                 await bot.db.queries.planner.del_planner(channel_id)
                 return
 
@@ -914,7 +918,8 @@ class PlannerCog(ErrorHandlerCog):
         if channel is None:
             try:
                 channel = await self.bot.fetch_channel(planner.planner_channel)
-            except discord.NotFound:
+            except (discord.NotFound, discord.Forbidden):
+                await bot.db.queries.planner.del_planner(planner.planner_channel)
                 return None
 
         team_role = discord.utils.get(channel.guild.roles, id=planner.ping_role)
