@@ -6,7 +6,8 @@ import bot.db.queries.leaderboard
 import bot.utils.io
 from bot.classes import ErrorHandlerCog
 from typing import Dict, List
-from bot.utils.emojis import TOP_1_GLOBAL, TOP_2_GLOBAL, TOP_3_GLOBAL, TOP_25_GLOBAL, ECO, ECO_NEGATIVE, NEW_TEAM
+from bot.utils.emojis import TOP_1_GLOBAL, TOP_2_GLOBAL, TOP_3_GLOBAL, TOP_25_GLOBAL, ECO, ECO_NEGATIVE, NEW_TEAM, \
+    TOP_1_PERCENT
 
 
 class LeaderboardCog(ErrorHandlerCog):
@@ -143,8 +144,15 @@ class LeaderboardCog(ErrorHandlerCog):
 
         if len(messages) == 0:
             return
+
+        top_1_percent_message = ""
+        if current_event.total_scores_team > 10100:
+            award_word = "Awarded" if should_skip_eco else "Awardable"
+            top_1_percent_message += f"\n      {TOP_1_PERCENT} __Top 1% {award_word}__"
+
         messages[len(messages)-1] += f"\n\n*Teams:* {current_event.total_scores_team:,}  " \
-                                     f"⸰  *Players:* {current_event.total_scores_player:,}" \
+                                     f"⸰  *Players:* {current_event.total_scores_player:,}" + \
+                                     top_1_percent_message + \
                                      f"\n*Last updated: <t:{int(now.timestamp())}:R>*"
         self.last_hour_score = current_hour_score
 
