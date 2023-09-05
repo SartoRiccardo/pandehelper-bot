@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-import json
 import re
 import discord
 from discord.ext import tasks, commands
@@ -11,11 +10,12 @@ import bot.utils.io
 import bot.utils.discordutils
 from bot.classes import ErrorHandlerCog
 from typing import List, Tuple, Union, Optional, Dict
-from bot.utils.emojis import TILE_BANNER, TILE_REGULAR, TILE_RELIC
+from bot.utils.emojis import TILE_BANNER, TILE_REGULAR, TILE_RELIC, RELICS
 from bot.views import PlannerUserView, PlannerAdminView
 from bot.utils.Cache import Cache
 from bot.utils.emojis import EXPIRE_LATER, EXPIRE_DONT_RECAP, EXPIRE_AFTER_RESET, EXPIRE_STALE, EXPIRE_2HR, \
     EXPIRE_3HR, BLANK
+from bloonspy import btd6
 
 
 PLANNER_ADMIN_PANEL = """
@@ -59,18 +59,18 @@ class PlannerCog(ErrorHandlerCog):
     CHECK_EVERY = 30
     CHECK_EVERY_UNCLAIMED = 60
 
-    def __init__(self, bot: commands.Bot) -> None:
-        super().__init__(bot)
+    def __init__(self, dbot: commands.Bot) -> None:
+        super().__init__(dbot)
         next_check = datetime.now().replace(second=0, microsecond=0)
         next_check = next_check.replace(minute=int(next_check.minute/PlannerCog.CHECK_EVERY)*PlannerCog.CHECK_EVERY) \
                      + timedelta(minutes=PlannerCog.CHECK_EVERY)
+        self.current_event: btd6.ContestedTerritoryEvent = bot.utils.bloons.get_current_ct_event()
         self.next_check = next_check
         self.next_check_unclaimed = next_check
         self.banner_decays = []
         self.next_planner_refreshes = {}
         self.last_check_end = self.next_check
         self.ct_day = 0
-        self._banner_list: Cache or None = None
 
     async def load_state(self) -> None:
         state = await asyncio.to_thread(bot.utils.io.get_cog_state, "planner")
@@ -196,7 +196,7 @@ class PlannerCog(ErrorHandlerCog):
             if unclaimed_b.tile not in pings[None]:
                 pings[None].append(unclaimed_b.tile)
 
-        return pings
+        # return pings
 
     async def send_reminder(self,
                             pings: Dict[int or None, List[str]],
@@ -286,7 +286,7 @@ class PlannerCog(ErrorHandlerCog):
     async def decay_ping_when_ready(self,
                                     tile: "bot.db.model.PlannedTile.PlannedTile",
                                     planner: "bot.db.model.Planner.Planner") -> None:
-        now = datetime.now()
+        # now = datetime.now()
         tile_data = await bot.db.queries.planner.planner_get_tile_status(tile.tile, tile.planner_channel)
         ping_role = planner.ping_role_with_tickets if planner.ping_role_with_tickets else planner.ping_role
 
@@ -343,6 +343,7 @@ class PlannerCog(ErrorHandlerCog):
         self.ct_day = current_day
         if self.ct_day <= 7:
             await self.reassign_has_tickets_roles()
+            await self.inject_new_banners()
 
     @tasks.loop(seconds=3600*24)
     async def check_orphan_has_tickets_roles(self) -> None:
@@ -352,6 +353,28 @@ class PlannerCog(ErrorHandlerCog):
         if 0 <= self.ct_day <= 7:
             return
         await self.remove_has_tickets_roles()
+
+    async def inject_new_banners(self) -> None:
+        """
+        If there's a new CT event live, inject the new event's banners into all planners.
+        """
+        current_event = await asyncio.to_thread(bot.utils.bloons.get_current_ct_event)
+        if current_event == self.current_event:
+            return
+        self.current_event = current_event
+
+        banners = await self.get_banner_tile_list()
+        planners = await bot.db.queries.planner.get_planners()
+        for p in planners:
+            tiles = await bot.db.queries.planner.get_planner_tracked_tiles(p.planner_channel)
+            await asyncio.gather(*[
+                bot.db.queries.planner.remove_tile_from_planner(p.planner_channel, t)
+                for t in tiles
+            ])
+            await asyncio.gather(*[
+                bot.db.queries.planner.add_tile_to_planner(p.planner_channel, t, 24)
+                for t in banners
+            ])
 
     async def reassign_has_tickets_roles(self) -> None:
         """
@@ -605,6 +628,8 @@ class PlannerCog(ErrorHandlerCog):
         now = datetime.now()
         tile_table = PLANNER_TABLE_HEADER
         banner_codes = await self.get_banner_tile_list()
+        relic_tiles = await self.get_relic_tile_list()
+        relic_codes = [r.id for r in relic_tiles]
         tile_list = await bot.db.queries.planner.get_planner_tracked_tiles(channel)
         ct_start, ct_end = bot.utils.bloons.get_current_ct_period()
         if now < ct_end:
@@ -636,10 +661,18 @@ class PlannerCog(ErrorHandlerCog):
             elif expire_at-now < timedelta(hours=3):
                 emoji_claim = EXPIRE_3HR
 
+            emoji_tile = TILE_REGULAR
+            if tile.tile in banner_codes:
+                emoji_tile = TILE_BANNER
+            elif (r_idx := relic_codes.index(tile.tile)) > -1:
+                emoji_tile = TILE_RELIC
+                relic = relic_tiles[r_idx]
+                if relic.relic in RELICS.keys():
+                    emoji_tile = RELICS[relic.relic]
             row_second_part = PLANNER_TABLE_ROW_STALE if emoji_claim == EXPIRE_STALE else PLANNER_TABLE_ROW_TIME
             new_row = PLANNER_TABLE_ROW.format(
                 emoji_claim=emoji_claim,
-                emoji_tile=TILE_BANNER if tile.tile in banner_codes else TILE_REGULAR,
+                emoji_tile=emoji_tile,
                 tile=tile.tile,
             ) + row_second_part.format(
                 expire_at=int(expire_at.timestamp()),
@@ -708,19 +741,21 @@ class PlannerCog(ErrorHandlerCog):
 
         return views
 
-    async def get_banner_tile_list(self) -> List[str]:
+    @staticmethod
+    async def get_banner_tile_list() -> List[str]:
         """Returns a list of banner tile codes."""
-        if self._banner_list is None or not self._banner_list.valid:
-            banner_list = await asyncio.to_thread(self.fetch_banner_tile_list)
-            self._banner_list = Cache(banner_list, datetime.now() + timedelta(days=5))
-        return self._banner_list.value
+        return [
+            tile.id for tile in bot.utils.bloons.get_current_ct_tiles()
+            if tile.tile_type == btd6.CtTileType.BANNER
+        ]
 
     @staticmethod
-    def fetch_banner_tile_list() -> List[str]:
-        fin = open("bot/files/json/banners.json")
-        banners = json.loads(fin.read())
-        fin.close()
-        return banners
+    async def get_relic_tile_list() -> List[btd6.CtTile]:
+        """Returns a list of relic tiles."""
+        return [
+            r for r in bot.utils.bloons.get_current_ct_tiles()
+            if r.tile_type == btd6.CtTileType.RELIC
+        ]
 
     async def send_planner_msg(self, channel_id: int) -> None:
         """(Re)sends the planner message.

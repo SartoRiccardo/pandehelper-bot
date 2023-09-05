@@ -49,6 +49,7 @@ class OwnerCog(commands.Cog):
             cog_name = OwnerCog.COG_PATH_TEMPLATE.format(name)
             await self.bot.load_extension(cog_name)
             await ctx.message.add_reaction(SUCCESS_REACTION)
+            self.bot.reload_version()
         except Exception as e:
             await ctx.send(self.ERROR_MESSAGE.format(type(e).__name__, e))
 
@@ -61,6 +62,7 @@ class OwnerCog(commands.Cog):
             if cog_name != __name__:
                 await self.bot.unload_extension(cog_name)
                 await ctx.message.add_reaction(SUCCESS_REACTION)
+                self.bot.reload_version()
             else:
                 await ctx.send(
                     f"You cannot unload the `{name}` cog. Did you mean `cog reload {name}`?"
@@ -76,6 +78,7 @@ class OwnerCog(commands.Cog):
             cog_name = OwnerCog.COG_PATH_TEMPLATE.format(name)
             await self.bot.reload_extension(cog_name)
             await ctx.message.add_reaction(SUCCESS_REACTION)
+            self.bot.reload_version()
         except Exception as e:
             await ctx.send(self.ERROR_MESSAGE.format(type(e).__name__, e))
 

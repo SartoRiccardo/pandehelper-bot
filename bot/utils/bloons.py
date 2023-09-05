@@ -4,6 +4,7 @@ from bloonspy import Client, btd6
 import re
 import os
 import json
+from .Cache import Cache
 from typing import Tuple
 from bot.utils.emojis import NO_SELLING, NO_KNOWLEDGE, CERAM_HEALTH, MOAB_HEALTH, MOAB_SPEED, BLOON_SPEED, \
     BLOONARIUS, VORTEX, LYCH, LEAST_CASH, LEAST_TIERS, TIME_ATTACK, MAX_TOWERS, REGROW_RATE, CASH
@@ -16,6 +17,9 @@ EVENT_EPOCHS = [
     (1, datetime.datetime.fromtimestamp(1660075200)),
     (26, datetime.datetime.fromtimestamp(1690927200)),
 ]
+
+CT_DATA_CACHE_HR = 12
+tiles_cache = Cache([], datetime.datetime.now())
 
 EVENT_DURATION = 7
 DEFAULT_STARTING_LIVES = {
@@ -345,9 +349,24 @@ def get_current_ct_event() -> btd6.ContestedTerritoryEvent or None:
     now = datetime.datetime.now()
     events = Client.contested_territories()
     for ct in events:
-        if ct.start <= now <= ct.end + datetime.timedelta(hours=1):
+        if ct.start <= now:
             return ct
     return None
+
+
+def get_current_ct_tiles() -> list[btd6.CtTile]:
+    """This is supposed to be awaited and turned into a thread but it's only blocking once every 12 hours so idc"""
+    global tiles_cache
+    if not tiles_cache.valid:
+        ct = get_current_ct_event()
+        if ct is None:
+            return []
+        tiles_cache = Cache(ct.tiles(), datetime.datetime.now() + datetime.timedelta(hours=CT_DATA_CACHE_HR))
+    return tiles_cache.value
+
+
+def is_tile_code_valid(tile: str) -> bool:
+    return tile in [t.id for t in get_current_ct_tiles()]
 
 
 def get_map_image(team_pov: int = 0):
