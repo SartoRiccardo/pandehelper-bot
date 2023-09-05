@@ -355,6 +355,7 @@ def get_current_ct_event() -> btd6.ContestedTerritoryEvent or None:
 
 
 def get_current_ct_tiles() -> list[btd6.CtTile]:
+    """This is supposed to be awaited and turned into a thread but it's only blocking once every 12 hours so idc"""
     global tiles_cache
     if not tiles_cache.valid:
         ct = get_current_ct_event()
@@ -362,6 +363,10 @@ def get_current_ct_tiles() -> list[btd6.CtTile]:
             return []
         tiles_cache = Cache(ct.tiles(), datetime.datetime.now() + datetime.timedelta(hours=CT_DATA_CACHE_HR))
     return tiles_cache.value
+
+
+def is_tile_code_valid(tile: str) -> bool:
+    return tile in [t.id for t in get_current_ct_tiles()]
 
 
 def get_map_image(team_pov: int = 0):
