@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+from bloonspy import btd6
 import bot.utils.io
 import bot.utils.bloons
 import bot.utils.discordutils
@@ -60,33 +61,15 @@ class TilesCog(ErrorHandlerCog):
 
     @discord.app_commands.command(name="raceregs",
                                   description="Get a list of all race regs.")
-    @discord.app_commands.guild_only()
-    @bot.utils.discordutils.gatekeep()
     async def cmd_raceregs(self, interaction: discord.Interaction) -> None:
-        if self.raceregs is not None and self.raceregs.valid:
-            race_regs = self.raceregs.value
-        else:
-            tiles_path = "bot/files/json/tiles/"
-            tiles = os.listdir(tiles_path)
-            coros = []
-            for filename in tiles:
-                tile = filename[:3]
-                coros.append(asyncio.to_thread(self.fetch_challenge_data, tile))
-            tiles_data = await asyncio.gather(*coros)
-
-            race_regs = []
-            for tile in tiles_data:
-                if "TileType" not in tile or "subGameType" not in tile["GameData"]:
-                    print(tile)
-                    continue
-                if tile["GameData"]["subGameType"] == 2 and tile['TileType'] == "Regular":
-                    race_regs.append(tile["Code"])
-            current_ct_num = bot.utils.bloons.get_current_ct_number()
-            next_ct_start, _ncte = bot.utils.bloons.get_ct_period_during(event=current_ct_num+1)
-            self.raceregs = Cache(race_regs, next_ct_start)
+        tiles = await asyncio.to_thread(bot.utils.bloons.get_current_ct_tiles)
+        race_regs = [
+            tile.id for tile in tiles
+            if tile.tile_type == btd6.CtTileType.REGULAR and tile.game_type == btd6.GameType.RACE
+        ]
 
         await interaction.response.send_message(
-            content=f"`{'` `'.join(race_regs)}`"
+            content=f"**Race Regs:** `{'`, `'.join(sorted(race_regs))}`"
         )
 
     @discord.app_commands.command(name="spawnlock",
