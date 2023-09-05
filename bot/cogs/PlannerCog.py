@@ -664,7 +664,8 @@ class PlannerCog(ErrorHandlerCog):
             emoji_tile = TILE_REGULAR
             if tile.tile in banner_codes:
                 emoji_tile = TILE_BANNER
-            elif (r_idx := relic_codes.index(tile.tile)) > -1:
+            elif tile.tile in relic_codes:
+                r_idx = relic_codes.index(tile.tile)
                 emoji_tile = TILE_RELIC
                 relic = relic_tiles[r_idx]
                 if relic.relic in RELICS.keys():

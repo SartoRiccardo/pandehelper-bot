@@ -124,7 +124,7 @@ class LeaderboardCog(ErrorHandlerCog):
             placement = f"`{i+1}`"
             if i < len(placements_emojis):
                 placement = placements_emojis[i]
-            if team.is_disbanded():
+            if team.is_disbanded:
                 placement = "❌"
 
             team_name = team.name.split("-")[0]
