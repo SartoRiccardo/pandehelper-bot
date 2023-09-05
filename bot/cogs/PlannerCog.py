@@ -639,11 +639,13 @@ class PlannerCog(ErrorHandlerCog):
             emoji_tile = TILE_REGULAR
             if tile.tile in banner_codes:
                 emoji_tile = TILE_BANNER
-            elif r_idx := relic_codes.index(tile.tile) > -1:
+            elif (r_idx := relic_codes.index(tile.tile)) > -1:
                 emoji_tile = TILE_RELIC
+                print(tile.tile, relic_codes, r_idx)
                 relic = relic_tiles[r_idx]
                 if relic.relic in RELICS.keys():
                     emoji_tile = RELICS[relic.relic]
+                    print(relic.relic, emoji_tile)
             row_second_part = PLANNER_TABLE_ROW_STALE if emoji_claim == EXPIRE_STALE else PLANNER_TABLE_ROW_TIME
             new_row = PLANNER_TABLE_ROW.format(
                 emoji_claim=emoji_claim,
