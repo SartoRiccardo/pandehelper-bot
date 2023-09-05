@@ -15,11 +15,11 @@ from bot.views.SpawnlockPaginate import SpawnlockPaginateView
 TeamColor = Literal["Purple", "Red", "Yellow", "Pink", "Blue", "Green"]
 spawn_tile_codes = {
     "Purple": ["ABA", "AAB", "ACA"],
-    "Red": ["FBA", "FAB", "FCA"],
+    "Red":    ["FBA", "FAB", "FCA"],
     "Yellow": ["EBA", "EAB", "ECA"],
-    "Pink": ["BCA", "BAB", "BBA"],
-    "Blue": ["DCA", "DAB", "DBA"],
-    "Green": ["CCA", "CAB", "CBA"],
+    "Pink":   ["BCA", "BAB", "BBA"],
+    "Blue":   ["DCA", "DAB", "DBA"],
+    "Green":  ["CCA", "CAB", "CBA"],
 }
 
 
@@ -28,6 +28,7 @@ class TilesCog(ErrorHandlerCog):
         None: "Information about the map and its tiles.",
         "tile": "Check a CT tile's information.",
         "spawnlock": "Check the 3 tiles next to a team's spawn.",
+        "raceregs": "Check how many race regs are on the map, and where they are.",
     }
 
     def __init__(self, bot: commands.Bot) -> None:
@@ -69,7 +70,7 @@ class TilesCog(ErrorHandlerCog):
         ]
 
         await interaction.response.send_message(
-            content=f"**Race Regs:** `{'`, `'.join(sorted(race_regs))}`"
+            content=f"**Race Regs ({len(race_regs)}):** `{'`, `'.join(sorted(race_regs))}`"
         )
 
     @discord.app_commands.command(name="spawnlock",
