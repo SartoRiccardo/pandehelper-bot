@@ -37,6 +37,14 @@ class CtTicketTracker(commands.Bot):
         for cog in cogs:
             await self.load_extension(f"bot.cogs.{cog}")
 
+    def reload_version(self):
+        with open("bot/__init__.py") as fin:
+            for ln in fin:
+                ln = ln.strip()
+                if ln.startswith("__version__ = \""):
+                    self.version = ln[len("__version__ = \""):-1]
+                    return
+
 
 if __name__ == '__main__':
     CtTicketTracker().run(TOKEN)

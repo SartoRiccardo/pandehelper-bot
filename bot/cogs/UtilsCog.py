@@ -220,13 +220,12 @@ class UtilsCog(ErrorHandlerCog):
     @discord.app_commands.command(name="info",
                                   description="General information about the bot.")
     async def cmd_info(self, interaction: discord.Interaction) -> None:
-        now = datetime.datetime.now()
         lr = int(self.bot.last_restart.timestamp())
         embed = discord.Embed(
             title="Pandemonium Helper (`ct-ticket-tracker`)",
             description=f"- Version: **__{self.bot.version}__**\n"
                         f"- Last Restart: <t:{lr}> (<t:{lr}:R>)\n\n"
-                        f"*Coded & maintained by __Chime__ (@chime.nemo) <:chimichanga:1140755762868649984>*",
+                        f"*Coded & maintained by __Chime__ (@chime.nemo) <:chimichanga:1147529275499614288>*",
             color=discord.Color.orange()
         )
         await interaction.response.send_message(embed=embed)
