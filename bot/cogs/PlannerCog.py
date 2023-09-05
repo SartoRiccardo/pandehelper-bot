@@ -713,15 +713,21 @@ class PlannerCog(ErrorHandlerCog):
 
         return views
 
-    async def get_banner_tile_list(self) -> List[str]:
+    @staticmethod
+    async def get_banner_tile_list() -> List[str]:
         """Returns a list of banner tile codes."""
-        tiles = await asyncio.to_thread(bot.utils.bloons.get_current_ct_tiles)
-        return [tile.id for tile in tiles if tile.tile_type == CtTileType.BANNER]
+        return [
+            tile.id for tile in bot.utils.bloons.get_current_ct_tiles()
+            if tile.tile_type == CtTileType.BANNER
+        ]
 
-    async def get_relic_tile_list(self) -> List[CtTile]:
+    @staticmethod
+    async def get_relic_tile_list() -> List[CtTile]:
         """Returns a list of relic tiles."""
-        tiles = await asyncio.to_thread(bot.utils.bloons.get_current_ct_tiles)
-        return [r for r in tiles if r.tile_type == CtTileType.RELIC]
+        return [
+            r for r in bot.utils.bloons.get_current_ct_tiles()
+            if r.tile_type == CtTileType.RELIC
+        ]
 
     async def send_planner_msg(self, channel_id: int) -> None:
         """(Re)sends the planner message.
