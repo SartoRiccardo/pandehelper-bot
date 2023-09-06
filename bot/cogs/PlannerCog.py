@@ -363,7 +363,10 @@ class PlannerCog(ErrorHandlerCog):
             return
         self.current_event = current_event
 
-        banners = await self.get_banner_tile_list()
+        banners = [
+            tile.id for tile in (await asyncio.to_thread(current_event.tiles))
+            if tile.tile_type == btd6.CtTileType.BANNER
+        ]
         planners = await bot.db.queries.planner.get_planners()
         for p in planners:
             tiles = await bot.db.queries.planner.get_planner_tracked_tiles(p.planner_channel)
