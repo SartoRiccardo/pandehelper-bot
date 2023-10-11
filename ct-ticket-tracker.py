@@ -1,4 +1,5 @@
 import discord
+import logging
 from datetime import datetime
 import bot.db.connection
 from bot import __version__
@@ -16,6 +17,7 @@ class CtTicketTracker(commands.Bot):
             intents=intents,
             application_id=APP_ID,
             activity=discord.Game(name="/help"),
+            log_level=logging.ERROR,
         )
         self.remove_command("help")
         self.version = __version__
