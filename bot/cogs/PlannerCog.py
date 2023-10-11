@@ -398,6 +398,8 @@ class PlannerCog(ErrorHandlerCog):
             if role is None:
                 roles = await planner_ch.guild.fetch_roles()
                 role = discord.utils.get(roles, id=pln.team_role)
+                if role is None:
+                    continue
 
             checks = []
             for member in role.members:
