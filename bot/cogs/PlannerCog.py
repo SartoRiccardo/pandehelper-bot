@@ -196,7 +196,7 @@ class PlannerCog(ErrorHandlerCog):
             if unclaimed_b.tile not in pings[None]:
                 pings[None].append(unclaimed_b.tile)
 
-        # return pings
+        return pings
 
     async def send_reminder(self,
                             pings: Dict[int or None, List[str]],
@@ -989,7 +989,7 @@ class PlannerCog(ErrorHandlerCog):
             return
         ping_role = member.guild.get_role(planner.ping_role_with_tickets)
         if ping_role is None:
-            await bot.db.queries.planner.planner_delete_config(ping_role_with_tickets=True)
+            await bot.db.queries.planner.planner_delete_config(planner.planner_channel, ping_role_with_tickets=True)
             return
 
         today_ticket_idx = min(bot.utils.bloons.get_current_ct_day() - 1, 6)
@@ -1007,10 +1007,13 @@ class PlannerCog(ErrorHandlerCog):
                 tickets_used += 1
 
         has_role = discord.utils.get(member.roles, id=planner.ping_role_with_tickets) is not None
-        if has_role and tickets_used >= 4:
-            await member.remove_roles(ping_role)
-        elif not has_role and tickets_used < 4:
-            await member.add_roles(ping_role)
+        try:
+            if has_role and tickets_used >= 4:
+                await member.remove_roles(ping_role)
+            elif not has_role and tickets_used < 4:
+                await member.add_roles(ping_role)
+        except discord.Forbidden:
+            pass
 
 
 async def setup(bot: commands.Bot) -> None:
