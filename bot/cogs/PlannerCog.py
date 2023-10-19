@@ -64,6 +64,7 @@ class PlannerCog(ErrorHandlerCog):
         next_check = datetime.now().replace(second=0, microsecond=0)
         next_check = next_check.replace(minute=int(next_check.minute/PlannerCog.CHECK_EVERY)*PlannerCog.CHECK_EVERY) \
                      + timedelta(minutes=PlannerCog.CHECK_EVERY)
+        # This is updated in inject_new_banners which gets called every reset
         self.current_event: btd6.ContestedTerritoryEvent = bot.utils.bloons.get_current_ct_event()
         self.next_check = next_check
         self.next_check_unclaimed = next_check
@@ -329,6 +330,9 @@ class PlannerCog(ErrorHandlerCog):
     @tasks.loop(seconds=30)
     async def check_planner_refresh(self) -> None:
         now = datetime.now()
+        if now > self.current_event.end or now < self.current_event.start:
+            return
+
         for planner_channel in self.next_planner_refreshes:
             if self.next_planner_refreshes[planner_channel] > now:
                 continue
