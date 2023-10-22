@@ -116,14 +116,12 @@ class RaidLogCog(ErrorHandlerCog):
     @discord.app_commands.command(name="raidlog", description="Alias for /tilestrat")
     @discord.app_commands.describe(tile_code="The tile code to look up.")
     @discord.app_commands.guild_only()
-    @bot.utils.discordutils.gatekeep()
     async def cmd_search_raidlog(self, interaction: discord.Interaction, tile_code: str) -> None:
         await self.search_tile(interaction, tile_code)
 
     @discord.app_commands.command(name="tilestrat", description="Get the strat thread for a tile")
     @discord.app_commands.describe(tile_code="The tile code to look up.")
     @discord.app_commands.guild_only()
-    @bot.utils.discordutils.gatekeep()
     async def cmd_search(self, interaction: discord.Interaction, tile_code: str) -> None:
         await self.search_tile(interaction, tile_code)
 
@@ -235,7 +233,6 @@ class RaidLogCog(ErrorHandlerCog):
     @group_tilestratchannel.command(name="stats", description="Get the raid log stats of the current season!")
     @discord.app_commands.describe(season="The CT season to check stats for.")
     @discord.app_commands.guild_only()
-    @bot.utils.discordutils.gatekeep()
     async def cmd_stats(self, interaction: discord.Interaction, season: Optional[int] = None) -> None:
         forum_id = await bot.db.queries.tilestrat.get_tile_strat_forum(interaction.guild_id)
         if forum_id is None:
@@ -354,7 +351,6 @@ class RaidLogCog(ErrorHandlerCog):
     @group_tilestratchannel.command(name="create", description="Create a Tile Strats forum.")
     @discord.app_commands.checks.has_permissions(manage_guild=True)
     @discord.app_commands.guild_only()
-    @bot.utils.discordutils.gatekeep()
     async def cmd_create_raidlog(self, interaction: discord.Interaction) -> None:
         forum = await interaction.guild.create_forum("tile-strats")
         await self.set_raidlog(interaction, forum)
@@ -366,14 +362,12 @@ class RaidLogCog(ErrorHandlerCog):
     @discord.app_commands.describe(forum="The forum to set as the server's Tile Strats forum")
     @discord.app_commands.checks.has_permissions(manage_guild=True)
     @discord.app_commands.guild_only()
-    @bot.utils.discordutils.gatekeep()
     async def cmd_set_raidlog(self, interaction: discord.Interaction, forum: discord.ForumChannel) -> None:
         await self.set_raidlog(interaction, forum)
 
     @group_tilestratchannel.command(name="unset", description="Stop tracking the current Tile Strats forum")
     @discord.app_commands.checks.has_permissions(manage_guild=True)
     @discord.app_commands.guild_only()
-    @bot.utils.discordutils.gatekeep()
     async def cmd_unset_raidlog(self, interaction: discord.Interaction) -> None:
         await bot.db.queries.tilestrat.del_tile_strat_forum(interaction.guild_id)
         await interaction.response.send_message(

@@ -40,21 +40,20 @@ class TilesCog(ErrorHandlerCog):
     @discord.app_commands.describe(tile="The 3 letter tile code, or a relic name.",
                                    hide="Hide the output.")
     @discord.app_commands.guild_only()
-    @bot.utils.discordutils.gatekeep()
     async def cmd_tile(self, interaction: discord.Interaction, tile: str, hide: Optional[bool] = True) -> None:
         tile = tile.upper()
         challenge_data = await asyncio.to_thread(self.fetch_challenge_data, tile)
         if challenge_data is None:
             tile = await asyncio.to_thread(bot.utils.bloons.relic_to_tile_code, tile)
             challenge_data = await asyncio.to_thread(self.fetch_challenge_data, tile)
-        embed = bot.utils.bloons.raw_challenge_to_embed(challenge_data)
-        if embed is None:
+        if challenge_data is None:
             await interaction.response.send_message(
                 content="I don't have the challenge data for that tile!",
                 ephemeral=hide,
             )
             return
 
+        embed = bot.utils.bloons.raw_challenge_to_embed(challenge_data)
         await interaction.response.send_message(
             embed=embed,
             ephemeral=hide,
@@ -78,7 +77,6 @@ class TilesCog(ErrorHandlerCog):
     @discord.app_commands.describe(team="The team you wanna see the spawn tiles for.",
                                    hide="Hide the output.")
     @discord.app_commands.guild_only()
-    @bot.utils.discordutils.gatekeep()
     async def cmd_spawnlock(self, interaction: discord.Interaction, team: TeamColor, hide: bool = True) -> None:
         tiles = spawn_tile_codes[team]
 
