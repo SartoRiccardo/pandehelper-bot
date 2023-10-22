@@ -1,5 +1,5 @@
 # Emotes from https://discord.gg/kwcUuaK4rt
-from bloonspy.model.btd6 import Relic
+from bloonspy.model.btd6 import Relic, BossBloon
 
 
 # Misc
@@ -89,6 +89,15 @@ REGROW_RATE = "<a:regrowrate:1148694647691026433>"
 VORTEX = "<a:vortex:1148694615952720044>"
 BLOONARIUS = "<a:bloonarius:1148694617835970702>"
 LYCH = "<a:lych:1148694634629959770>"
+DREADBLOON = "<a:dreadbloon:1164867973807362068>"
+PHAYZE = "<a:phayze:1164867969197817936>"
+BOSSES = {
+    BossBloon.VORTEX: "<a:vortex:1148694615952720044>",
+    BossBloon.BLOONARIUS: "<a:bloonarius:1148694617835970702>",
+    BossBloon.LYCH: "<a:lych:1148694634629959770>",
+    BossBloon.DREADBLOON: "<a:dreadbloon:1164867973807362068>",
+    BossBloon.PHAYZE: "<a:phayze:1164867969197817936>",
+}
 LEAST_CASH = "<a:leastcash:1148694630020435978>"
 LEAST_TIERS = "<a:leasttier:1148694632969011332>"
 TIME_ATTACK = "<a:Race:1148695164123095060>"

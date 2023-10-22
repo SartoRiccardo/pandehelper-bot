@@ -7,9 +7,9 @@ import json
 from .Cache import Cache
 from typing import Tuple
 from bot.utils.emojis import NO_SELLING, NO_KNOWLEDGE, CERAM_HEALTH, MOAB_HEALTH, MOAB_SPEED, BLOON_SPEED, \
-    BLOONARIUS, VORTEX, LYCH, LEAST_CASH, LEAST_TIERS, TIME_ATTACK, MAX_TOWERS, REGROW_RATE, CASH
+    MAX_TOWERS, REGROW_RATE, CASH
 from bot.utils.images import BANNER_IMG, REGULAR_IMG, RELICS_IMG, RELIC_IMG, MAPS, IMG_BLOONARIUS, \
-    IMG_LYCH, IMG_VORTEX, IMG_LEAST_CASH, IMG_LEAST_TIERS, IMG_TIME_ATTACK
+    IMG_LYCH, IMG_VORTEX, IMG_PHAYZE, IMG_DREADBLOON, IMG_LEAST_CASH, IMG_LEAST_TIERS, IMG_TIME_ATTACK
 
 
 EVENT_EPOCHS = [
@@ -146,15 +146,10 @@ def raw_challenge_to_embed(challenge) -> discord.Embed or None:
 
     boss = None
     challenge_thmb = ""
+    boss_data = [("Bloonarius", IMG_BLOONARIUS), ("Lych", IMG_LYCH), ("Vortex", IMG_VORTEX),
+                 ("Dreadbloon", IMG_DREADBLOON), ("Phayze", IMG_PHAYZE)]
     if "bossData" in challenge:
-        boss = "Bloonarius"
-        challenge_thmb = IMG_BLOONARIUS
-        if challenge['bossData']['bossBloon'] == 1:
-            boss = "Lych"
-            challenge_thmb = IMG_LYCH
-        elif challenge['bossData']['bossBloon'] == 2:
-            boss = "Vortex"
-            challenge_thmb = IMG_VORTEX
+        boss, challenge_thmb = boss_data[challenge['bossData']['bossBloon']]
 
     mode = challenge['selectedMode']
     if boss:

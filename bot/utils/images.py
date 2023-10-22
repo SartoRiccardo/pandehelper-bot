@@ -128,6 +128,8 @@ MAPS = {
 IMG_BLOONARIUS = "https://i.gyazo.com/be511c1e97575bd2c50943be77783a95.png"
 IMG_LYCH = "https://i.gyazo.com/eee6e911abfebde7aa2b4935f01e741a.png"
 IMG_VORTEX = "https://i.gyazo.com/d223e91b628adf7cb63cc42be7728180.png"
+IMG_DREADBLOON = "https://media.discordapp.net/attachments/1164868153571029073/1165627269298012160/latest.png?ex=654789fd&is=653514fd&hm=f69276c7b4c0a2e78b8017fefb5c58e1b581d51ca11a05924a9ee93acc75e839&="
+IMG_PHAYZE = "https://i.gyazo.com/23dcb6bba8dfa877b86309dce1248daf.png"
 IMG_LEAST_CASH = "https://cdn.discordapp.com/emojis/1049069211881836614.png"
 IMG_LEAST_TIERS = "https://cdn.discordapp.com/emojis/1049069268060344400.png"
 IMG_TIME_ATTACK = "https://cdn.discordapp.com/emojis/1049236764918808666.png"
