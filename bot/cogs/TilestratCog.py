@@ -42,7 +42,7 @@ You can do one of 2 things for race tiles, which one is up to you:
 TOTAL_TILES = 163
 
 
-class RaidLogCog(ErrorHandlerCog):
+class TilestratCog(ErrorHandlerCog):
     help_descriptions = {
         None: "Manages a forum to post tile strategies",
         "tilestrat-forum": {
@@ -432,7 +432,7 @@ class RaidLogCog(ErrorHandlerCog):
 
                 threads_str.append(thread_template.format(
                     ct_num=ct_num,
-                    thread_url=RaidLogCog.get_channel_url(old_thr),
+                    thread_url=TilestratCog.get_channel_url(old_thr),
                     tile_type=tile_type
                 ))
             prev_strats = "\n".join(threads_str)
@@ -444,7 +444,7 @@ class RaidLogCog(ErrorHandlerCog):
             title=thread.name,
             description=content,
             color=discord.Color.orange(),
-            url=RaidLogCog.get_channel_url(thread),
+            url=TilestratCog.get_channel_url(thread),
         )
         if len(content) > 0:
             embed.description = content
@@ -467,4 +467,4 @@ class RaidLogCog(ErrorHandlerCog):
 
 
 async def setup(bot: commands.Bot) -> None:
-    await bot.add_cog(RaidLogCog(bot))
+    await bot.add_cog(TilestratCog(bot))

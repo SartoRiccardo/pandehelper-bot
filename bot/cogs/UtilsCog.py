@@ -3,7 +3,7 @@ import datetime
 import bot.utils.io
 import bot.utils.bloons
 import bot.utils.discordutils
-from bot.utils.Cache import Cache
+from bot.classes.HelpMessageCog import HelpMessageCog
 import discord
 from discord.ext import commands, tasks
 from bot.classes import ErrorHandlerCog
@@ -104,15 +104,13 @@ class UtilsCog(ErrorHandlerCog):
                                   description="Get info about the bot's commands.")
     @discord.app_commands.describe(module="The module to get info for.")
     async def cmd_send_help_msg(self, interaction: discord.Interaction, module: str = None) -> None:
-        blacklisted_cogs = ["owner", "raidlog"]
         if module is None:
-            cogs = [cog.replace("Cog", "").lower() for cog in self.bot.cogs.keys()]
-            for blck_cog in blacklisted_cogs:
-                cogs.remove(blck_cog)
+            cogs = self.get_help_cogs()
+            cog_list = '`\n- `'.join(cogs)
             message = "This bot has many features, organized into \"modules\"! " \
                       "If you want info about a specific module, pass its name through the `module` " \
                       "parameter the next time you use /help!\n" \
-                      f"*Available modules:* `{'`, `'.join(cogs)}`\n\n" \
+                      f"*Available modules:*\n- `{cog_list}`\n\n" \
                       "Also be sure to check out [the wiki](<https://github.com/SartoRiccardo/ct-ticket-tracker/wiki>) " \
                       "for help in setting up some of the more difficult to use modules!"
             await interaction.response.send_message(message, ephemeral=True)
@@ -132,6 +130,23 @@ class UtilsCog(ErrorHandlerCog):
             return
 
         await interaction.response.send_message(await cog.help_message(), ephemeral=True)
+
+    @cmd_send_help_msg.autocomplete("module")
+    async def autoc_tag_tag_name(self,
+                                 _interaction: discord.Interaction,
+                                 current: str
+                                 ) -> List[discord.app_commands.Choice[str]]:
+        return [
+            discord.app_commands.Choice(name=tag, value=tag)
+            for tag in self.get_help_cogs() if current.lower() in tag.lower()
+        ]
+
+    def get_help_cogs(self):
+        return [
+            cog.replace("Cog", "").title()
+            for cog in self.bot.cogs.keys()
+            if isinstance(self.bot.cogs[cog], HelpMessageCog) and self.bot.cogs[cog].has_help_msg
+        ]
 
     @discord.app_commands.command(name="tag",
                                   description="Sends a message associated with the given tag")

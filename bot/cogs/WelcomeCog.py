@@ -8,6 +8,7 @@ from bot.classes import ErrorHandlerCog
 
 
 class WelcomeCog(ErrorHandlerCog):
+    has_help_msg = False
     help_descriptions = {
         None: "Manages private channels for recruitment purposes. Has no commands."
     }
