@@ -57,5 +57,5 @@ class SpawnlockPaginateView(discord.ui.View):
         embed = bot.utils.bloons.raw_challenge_to_embed(self.tile_data[tile_idx])
         await self.original_interaction.edit_original_response(
             embed=embed,
-            view=SpawnlockPaginateView(self.tile_data, self.original_interaction, current=self.current),
+            view=SpawnlockPaginateView(self.tile_data, self.original_interaction, current=tile_idx),
         )
