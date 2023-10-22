@@ -1,3 +1,4 @@
+import math
 from datetime import datetime, timedelta
 import discord
 from discord.ext import tasks, commands
@@ -150,9 +151,18 @@ class LeaderboardCog(ErrorHandlerCog):
             award_word = "Awarded" if should_skip_eco else "Awardable"
             top_1_percent_message += f"\n      {TOP_1_PERCENT} __Top 1% {award_word}__"
 
+        time_remaining_message = ""
+        if now < current_event.end:
+            time_left = current_event.end - now
+            time_left_str = f"{math.ceil(time_left.seconds/3600)}h"
+            if time_left.days > 0:
+                time_left_str = f"{time_left.days}d{time_left_str}"
+            time_remaining_message = f"\n*Event time left:* {time_left_str}"
+
         messages[len(messages)-1] += f"\n\n*Teams:* {current_event.total_scores_team:,}  " \
                                      f"⸰  *Players:* {current_event.total_scores_player:,}" + \
                                      top_1_percent_message + \
+                                     time_remaining_message + \
                                      f"\n*Last updated: <t:{int(now.timestamp())}:R>*"
         self.last_hour_score = current_hour_score
 
