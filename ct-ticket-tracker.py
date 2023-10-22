@@ -29,7 +29,7 @@ class CtTicketTracker(commands.Bot):
             "OwnerCog",
             "TrackerCog",
             "LeaderboardCog",
-            "RaidLogCog",
+            "TilestratCog",
             "UtilsCog",
             #"VerifyCog",
             "PlannerCog",
