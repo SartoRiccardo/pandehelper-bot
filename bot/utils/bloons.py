@@ -152,6 +152,8 @@ def raw_challenge_to_embed(challenge) -> discord.Embed or None:
         boss, challenge_thmb = boss_data[challenge['bossData']['bossBloon']]
 
     mode = challenge['selectedMode']
+    if mode == "DoubleMoabHealth":
+        mode = "Double HP MOABs"
     if boss:
         mode = f"{boss} {challenge['bossData']['TierCount']} Tier{'s' if challenge['bossData']['TierCount'] > 1 else ''}"
 
@@ -236,6 +238,9 @@ def raw_challenge_to_embed(challenge) -> discord.Embed or None:
     map_key = challenge["selectedMap"] if challenge["selectedMap"] in MAPS else None
     embed.set_image(url=MAPS[map_key])
     embed.set_thumbnail(url=challenge_thmb)
+#    embed.set_footer(text="⚠️ Note: This command might have outdated info since the way we gather data for it is "
+#                          "finnicky. If you want this command to work reliably, let the Open Data NinjaKiwi API know "
+#                          "that you'd like tile data to be provided by their official API.")
 
     if all_heros_enabled:
         embed.add_field(name="Heroes", value="All Heroes Enabled!")
