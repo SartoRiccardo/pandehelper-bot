@@ -48,7 +48,7 @@ class MigrateCog(commands.Cog):
                 try:
                     guild = await self.bot.fetch_guild(tsf["guildid"])
                 except (discord.NotFound, discord.Forbidden):
-                    print(f"> Guild {guild} invalid (left server or deleted)")
+                    print(f"> Guild {tsf['guildid']} invalid (left server or deleted)")
                     continue
 
             forum = guild.get_channel(tsf["forumid"])
@@ -56,18 +56,18 @@ class MigrateCog(commands.Cog):
                 try:
                     forum = await guild.fetch_channel(tsf["forumid"])
                 except (discord.NotFound, discord.Forbidden):
-                    print(f"> Forum {forum} invalid (no access or deleted)")
+                    print(f"> Forum {tsf['forumid']} invalid (no access or deleted)")
                     continue
 
             print(f"> Migrating {guild.id}-{forum.id}...")
 
             for t in forum.threads:
-                if t.owner != self.bot:
+                if t.owner != self.bot.user:
                     continue
                 await self.parse_thread(t, forum)
 
             async for t in forum.archived_threads(limit=None):
-                if t.owner != self.bot:
+                if t.owner != self.bot.user:
                     continue
                 await self.parse_thread(t, forum)
 
