@@ -86,6 +86,7 @@ class MigrateCog(commands.Cog):
                 elif tag.name.startswith("Season "):
                     event_num = int(tag.name[-2:])
 
+            print(f"> > {thread.name[-3:].upper()} {event_num} {chal_type} {boss if boss else ''}")
             try:
                 await bot.db.queries.tilestrat.create_tilestrat(
                     forum.id, thread.id, thread.name[-3:].upper(), event_num, chal_type, boss
