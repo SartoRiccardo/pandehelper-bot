@@ -7,8 +7,10 @@ import bot.utils.discordutils
 from bot.exceptions import UnknownTile
 from bot.classes import ErrorHandlerCog
 import bot.utils.bloons
-from bot.utils.emojis import LEAST_TIERS, LEAST_CASH, BLOONARIUS, VORTEX, LYCH, TIME_ATTACK, BLANK
-from bot.utils.images import IMG_LEAST_CASH, IMG_LEAST_TIERS, IMG_BLOONARIUS, IMG_VORTEX, IMG_LYCH, IMG_TIME_ATTACK
+from bot.utils.emojis import LEAST_TIERS, LEAST_CASH, BLOONARIUS, VORTEX, LYCH, TIME_ATTACK, BLANK, DREADBLOON, \
+    PHAYZE
+from bot.utils.images import IMG_LEAST_CASH, IMG_LEAST_TIERS, IMG_BLOONARIUS, IMG_VORTEX, IMG_LYCH, IMG_TIME_ATTACK, \
+    IMG_DREADBLOON, IMG_PHAYZE
 import re
 from typing import List, Dict, Optional
 
@@ -204,6 +206,10 @@ class TilestratCog(ErrorHandlerCog):
                     boss_name = "Lych"
                 elif tile_data['bossData']['bossBloon'] == 2:
                     boss_name = "Vortex"
+                elif tile_data['bossData']['bossBloon'] == 3:
+                    boss_name = "Dreadbloon"
+                elif tile_data['bossData']['bossBloon'] == 4:
+                    boss_name = "Phayze"
                 boss_name_tag = discord.utils.get(forum_channel.available_tags, name=boss_name)
                 if boss_name_tag is None:
                     boss_name_tag = await forum_channel.create_tag(name=boss_name)
@@ -406,6 +412,8 @@ class TilestratCog(ErrorHandlerCog):
             "Vortex": {"image": IMG_VORTEX, "emoji": VORTEX},
             "Lych": {"image": IMG_LYCH, "emoji": LYCH},
             "Bloonarius": {"image": IMG_BLOONARIUS, "emoji": BLOONARIUS},
+            "Dreadbloon": {"image": IMG_DREADBLOON, "emoji": DREADBLOON},
+            "Phayze": {"image": IMG_PHAYZE, "emoji": PHAYZE},
         }
 
         thumb_url = ""
