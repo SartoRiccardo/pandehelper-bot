@@ -239,7 +239,8 @@ class UtilsCog(ErrorHandlerCog):
         embed = discord.Embed(
             title="Pandemonium Helper (`ct-ticket-tracker`)",
             description=f"- Version: **__{self.bot.version}__**\n"
-                        f"- Last Restart: <t:{lr}> (<t:{lr}:R>)\n\n"
+                        f"- Last Restart: <t:{lr}> (<t:{lr}:R>)\n"
+                        "Found a bug? Yell at the maintainer or make [an issue on Github](https://github.com/SartoRiccardo/ct-ticket-tracker/issues)\n\n"
                         f"*Coded & maintained by __Chime__ (@chime.nemo) <:chimichanga:1147529275499614288>*",
             color=discord.Color.orange()
         )
