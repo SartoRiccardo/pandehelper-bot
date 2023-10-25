@@ -157,6 +157,7 @@ class TilestratCog(ErrorHandlerCog):
         current = discord.utils.get(strats, event_num=tile_info["EventNumber"])
         if current is None:
             thread = await self.create_tilestrat_thread(tile_info, forum_channel)
+            strats = await bot.db.queries.tilestrat.get_tilestrats(tile_code, forum_id)
         else:
             thread = interaction.guild.get_thread(current.thread_id)
             if thread is None:
