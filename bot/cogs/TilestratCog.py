@@ -163,7 +163,7 @@ class TilestratCog(ErrorHandlerCog):
                 thread = interaction.guild.fetch_channel(current.thread_id)
 
         await interaction.edit_original_response(
-            embed=self.get_raidlog_embed(thread, strats, is_just_created)
+            embed=self.get_raidlog_embed(thread, strats, is_just_created, tile_info["EventNumber"])
         )
 
     async def create_tilestrat_thread(self, tile_info: dict, forum_channel: discord.ForumChannel) -> discord.Thread:
@@ -384,7 +384,8 @@ class TilestratCog(ErrorHandlerCog):
     def get_raidlog_embed(
             thread: discord.Thread,
             strats: list[bot.db.model.Tilestrat.Tilestrat],
-            is_just_created: bool
+            is_just_created: bool,
+            event_num: int
     ) -> discord.Embed:
         int_to_tile_type = {8: "Least Cash", 2: "Race", 9: "Least Tiers"}
         int_to_boss = {0: "Bloonarius", 1: "Lych", 2: "Vortex", 3: "Dreadbloon", 4: "Phayze"}
@@ -402,7 +403,6 @@ class TilestratCog(ErrorHandlerCog):
         }
         old_thread_template = "- [CT{ct_num}]({thread_url}) - {tile_type_emoji} {tile_type}"
 
-        event_num = int(thread.name[7:9])
         thumb_url = ""
         old_threads_str = []
         for st in strats:
