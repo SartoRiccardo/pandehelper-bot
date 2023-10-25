@@ -147,94 +147,72 @@ class TilestratCog(ErrorHandlerCog):
         await interaction.response.defer()
         forum_channel = await self.fetch_forum(interaction, forum_id)
         if forum_channel is None:
-            return
+            return  # Raise missing forum
 
         tile_info = await asyncio.to_thread(bot.utils.bloons.fetch_tile_data, tile_code)
         if tile_info is None:
             raise UnknownTile(tile_code)
 
-        current_event_tag = f"Season {tile_info['EventNumber']}"
-        new_tag = None
-        if current_event_tag not in [tag.name for tag in forum_channel.available_tags]:
-            new_tag = await forum_channel.create_tag(name=current_event_tag)
-
-        old_strats = []
-        found = None
-        for thread in forum_channel.threads:
-            if thread.name.upper().endswith(tile_code):
-                if current_event_tag in [tag.name for tag in thread.applied_tags]:
-                    found = thread
-                    await interaction.edit_original_response(
-                        embed=self.get_raidlog_embed(thread, old_strats, loading=True)
-                    )
-                    await self.on_raidlog_requested(found)
-                else:
-                    old_strats.append(thread)
-
-        async for thread in forum_channel.archived_threads(limit=None):
-            if thread.name.upper().endswith(tile_code):
-                if current_event_tag in [tag.name for tag in thread.applied_tags]:
-                    found = thread
-                    await interaction.edit_original_response(
-                        embed=self.get_raidlog_embed(thread, old_strats, loading=True)
-                    )
-                    await self.on_raidlog_requested(found)
-                else:
-                    old_strats.append(thread)
-
-        if not found:
-            tile_data = tile_info["GameData"]
-            tile_type = "Boss"
-            if tile_data['subGameType'] == 9:
-                tile_type = "Least Tiers"
-            elif tile_data['subGameType'] == 8:
-                tile_type = "Least Cash"
-            elif tile_data['subGameType'] == 2:
-                tile_type = "Race"
-
-            tags = [
-                new_tag if new_tag is not None else
-                discord.utils.get(forum_channel.available_tags, name=current_event_tag),
-            ]
-            tile_type_tag = discord.utils.get(forum_channel.available_tags, name=tile_type)
-            if tile_type_tag is None:
-                tile_type_tag = await forum_channel.create_tag(name=tile_type)
-            tags.append(tile_type_tag)
-            if tile_type == "Boss":
-                boss_name = "Bloonarius"
-                if tile_data['bossData']['bossBloon'] == 1:
-                    boss_name = "Lych"
-                elif tile_data['bossData']['bossBloon'] == 2:
-                    boss_name = "Vortex"
-                elif tile_data['bossData']['bossBloon'] == 3:
-                    boss_name = "Dreadbloon"
-                elif tile_data['bossData']['bossBloon'] == 4:
-                    boss_name = "Phayze"
-                boss_name_tag = discord.utils.get(forum_channel.available_tags, name=boss_name)
-                if boss_name_tag is None:
-                    boss_name_tag = await forum_channel.create_tag(name=boss_name)
-                tags.append(boss_name_tag)
-
-            map_name = bot.utils.bloons.add_spaces(tile_data["selectedMap"])
-            if map_name == "Adoras Temple":
-                map_name = "Adora's Temple"
-            elif map_name == "Pats Pond":
-                map_name = "Pat's Temple"
-            elif map_name == "Tutorial":
-                map_name = "Monkey Meadow"
-
-            thread_template = "[{map}] {tile_code}"
-            found = (await forum_channel.create_thread(
-                name=thread_template.format(map=map_name, tile_code=tile_code),
-                content=thread_init_message,
-                applied_tags=tags,
-                embed=bot.utils.bloons.raw_challenge_to_embed(tile_info),
-            )).thread
-            await self.on_raidlog_created(found)
+        strats = await bot.db.queries.tilestrat.get_tilestrats(tile_code, forum_id)
+        current = discord.utils.get(strats, event_num=tile_info["EventNumber"])
+        if current is None:
+            thread = await self.create_tilestrat_thread(tile_info, forum_channel)
+        else:
+            thread = interaction.guild.get_thread(current.thread_id)
+            if thread is None:
+                thread = interaction.guild.fetch_channel(current.thread_id)
 
         await interaction.edit_original_response(
-            embed=self.get_raidlog_embed(found, old_strats)
+            embed=self.get_raidlog_embed(thread, strats)
         )
+
+    async def create_tilestrat_thread(self, tile_info: dict, forum_channel: discord.ForumChannel) -> discord.Thread:
+        tile_data = tile_info["GameData"]
+        tile_type = "Boss"
+        if tile_data['subGameType'] == 9:
+            tile_type = "Least Tiers"
+        elif tile_data['subGameType'] == 8:
+            tile_type = "Least Cash"
+        elif tile_data['subGameType'] == 2:
+            tile_type = "Race"
+
+        tags = []
+        tile_type_tag = discord.utils.get(forum_channel.available_tags, name=tile_type)
+        if tile_type_tag is None:
+            tile_type_tag = await forum_channel.create_tag(name=tile_type)
+        tags.append(tile_type_tag)
+        if tile_type == "Boss":
+            boss_name = "Bloonarius"
+            if tile_data['bossData']['bossBloon'] == 1:
+                boss_name = "Lych"
+            elif tile_data['bossData']['bossBloon'] == 2:
+                boss_name = "Vortex"
+            elif tile_data['bossData']['bossBloon'] == 3:
+                boss_name = "Dreadbloon"
+            elif tile_data['bossData']['bossBloon'] == 4:
+                boss_name = "Phayze"
+            boss_name_tag = discord.utils.get(forum_channel.available_tags, name=boss_name)
+            if boss_name_tag is None:
+                boss_name_tag = await forum_channel.create_tag(name=boss_name)
+            tags.append(boss_name_tag)
+
+        map_name = bot.utils.bloons.add_spaces(tile_data["selectedMap"])
+        if map_name == "Adoras Temple":
+            map_name = "Adora's Temple"
+        elif map_name == "Pats Pond":
+            map_name = "Pat's Temple"
+        elif map_name == "Tutorial":
+            map_name = "Monkey Meadow"
+
+        thread_template = "[Event {event_num}] [{map}] {tile_code}"
+        thread = (await forum_channel.create_thread(
+            name=thread_template.format(event_num=tile_info["EventNumber"], map=map_name, tile_code=tile_info["Code"]),
+            content=thread_init_message,
+            applied_tags=tags,
+            embed=bot.utils.bloons.raw_challenge_to_embed(tile_info),
+        )).thread
+        await self.on_raidlog_created(thread, tile_info, forum_channel.id)
+        return thread
 
     @group_tilestratchannel.command(name="stats", description="Get the raid log stats of the current season!")
     @discord.app_commands.describe(season="The CT season to check stats for.")
@@ -386,80 +364,89 @@ class TilestratCog(ErrorHandlerCog):
             del self.check_back[message.channel.id]
             await self.save_state()
 
+    @discord.ext.commands.Cog.listener()
+    async def on_raw_thread_delete(self, payload: discord.RawThreadDeleteEvent) -> None:
+        await self.on_raidlog_deleted(payload.thread_id)
+
     async def on_raidlog_requested(self, thread: discord.Thread) -> None:
         if thread.id in self.check_back:
             self.check_back[thread.id] = datetime.now() + timedelta(hours=3)
             await self.save_state()
 
-    async def on_raidlog_created(self, thread: discord.Thread) -> None:
+    async def on_raidlog_created(self, thread: discord.Thread, tile_info: dict, forum_id: int) -> None:
         self.check_back[thread.id] = datetime.now() + timedelta(hours=3)
         await self.save_state()
+        await bot.db.queries.tilestrat.create_tilestrat(
+            forum_id, thread.id, tile_info["Code"], tile_info["EventNumber"], tile_info["GameData"]["subGameType"],
+            tile_info["GameData"]["bossData"]["bossBloon"] if "bossData" in tile_info["GameData"] else None
+        )
+
+    async def on_raidlog_deleted(self, thread_id: int) -> None:
+        await bot.db.queries.tilestrat.del_tilestrat(thread_id)
 
     @staticmethod
     def get_raidlog_embed(
             thread: discord.Thread,
-            old_threads: List[discord.Thread],
-            loading: bool = False
+            strats: list[bot.db.model.Tilestrat.Tilestrat],
     ) -> discord.Embed:
-        content = ""
-
+        int_to_tile_type = {8: "Least Cash", 2: "Race", 9: "Least Tiers"}
+        int_to_boss = {0: "Bloonarius", 1: "Lych", 2: "Vortex", 3: "Dreadbloon", 4: "Phayze"}
         tile_types = {
-            "Least Cash": {"image": IMG_LEAST_CASH, "emoji": LEAST_CASH},
-            "Least Tiers": {"image": IMG_LEAST_TIERS, "emoji": LEAST_TIERS},
-            "Race": {"image": IMG_TIME_ATTACK, "emoji": TIME_ATTACK},
+            8: {"image": IMG_LEAST_CASH, "emoji": LEAST_CASH},
+            9: {"image": IMG_LEAST_TIERS, "emoji": LEAST_TIERS},
+            2: {"image": IMG_TIME_ATTACK, "emoji": TIME_ATTACK},
         }
         bosses = {
-            "Vortex": {"image": IMG_VORTEX, "emoji": VORTEX},
-            "Lych": {"image": IMG_LYCH, "emoji": LYCH},
-            "Bloonarius": {"image": IMG_BLOONARIUS, "emoji": BLOONARIUS},
-            "Dreadbloon": {"image": IMG_DREADBLOON, "emoji": DREADBLOON},
-            "Phayze": {"image": IMG_PHAYZE, "emoji": PHAYZE},
+            0: {"image": IMG_BLOONARIUS, "emoji": BLOONARIUS},
+            1: {"image": IMG_LYCH, "emoji": LYCH},
+            2: {"image": IMG_VORTEX, "emoji": VORTEX},
+            3: {"image": IMG_DREADBLOON, "emoji": DREADBLOON},
+            4: {"image": IMG_PHAYZE, "emoji": PHAYZE},
         }
+        old_thread_template = "- [CT{ct_num}]({thread_url}) - {tile_type_emoji} {tile_type}"
 
+        event_num = int(thread.name[7:9])
         thumb_url = ""
+        old_threads_str = []
+        for st in strats:
+            if st.event_num == event_num:
+                if st.boss is not None:
+                    thumb_url = bosses[st.boss]["image"]
+                else:
+                    thumb_url = tile_types[st.challenge_type]["image"]
+                continue
+
+            if st.boss is not None:
+                tile_type_emoji = bosses[st.boss]["emoji"]
+                tile_type = int_to_boss[st.boss]
+            else:
+                tile_type_emoji = tile_types[st.challenge_type]["emoji"]
+                tile_type = int_to_tile_type[st.challenge_type]
+
+            old_threads_str.append(old_thread_template.format(
+                ct_num=st.event_num,
+                thread_url=f"https://discord.com/channels/{thread.guild.id}/{st.thread_id}",
+                tile_type_emoji=tile_type_emoji,
+                tile_type=tile_type
+            ))
+
         for tag in thread.applied_tags:
             if tag.name in tile_types and tag.name != "Boss":
                 thumb_url = tile_types[tag.name]["image"] + " "
             elif tag.name in bosses.keys():
                 thumb_url = bosses[tag.name]["image"] + " "
 
-        prev_strats = ""
-        if len(old_threads) > 0:
-            threads_str = []
-            thread_template = "- [CT{ct_num}]({thread_url}) - {tile_type}"
-            for old_thr in old_threads:
-                ct_num = "???"
-                tile_type = "Unknown Tile type"
-                for tag in old_thr.applied_tags:
-                    if "Season" in tag.name:
-                        ct_num = tag.name[-2:]
-                    elif tag.name in tile_types and tag.name != "Boss":
-                        tile_type = f"{tile_types[tag.name]['emoji']} {tag.name}"
-                    elif tag.name in bosses.keys():
-                        tile_type = f"{bosses[tag.name]['emoji']} {tag.name}"
-
-                threads_str.append(thread_template.format(
-                    ct_num=ct_num,
-                    thread_url=TilestratCog.get_channel_url(old_thr),
-                    tile_type=tile_type
-                ))
-            prev_strats = "\n".join(threads_str)
-
-        if loading:
-            content += "Checking for past threads for this tile code..."
-
         embed = discord.Embed(
             title=thread.name,
-            description=content,
             color=discord.Color.orange(),
             url=TilestratCog.get_channel_url(thread),
         )
-        if len(content) > 0:
-            embed.description = content
         if len(thumb_url) > 0:
             embed.set_thumbnail(url=thumb_url)
-        if len(prev_strats) > 0:
-            embed.add_field(name="Previous Strats", value=prev_strats)
+        if len(old_threads_str) > 0:
+            embed.add_field(name="Previous Strats", value="\n".join(old_threads_str))
+        if thread.message_count == 0:
+            embed.set_footer(text="⚠️ There are currently no strategies logged in the thread.")
         return embed
 
     @staticmethod
