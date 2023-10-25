@@ -56,5 +56,19 @@ async def get_tilestrats(tile_code: str, forum_id: int, conn=None) -> list[Tiles
 
 
 @postgres
+async def get_tilestrats_by_season(season: int, forum_id: int, conn=None) -> list[Tilestrat]:
+    results = await conn.fetch("""
+        SELECT thread_id, tile_code, challenge_type, boss
+        FROM tilestratthreads
+        WHERE forum_id=$1
+            AND event_num=$2
+    """, forum_id, season)
+    return [
+        Tilestrat(forum_id, r["thread_id"], r["tile_code"], season, r["challenge_type"], r["boss"])
+        for r in results
+    ]
+
+
+@postgres
 async def del_tilestrat(thread_id: int, conn=None) -> None:
     await conn.execute("DELETE FROM tilestratthreads WHERE thread_id=$1", thread_id)

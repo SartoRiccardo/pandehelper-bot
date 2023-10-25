@@ -230,20 +230,10 @@ class TilestratCog(ErrorHandlerCog):
         await interaction.response.defer()
         forum_channel = await self.fetch_forum(interaction, forum_id)
         if forum_channel is None:
-            return
+            return  # Throw something
 
         if season is None:
             season = bot.utils.bloons.get_current_ct_number()
-
-        current_event_tag = f"Season {season}"
-        logged_tiles = []
-        for thread in forum_channel.threads:
-            if current_event_tag in [tag.name for tag in thread.applied_tags]:
-                logged_tiles.append(thread.name[-3:])
-
-        async for thread in forum_channel.archived_threads(limit=None):
-            if current_event_tag in [tag.name for tag in thread.applied_tags]:
-                logged_tiles.append(thread.name[-3:])
 
         logged_count = {
             "Banner": {"race": 0, "lc": 0, "lt": 0, "boss": 0},
@@ -257,6 +247,8 @@ class TilestratCog(ErrorHandlerCog):
         }
 
         tiles = await asyncio.to_thread(bot.utils.bloons.fetch_all_tiles)
+        logged_tiles = await bot.db.queries.tilestrat.get_tilestrats_by_season(season, forum_id)
+        logged_tiles = [lt.tile_code for lt in logged_tiles]
 
         for tile in tiles:
             tile_type = tile["TileType"]
@@ -271,9 +263,6 @@ class TilestratCog(ErrorHandlerCog):
                 logged_total[tile_type][tile_chal] += 1
                 if tile["Code"] in logged_tiles:
                     logged_count[tile_type][tile_chal] += 1
-
-        # pprint(logged_count)
-        # pprint(logged_total)
 
         embed = discord.Embed(
             title=f"{interaction.guild.name} Tile Strats (Season #{season})",
