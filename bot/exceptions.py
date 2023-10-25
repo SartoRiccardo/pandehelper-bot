@@ -9,6 +9,10 @@ class MustBeForum(Exception):
     pass
 
 
+class TilestratForumNotFound(Exception):
+    pass
+
+
 class Gatekept(discord.app_commands.errors.CheckFailure):
     pass
 

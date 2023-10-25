@@ -2,7 +2,7 @@ import discord
 import traceback
 from discord.ext import commands
 from .HelpMessageCog import HelpMessageCog
-from bot.exceptions import WrongChannelMention, MustBeForum, Gatekept, UnknownTile
+from bot.exceptions import WrongChannelMention, MustBeForum, Gatekept, UnknownTile, TilestratForumNotFound
 
 
 class ErrorHandlerCog(HelpMessageCog):
@@ -35,6 +35,9 @@ class ErrorHandlerCog(HelpMessageCog):
             content = f"Tile {thrown_error.tile} doesn't exist!"
         elif error_type == discord.errors.Forbidden:
             content = f"I don't have the perms to do that!"
+        elif error_type == TilestratForumNotFound:
+            content = "You don't have a Tile Strats forum set! " \
+                      "Run /tilestratforum create or /tilestratforum set to have one."
 
         if interaction.response.is_done():
             await interaction.edit_original_response(content=content)

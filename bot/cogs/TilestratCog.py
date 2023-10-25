@@ -12,7 +12,8 @@ from bot.utils.emojis import LEAST_TIERS, LEAST_CASH, BLOONARIUS, VORTEX, LYCH, 
 from bot.utils.images import IMG_LEAST_CASH, IMG_LEAST_TIERS, IMG_BLOONARIUS, IMG_VORTEX, IMG_LYCH, IMG_TIME_ATTACK, \
     IMG_DREADBLOON, IMG_PHAYZE
 import re
-from typing import List, Dict, Optional
+from typing import Dict, Optional
+from bot.exceptions import TilestratForumNotFound
 
 
 thread_init_message = f"""
@@ -130,11 +131,7 @@ class TilestratCog(ErrorHandlerCog):
     async def search_tile(self, interaction: discord.Interaction, tile_code: str) -> None:
         forum_id = await bot.db.queries.tilestrat.get_tile_strat_forum(interaction.guild_id)
         if forum_id is None:
-            await interaction.response.send_message(
-                "You don't have a Tile Strats forum set! Run /tilestratforum create or /tilestratforum set to have one.",
-                ephemeral=True
-            )
-            return
+            raise TilestratForumNotFound()
 
         tile_code = tile_code.strip().upper()
         tile_re = r"(?:M|[A-G])(?:R|[A-G])(?:X|[A-H])"
@@ -147,7 +144,8 @@ class TilestratCog(ErrorHandlerCog):
         await interaction.response.defer()
         forum_channel = await self.fetch_forum(interaction, forum_id)
         if forum_channel is None:
-            return  # Raise missing forum
+            await bot.db.queries.tilestrat.del_tile_strat_forum(interaction.guild_id)
+            raise TilestratForumNotFound()
 
         tile_info = await asyncio.to_thread(bot.utils.bloons.fetch_tile_data, tile_code)
         if tile_info is None:
@@ -221,16 +219,13 @@ class TilestratCog(ErrorHandlerCog):
     async def cmd_stats(self, interaction: discord.Interaction, season: Optional[int] = None) -> None:
         forum_id = await bot.db.queries.tilestrat.get_tile_strat_forum(interaction.guild_id)
         if forum_id is None:
-            await interaction.response.send_message(
-                "You don't have a Tile Strats forum set! Run /tilestratforum create or /tilestratforum set to have one.",
-                ephemeral=True
-            )
-            return
+            raise TilestratForumNotFound()
 
         await interaction.response.defer()
         forum_channel = await self.fetch_forum(interaction, forum_id)
         if forum_channel is None:
-            return  # Throw something
+            await bot.db.queries.tilestrat.del_tile_strat_forum(interaction.guild_id)
+            raise TilestratForumNotFound()
 
         if season is None:
             season = bot.utils.bloons.get_current_ct_number()
@@ -309,7 +304,9 @@ class TilestratCog(ErrorHandlerCog):
     @staticmethod
     async def fetch_forum(interaction: discord.Interaction, forum_id: int) -> discord.ForumChannel or None:
         try:
-            forum_channel = await interaction.guild.fetch_channel(forum_id)
+            forum_channel = interaction.guild.get_channel(forum_id)
+            if forum_channel is None:
+                forum_channel = await interaction.guild.fetch_channel(forum_id)
         except discord.errors.Forbidden:
             await interaction.edit_original_response(
                 content=f"I don't have permission to see that channel!"
@@ -353,6 +350,10 @@ class TilestratCog(ErrorHandlerCog):
         if message.channel.id in self.check_back:
             del self.check_back[message.channel.id]
             await self.save_state()
+
+    @discord.ext.commands.Cog.listener()
+    async def on_raw_thread_delete(self, payload: discord.RawThreadDeleteEvent) -> None:
+        await self.on_raidlog_deleted(payload.thread_id)
 
     @discord.ext.commands.Cog.listener()
     async def on_raw_thread_delete(self, payload: discord.RawThreadDeleteEvent) -> None:
@@ -419,12 +420,6 @@ class TilestratCog(ErrorHandlerCog):
                 tile_type_emoji=tile_type_emoji,
                 tile_type=tile_type
             ))
-
-        for tag in thread.applied_tags:
-            if tag.name in tile_types and tag.name != "Boss":
-                thumb_url = tile_types[tag.name]["image"] + " "
-            elif tag.name in bosses.keys():
-                thumb_url = bosses[tag.name]["image"] + " "
 
         embed = discord.Embed(
             title=thread.name,
