@@ -359,6 +359,10 @@ class TilestratCog(ErrorHandlerCog):
     async def on_raw_thread_delete(self, payload: discord.RawThreadDeleteEvent) -> None:
         await self.on_raidlog_deleted(payload.thread_id)
 
+    @discord.ext.commands.Cog.listener()
+    async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel) -> None:
+        await bot.db.queries.tilestrat.del_tile_strat_forum(channel.guild.id, soft_delete=False)
+
     async def on_raidlog_requested(self, thread: discord.Thread) -> None:
         if thread.id in self.check_back:
             self.check_back[thread.id] = datetime.now() + timedelta(hours=3)

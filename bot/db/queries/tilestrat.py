@@ -21,7 +21,11 @@ async def set_tile_strat_forum(guild_id: int, forum_id: int, conn=None) -> None:
 
 
 @postgres
-async def del_tile_strat_forum(guild_id: int, conn=None) -> None:
+async def del_tile_strat_forum(guild_id: int, soft_delete: bool = True, conn=None) -> None:
+    if not soft_delete:
+        await conn.execute(
+            "DELETE FROM tilestratthreads "
+            "WHERE forum_id=(SELECT forumid FROM tilestratforums WHERE guildid=$1)", guild_id)
     await conn.execute("DELETE FROM tilestratforums WHERE guildid=$1", guild_id)
 
 

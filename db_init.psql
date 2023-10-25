@@ -82,6 +82,3 @@ ALTER TABLE plannertrackedtiles ADD CONSTRAINT fk_planners_1
     FOREIGN KEY (planner_channel) REFERENCES planners(planner_channel) ON DELETE CASCADE;
 
 ALTER TABLE tilestratforums ADD CONSTRAINT uq_tilestratforums_1 UNIQUE(forumid);
-
-ALTER TABLE tilestratthreads ADD CONSTRAINT fk_tilestratforums_1
-    FOREIGN KEY (forum_id) REFERENCES tilestratforums(forumid) ON DELETE CASCADE;
