@@ -153,7 +153,8 @@ class TilestratCog(ErrorHandlerCog):
 
         strats = await bot.db.queries.tilestrat.get_tilestrats(tile_code, forum_id)
         current = discord.utils.get(strats, event_num=tile_info["EventNumber"])
-        if current is None:
+        is_just_created = current is None
+        if is_just_created:
             thread = await self.create_tilestrat_thread(tile_info, forum_channel)
             strats = await bot.db.queries.tilestrat.get_tilestrats(tile_code, forum_id)
         else:
@@ -162,7 +163,7 @@ class TilestratCog(ErrorHandlerCog):
                 thread = interaction.guild.fetch_channel(current.thread_id)
 
         await interaction.edit_original_response(
-            embed=self.get_raidlog_embed(thread, strats)
+            embed=self.get_raidlog_embed(thread, strats, is_just_created)
         )
 
     async def create_tilestrat_thread(self, tile_info: dict, forum_channel: discord.ForumChannel) -> discord.Thread:
@@ -383,6 +384,7 @@ class TilestratCog(ErrorHandlerCog):
     def get_raidlog_embed(
             thread: discord.Thread,
             strats: list[bot.db.model.Tilestrat.Tilestrat],
+            is_just_created: bool
     ) -> discord.Embed:
         int_to_tile_type = {8: "Least Cash", 2: "Race", 9: "Least Tiers"}
         int_to_boss = {0: "Bloonarius", 1: "Lych", 2: "Vortex", 3: "Dreadbloon", 4: "Phayze"}
@@ -434,7 +436,7 @@ class TilestratCog(ErrorHandlerCog):
             embed.set_thumbnail(url=thumb_url)
         if len(old_threads_str) > 0:
             embed.add_field(name="Previous Strats", value="\n".join(old_threads_str))
-        if thread.message_count == 0:
+        if is_just_created:
             embed.set_footer(text="⚠️ There are currently no strategies logged in the thread.")
         return embed
 
