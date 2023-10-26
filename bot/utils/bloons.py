@@ -299,7 +299,7 @@ def fetch_all_tiles():
 
 
 def relic_to_tile_code(relic: str) -> str or None:
-    relic = relic.lower()
+    relic = relic.lower().replace(" ", "_")
     relics = {
         'AirAndSea': ['aas', 'airandsea', 'air_and_sea', "ans"],
         'Abilitized': ['abilitized'],
@@ -334,7 +334,8 @@ def relic_to_tile_code(relic: str) -> str or None:
         'DeepHeat': ['dheat', 'deepheat', 'deep_heat'],
         "Techbot": ["techbot"],
         "Heartless": ["heartless"],
-        "BrokenHeart": ["brokenheart", "broken_heart"]
+        "BrokenHeart": ["brokenheart", "broken_heart"],
+        "BiggerBloonSabotage": ["bbs", "bigger_bloon_sabotage", "biggerbloonsabotage"],
     }
     for key in relics:
         if relic in relics[key]:
