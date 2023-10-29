@@ -153,10 +153,14 @@ class LeaderboardCog(ErrorHandlerCog):
 
         time_remaining_message = ""
         if now < current_event.end:
-            time_left = current_event.end - now
-            time_left_str = f"{math.ceil(time_left.seconds/3600)%24:0>2}h"
-            if time_left.days > 0:
-                time_left_str = f"{time_left.days}d{time_left_str}"
+            total_hours_left = math.ceil((current_event.end - now).total_seconds()/3600)
+            hours_left = total_hours_left%24
+            days_left = int(total_hours_left/24)
+            time_left_str = ""
+            if days_left > 0:
+                time_left_str += f"{days_left}d"
+            if hours_left > 0:
+                time_left_str += f"{hours_left:0>2}h"
             time_remaining_message = f"\n*Event time left:* {time_left_str}"
 
         messages[len(messages)-1] += f"\n\n*Teams:* {current_event.total_scores_team:,}  " \
