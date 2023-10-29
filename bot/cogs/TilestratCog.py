@@ -107,10 +107,9 @@ class TilestratCog(ErrorHandlerCog):
             if thread is None:
                 try:
                     thread = await self.bot.fetch_channel(thr_id)
+                    await thread.delete()
                 except discord.NotFound:
-                    thread = None
-            if thread is not None:
-                await thread.delete()
+                    pass
             to_delete.append(thr_id)
 
         for thr_id in to_delete:
@@ -357,12 +356,10 @@ class TilestratCog(ErrorHandlerCog):
         await self.on_raidlog_deleted(payload.thread_id)
 
     @discord.ext.commands.Cog.listener()
-    async def on_raw_thread_delete(self, payload: discord.RawThreadDeleteEvent) -> None:
-        await self.on_raidlog_deleted(payload.thread_id)
-
-    @discord.ext.commands.Cog.listener()
     async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel) -> None:
-        await bot.db.queries.tilestrat.del_tile_strat_forum(channel.guild.id, soft_delete=False)
+        guild_forum = await bot.db.queries.tilestrat.get_tile_strat_forum(channel.guild.id)
+        if guild_forum == channel.id:
+            await bot.db.queries.tilestrat.del_tile_strat_forum(channel.guild.id, soft_delete=False)
 
     async def on_raidlog_requested(self, thread: discord.Thread) -> None:
         if thread.id in self.check_back:
