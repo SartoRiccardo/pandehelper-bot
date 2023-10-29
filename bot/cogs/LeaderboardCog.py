@@ -154,7 +154,7 @@ class LeaderboardCog(ErrorHandlerCog):
         time_remaining_message = ""
         if now < current_event.end:
             time_left = current_event.end - now
-            time_left_str = f"{math.ceil(time_left.seconds/3600)}h"
+            time_left_str = f"{math.ceil(time_left.seconds/3600)%24:0>2}h"
             if time_left.days > 0:
                 time_left_str = f"{time_left.days}d{time_left_str}"
             time_remaining_message = f"\n*Event time left:* {time_left_str}"
