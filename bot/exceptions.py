@@ -9,6 +9,10 @@ class MustBeForum(Exception):
     pass
 
 
+class NotACommunity(Exception):
+    pass
+
+
 class TilestratForumNotFound(Exception):
     pass
 

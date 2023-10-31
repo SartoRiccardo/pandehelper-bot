@@ -13,7 +13,7 @@ from bot.utils.images import IMG_LEAST_CASH, IMG_LEAST_TIERS, IMG_BLOONARIUS, IM
     IMG_DREADBLOON, IMG_PHAYZE
 import re
 from typing import Dict, Optional
-from bot.exceptions import TilestratForumNotFound
+from bot.exceptions import TilestratForumNotFound, NotACommunity
 
 
 thread_init_message = f"""
@@ -323,6 +323,8 @@ class TilestratCog(ErrorHandlerCog):
     @discord.app_commands.checks.has_permissions(manage_guild=True)
     @discord.app_commands.guild_only()
     async def cmd_create_raidlog(self, interaction: discord.Interaction) -> None:
+        if "COMMUNITY" not in interaction.guild.features:
+            raise NotACommunity()
         forum = await interaction.guild.create_forum("tile-strats")
         await self.set_raidlog(interaction, forum)
 

@@ -2,7 +2,8 @@ import discord
 import traceback
 from discord.ext import commands
 from .HelpMessageCog import HelpMessageCog
-from bot.exceptions import WrongChannelMention, MustBeForum, Gatekept, UnknownTile, TilestratForumNotFound
+from bot.exceptions import WrongChannelMention, MustBeForum, Gatekept, UnknownTile, TilestratForumNotFound, \
+    NotACommunity
 
 
 class ErrorHandlerCog(HelpMessageCog):
@@ -11,8 +12,9 @@ class ErrorHandlerCog(HelpMessageCog):
 
     async def cog_app_command_error(self, interaction: discord.Interaction,
                                     error: discord.app_commands.AppCommandError) -> None:
-        print(error, type(error.__cause__), type(error))
+        print("\n\n\n")
         traceback.print_exc()
+        print("\n\n\n")
 
         content = "An error has occurred!"
         thrown_error = error.__cause__
@@ -38,6 +40,8 @@ class ErrorHandlerCog(HelpMessageCog):
         elif error_type == TilestratForumNotFound:
             content = "You don't have a Tile Strats forum set! " \
                       "Run /tilestratforum create or /tilestratforum set to have one."
+        elif error_type == NotACommunity:
+            content = "You need to enable Community on your server to run this command!"
 
         if interaction.response.is_done():
             await interaction.edit_original_response(content=content)
