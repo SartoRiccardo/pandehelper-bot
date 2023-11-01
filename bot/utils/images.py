@@ -122,7 +122,8 @@ MAPS = {
     "Blons": "https://cdn.discordapp.com/attachments/699781597515481159/841569553381195826/1000.png",
     "Sanctuary": "https://cdn.discordapp.com/attachments/770247322633633792/851658653336731678/Screenshot_200.png",
     "WaterPark": "https://i.imgur.com/OVektwK.png",
-    None: "https://media.discordapp.net/attachments/1130842114520002672/1135682198574477332/unfortunate.png"
+    "DarkPath": "https://media.discordapp.net/attachments/1120685628812693504/1164110344344584322/latest.png",
+    None: "https://media.discordapp.net/attachments/1130842114520002672/1135682198574477332/unfortunate.png",
 }
 
 IMG_BLOONARIUS = "https://i.gyazo.com/be511c1e97575bd2c50943be77783a95.png"
