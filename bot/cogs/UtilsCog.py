@@ -28,13 +28,19 @@ class UtilsCog(ErrorHandlerCog):
 
     def cog_load(self) -> None:
         self.update_tag_list.start()
+        self.update_status.start()
 
     def cog_unload(self) -> None:
         self.update_tag_list.cancel()
+        self.update_status.cancel()
 
     @tasks.loop(seconds=60*60)
     async def update_tag_list(self) -> None:
         self.tag_list = await asyncio.to_thread(bot.utils.io.get_tag_list)
+
+    @tasks.loop(seconds=60*60)
+    async def update_status(self) -> None:
+        self.bot.activity = discord.Game(name=f"{len(self.bot.guilds)} tiles | /help")
 
     @discord.app_commands.command(name="longestround",
                                   description="Get the longest round and its duration for races.")
