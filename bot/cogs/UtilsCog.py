@@ -40,7 +40,7 @@ class UtilsCog(ErrorHandlerCog):
 
     @tasks.loop(seconds=60*60)
     async def update_status(self) -> None:
-        self.bot.activity = discord.Game(name=f"{len(self.bot.guilds)} tiles | /help")
+        await self.bot.change_presence(activity=discord.Game(name=f"{len(self.bot.guilds)} tiles | /help"))
 
     @discord.app_commands.command(name="longestround",
                                   description="Get the longest round and its duration for races.")
