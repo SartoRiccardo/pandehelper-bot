@@ -1,11 +1,10 @@
-import datetime
+from datetime import datetime, timedelta
 import discord
 from bloonspy import Client, btd6
 import re
 import os
 import json
 from .Cache import Cache
-from typing import Tuple
 from bot.utils.emojis import NO_SELLING, NO_KNOWLEDGE, CERAM_HEALTH, MOAB_HEALTH, MOAB_SPEED, BLOON_SPEED, \
     MAX_TOWERS, REGROW_RATE, CASH
 from bot.utils.images import BANNER_IMG, REGULAR_IMG, RELICS_IMG, RELIC_IMG, MAPS, IMG_BLOONARIUS, \
@@ -13,13 +12,13 @@ from bot.utils.images import BANNER_IMG, REGULAR_IMG, RELICS_IMG, RELIC_IMG, MAP
 
 
 EVENT_EPOCHS = [
-    (0, datetime.datetime.fromtimestamp(0)),
-    (1, datetime.datetime.fromtimestamp(1660075200)),
-    (26, datetime.datetime.fromtimestamp(1690927200)),
+    (0, datetime.fromtimestamp(0)),
+    (1, datetime.fromtimestamp(1660075200)),
+    (26, datetime.fromtimestamp(1690927200)),
 ]
 
 CT_DATA_CACHE_HR = 12
-tiles_cache = Cache([], datetime.datetime.now())
+tiles_cache = Cache([], datetime.now())
 
 EVENT_DURATION = 7
 DEFAULT_STARTING_LIVES = {
@@ -58,7 +57,7 @@ CODE_TO_COORDS = {
 }
 
 
-def get_ct_number_during(time: datetime.datetime, breakpoint_on_event_start: bool = True) -> int:
+def get_ct_number_during(time: datetime, breakpoint_on_event_start: bool = True) -> int:
     """Gets the CT number during a certain datetime.
 
     :param time: the time to get the number for.
@@ -76,7 +75,7 @@ def get_ct_number_during(time: datetime.datetime, breakpoint_on_event_start: boo
         next_epoch_event_start = EVENT_EPOCHS[i+1][0]
 
     if not breakpoint_on_event_start:
-        epoch_start -= datetime.timedelta(days=EVENT_DURATION)
+        epoch_start -= timedelta(days=EVENT_DURATION)
     return min(
         int((time-epoch_start).days / (EVENT_DURATION*2)) + event_start,
         next_epoch_event_start-1
@@ -84,17 +83,17 @@ def get_ct_number_during(time: datetime.datetime, breakpoint_on_event_start: boo
 
 
 def get_current_ct_number(breakpoint_on_event_start: bool = True) -> int:
-    return get_ct_number_during(datetime.datetime.now(), breakpoint_on_event_start)
+    return get_ct_number_during(datetime.now(), breakpoint_on_event_start)
 
 
-def get_ct_period_during(time: datetime.datetime = None,
-                         event: int = None) -> Tuple[datetime.datetime, datetime.datetime]:
+def get_ct_period_during(time: datetime = None,
+                         event: int = None) -> tuple[datetime, datetime]:
     if time is None and event is None:
-        return datetime.datetime.fromtimestamp(0), datetime.datetime.fromtimestamp(0)
+        return datetime.fromtimestamp(0), datetime.fromtimestamp(0)
 
     if event:
         current = event
-    elif time:
+    else:
         current = get_ct_number_during(time)
 
     i = 0
@@ -102,21 +101,21 @@ def get_ct_period_during(time: datetime.datetime = None,
         i += 1
     event_start, epoch_start = EVENT_EPOCHS[i]
 
-    start = epoch_start + datetime.timedelta(days=EVENT_DURATION*(current-event_start)*2)
-    return start, start+datetime.timedelta(days=EVENT_DURATION)
+    start = epoch_start + timedelta(days=EVENT_DURATION*(current-event_start)*2)
+    return start, start+timedelta(days=EVENT_DURATION)
 
 
-def get_current_ct_period() -> Tuple[datetime.datetime, datetime.datetime]:
-    return get_ct_period_during(time=datetime.datetime.now())
+def get_current_ct_period() -> tuple[datetime, datetime]:
+    return get_ct_period_during(time=datetime.now())
 
 
-def get_ct_day_during(time: datetime.datetime) -> int:
+def get_ct_day_during(time: datetime) -> int:
     start, _end = get_ct_period_during(time)
     return (time-start).days + 1
 
 
 def get_current_ct_day() -> int:
-    return get_ct_day_during(datetime.datetime.now())
+    return get_ct_day_during(datetime.now())
 
 
 def raw_challenge_to_embed(challenge) -> discord.Embed or None:
@@ -347,7 +346,7 @@ def relic_to_tile_code(relic: str) -> str or None:
 
 
 def get_current_ct_event() -> btd6.ContestedTerritoryEvent or None:
-    now = datetime.datetime.now()
+    now = datetime.now()
     events = Client.contested_territories()
     for ct in events:
         if ct.start <= now:
@@ -362,21 +361,9 @@ def get_current_ct_tiles() -> list[btd6.CtTile]:
         ct = get_current_ct_event()
         if ct is None:
             return []
-        tiles_cache = Cache(ct.tiles(), datetime.datetime.now() + datetime.timedelta(hours=CT_DATA_CACHE_HR))
+        tiles_cache = Cache(ct.tiles(), datetime.now() + timedelta(hours=CT_DATA_CACHE_HR))
     return tiles_cache.value
 
 
 def is_tile_code_valid(tile: str) -> bool:
     return tile in [t.id for t in get_current_ct_tiles()]
-
-
-def get_map_image(team_pov: int = 0):
-    tiles = fetch_all_tiles()
-    ct_num = tiles[0]["EventNumber"]
-    map_path = f"files/img/map/ct{ct_num}-{team_pov}.png"
-    if not os.path.exists(map_path):
-        make_map(map_path, tiles)
-
-
-def make_map(path, tiles):
-    pass
