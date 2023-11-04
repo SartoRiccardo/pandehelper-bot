@@ -40,7 +40,10 @@ class UtilsCog(ErrorHandlerCog):
 
     @tasks.loop(seconds=60*60)
     async def update_status(self) -> None:
-        await self.bot.change_presence(activity=discord.Game(name=f"{len(self.bot.guilds)} tiles | /help"))
+        try:
+            await self.bot.change_presence(activity=discord.Game(name=f"{len(self.bot.guilds)} tiles | /help"))
+        except AttributeError:  # Might be thrown on the first loop
+            pass
 
     @discord.app_commands.command(name="longestround",
                                   description="Get the longest round and its duration for races.")

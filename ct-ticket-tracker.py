@@ -16,7 +16,7 @@ class CtTicketTracker(commands.Bot):
             command_prefix=",,,",
             intents=intents,
             application_id=APP_ID,
-            activity=discord.Game(name="/help"),
+            activity=discord.Game(name=f"{len(self.guilds)} | /help"),
             log_level=logging.ERROR,
         )
         self.remove_command("help")
