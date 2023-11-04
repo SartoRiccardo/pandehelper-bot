@@ -12,7 +12,6 @@ from bot.classes import ErrorHandlerCog
 from typing import List, Tuple, Union, Optional, Dict
 from bot.utils.emojis import TILE_BANNER, TILE_REGULAR, TILE_RELIC, RELICS
 from bot.views import PlannerUserView, PlannerAdminView
-from bot.utils.Cache import Cache
 from bot.utils.emojis import EXPIRE_LATER, EXPIRE_DONT_RECAP, EXPIRE_AFTER_RESET, EXPIRE_STALE, EXPIRE_2HR, \
     EXPIRE_3HR, BLANK
 from bloonspy import btd6
@@ -330,7 +329,7 @@ class PlannerCog(ErrorHandlerCog):
     @tasks.loop(seconds=30)
     async def check_planner_refresh(self) -> None:
         now = datetime.now()
-        if now > self.current_event.end or now < self.current_event.start:
+        if now > self.current_event.end + timedelta(hours=1) or now < self.current_event.start:
             return
 
         for planner_channel in self.next_planner_refreshes:
