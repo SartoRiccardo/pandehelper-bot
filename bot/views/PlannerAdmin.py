@@ -1,7 +1,14 @@
 import discord
 import bot.db.queries.planner
 from datetime import datetime, timedelta
-from typing import Callable, Any
+from typing import Callable, Any, Awaitable
+
+RefreshPlannerCallback = Callable[[int], Awaitable[None]]
+InteractionCallback = Callable[[discord.Interaction], Awaitable[None]]
+SwitchPlannerCallback = Callable[[discord.Interaction, bool], Awaitable[None]]
+EditTimeCallback = Callable[[discord.Interaction, int, str, datetime], Awaitable[None]]
+AddTileCallback = Callable[[discord.Interaction, int, str, int], Awaitable[None]]
+TileSelectCallback = Callable[[discord.Interaction, int, str], Awaitable[None]]
 
 
 def check_manage_guild(wrapped: Callable):
@@ -17,7 +24,7 @@ def check_manage_guild(wrapped: Callable):
 
 
 class SwitchPlannerButton(discord.ui.Button):
-    def __init__(self, switch_callback: Callable, is_active: bool, planner_id: int):
+    def __init__(self, switch_callback: SwitchPlannerCallback, is_active: bool, planner_id: int):
         self.is_active = is_active
         self.switch_callback = switch_callback
         super().__init__(
@@ -32,7 +39,7 @@ class SwitchPlannerButton(discord.ui.Button):
 
 
 class ClearPlannerButton(discord.ui.Button):
-    def __init__(self, clear_callback: Callable, planner_id: int):
+    def __init__(self, clear_callback: InteractionCallback, planner_id: int):
         self.clear_callback = clear_callback
         super().__init__(
             label="Clear Planner",
@@ -48,7 +55,7 @@ class ClearPlannerButton(discord.ui.Button):
 class ForceUnclaimModal(discord.ui.Modal, title="Force a tile to be unclaimed"):
     tile_code = discord.ui.TextInput(label="Tile Code", min_length=3, max_length=3, placeholder="FFB", required=True)
 
-    def __init__(self, planner_id: int, force_unclaim_callback: Callable, *args, **kwargs):
+    def __init__(self, planner_id: int, force_unclaim_callback: TileSelectCallback, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.planner_id = planner_id
         self.force_unclaim_callback = force_unclaim_callback
@@ -59,7 +66,7 @@ class ForceUnclaimModal(discord.ui.Modal, title="Force a tile to be unclaimed"):
 
 
 class ForceUnclaimButton(discord.ui.Button):
-    def __init__(self, unclaim_callback: Callable, planner_id: int):
+    def __init__(self, unclaim_callback: TileSelectCallback, planner_id: int):
         self.unclaim_callback = unclaim_callback
         self.planner_id = planner_id
         super().__init__(
@@ -82,7 +89,7 @@ class TimeEditModal(discord.ui.Modal, title="Edit a Tile's Expiration Time"):
         min_length=3, max_length=5, required=True
     )
 
-    def __init__(self, planner_id: int, edit_tile_callback: Callable, *args, **kwargs):
+    def __init__(self, planner_id: int, edit_tile_callback: EditTimeCallback, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.planner_id = planner_id
         self.edit_tile_callback = edit_tile_callback
@@ -117,7 +124,7 @@ class TimeEditModal(discord.ui.Modal, title="Edit a Tile's Expiration Time"):
 
 
 class EditTimeButton(discord.ui.Button):
-    def __init__(self, edit_time_callback: Callable, planner_id: int):
+    def __init__(self, edit_time_callback: EditTimeCallback, planner_id: int):
         self.edit_time_callback = edit_time_callback
         self.planner_id = planner_id
         super().__init__(
@@ -139,8 +146,8 @@ class AddRemoveTileModal(discord.ui.Modal, title="Add or Remove a Tile"):
     )
 
     def __init__(self, planner_id: int,
-                 add_callback: Callable,
-                 remove_callback: Callable,
+                 add_callback: AddTileCallback,
+                 remove_callback: TileSelectCallback,
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.planner_id = planner_id
@@ -168,8 +175,8 @@ class AddRemoveTileModal(discord.ui.Modal, title="Add or Remove a Tile"):
 
 class AddRemoveTileButton(discord.ui.Button):
     def __init__(self,
-                 add_callback: Callable,
-                 remove_callback: Callable,
+                 add_callback: AddTileCallback,
+                 remove_callback: TileSelectCallback,
                  planner_id: int):
         self.add_callback = add_callback
         self.remove_callback = remove_callback
@@ -191,11 +198,11 @@ class PlannerAdminView(discord.ui.View):
     """A list of actions usable by admins in the team."""
     def __init__(self,
                  planner_channel_id: int,
-                 refresh_planner: Callable,
-                 edit_time: Callable,
-                 force_unclaim: Callable,
-                 add_planner_tile: Callable,
-                 remove_planner_tile: Callable,
+                 refresh_planner: RefreshPlannerCallback,
+                 edit_time: EditTimeCallback,
+                 force_unclaim: TileSelectCallback,
+                 add_planner_tile: AddTileCallback,
+                 remove_planner_tile: TileSelectCallback,
                  planner_active: bool,
                  timeout: float = None):
         super().__init__(timeout=timeout)

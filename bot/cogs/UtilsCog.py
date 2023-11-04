@@ -7,7 +7,6 @@ from bot.classes.HelpMessageCog import HelpMessageCog
 import discord
 from discord.ext import commands, tasks
 from bot.classes import ErrorHandlerCog
-from typing import List
 
 
 class UtilsCog(ErrorHandlerCog):
@@ -24,7 +23,7 @@ class UtilsCog(ErrorHandlerCog):
 
     def __init__(self, bot: commands.Bot) -> None:
         super().__init__(bot)
-        self.tag_list: List[str] = []
+        self.tag_list: list[str] = []
 
     def cog_load(self) -> None:
         self.update_tag_list.start()
@@ -144,7 +143,7 @@ class UtilsCog(ErrorHandlerCog):
     async def autoc_tag_tag_name(self,
                                  _interaction: discord.Interaction,
                                  current: str
-                                 ) -> List[discord.app_commands.Choice[str]]:
+                                 ) -> list[discord.app_commands.Choice[str]]:
         return [
             discord.app_commands.Choice(name=tag, value=tag)
             for tag in self.get_help_cogs() if current.lower() in tag.lower()
@@ -175,7 +174,7 @@ class UtilsCog(ErrorHandlerCog):
     async def autoc_tag_tag_name(self,
                                  _interaction: discord.Interaction,
                                  current: str
-                                 ) -> List[discord.app_commands.Choice[str]]:
+                                 ) -> list[discord.app_commands.Choice[str]]:
         return [
             discord.app_commands.Choice(name=tag, value=tag)
             for tag in self.tag_list if current.lower() in tag.lower()

@@ -9,7 +9,7 @@ from bot.utils.Cache import Cache
 import discord
 from discord.ext import commands
 from bot.classes import ErrorHandlerCog
-from typing import Optional, Literal
+from typing import Literal
 from bot.views.SpawnlockPaginate import SpawnlockPaginateView
 
 TeamColor = Literal["Purple", "Red", "Yellow", "Pink", "Blue", "Green"]
@@ -40,7 +40,7 @@ class TilesCog(ErrorHandlerCog):
     @discord.app_commands.describe(tile="The 3 letter tile code, or a relic name.",
                                    hide="Hide the output.")
     @discord.app_commands.guild_only()
-    async def cmd_tile(self, interaction: discord.Interaction, tile: str, hide: Optional[bool] = True) -> None:
+    async def cmd_tile(self, interaction: discord.Interaction, tile: str, hide: None or bool = True) -> None:
         tile = tile.upper()
         challenge_data = await asyncio.to_thread(self.fetch_challenge_data, tile)
         if challenge_data is None:

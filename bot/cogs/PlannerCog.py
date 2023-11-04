@@ -9,7 +9,6 @@ import bot.db.queries.tickets
 import bot.utils.io
 import bot.utils.discordutils
 from bot.classes import ErrorHandlerCog
-from typing import List, Tuple, Union, Optional, Dict
 from bot.utils.emojis import TILE_BANNER, TILE_REGULAR, TILE_RELIC, RELICS
 from bot.views import PlannerUserView, PlannerAdminView
 from bot.utils.emojis import EXPIRE_LATER, EXPIRE_DONT_RECAP, EXPIRE_AFTER_RESET, EXPIRE_STALE, EXPIRE_2HR, \
@@ -167,10 +166,10 @@ class PlannerCog(ErrorHandlerCog):
     async def check_planner_reminder(self,
                                      planner_id: int,
                                      ping_ch_id: int,
-                                     banner_codes: List[str],
+                                     banner_codes: list[str],
                                      check_from: datetime,
                                      check_to: datetime,
-                                     check_to_unclaimed: datetime or None) -> Dict[int or None, List[str]]:
+                                     check_to_unclaimed: datetime or None) -> dict[int or None, list[str]]:
         if ping_ch_id is None:
             return {}
         banners = await bot.db.queries.planner.get_planned_tiles(planner_id, banner_codes,
@@ -199,7 +198,7 @@ class PlannerCog(ErrorHandlerCog):
         return pings
 
     async def send_reminder(self,
-                            pings: Dict[int or None, List[str]],
+                            pings: dict[int or None, list[str]],
                             planner_id: int,
                             ping_channel_id: int,
                             ping_role: int) -> None:
@@ -484,9 +483,9 @@ class PlannerCog(ErrorHandlerCog):
     async def cmd_configure_planner(self,
                                     interaction: discord.Interaction,
                                     planner_channel: discord.TextChannel,
-                                    ping_channel: Optional[discord.TextChannel] = None,
-                                    ping_role: Optional[discord.Role] = None,
-                                    tile_claim_channel: Optional[discord.TextChannel] = None) -> None:
+                                    ping_channel: None or discord.TextChannel = None,
+                                    ping_role: None or discord.Role = None,
+                                    tile_claim_channel: None or discord.TextChannel = None) -> None:
         if await bot.db.queries.planner.get_planner(planner_channel.id) is None:
             await interaction.response.send_message(
                 content="That's not a planner channel!",
@@ -596,7 +595,7 @@ class PlannerCog(ErrorHandlerCog):
         )
         await self.send_planner_msg(channel.id)
 
-    async def get_planner_msg(self, channel: int) -> List[Tuple[str, discord.ui.View or None]]:
+    async def get_planner_msg(self, channel: int) -> list[tuple[str, discord.ui.View or None]]:
         """Generates the message to send in planner.
 
         :param channel: The ID of the Planner channel.
@@ -720,7 +719,7 @@ class PlannerCog(ErrorHandlerCog):
 
         return messages
 
-    async def get_views(self) -> List[Union[None, PlannerUserView]]:
+    async def get_views(self) -> list[None or PlannerUserView]:
         views = []
         channels = await bot.db.queries.planner.get_planners()
         for channel in channels:
@@ -751,7 +750,7 @@ class PlannerCog(ErrorHandlerCog):
         return views
 
     @staticmethod
-    async def get_banner_tile_list() -> List[str]:
+    async def get_banner_tile_list() -> list[str]:
         """Returns a list of banner tile codes."""
         return [
             tile.id for tile in bot.utils.bloons.get_current_ct_tiles()
@@ -759,7 +758,7 @@ class PlannerCog(ErrorHandlerCog):
         ]
 
     @staticmethod
-    async def get_relic_tile_list() -> List[btd6.CtTile]:
+    async def get_relic_tile_list() -> list[btd6.CtTile]:
         """Returns a list of relic tiles."""
         return [
             r for r in bot.utils.bloons.get_current_ct_tiles()
@@ -787,7 +786,7 @@ class PlannerCog(ErrorHandlerCog):
             pass
 
     @staticmethod
-    async def switch_tile_claim(user: discord.Member, planner_channel_id: int, tile: str) -> Tuple[str, bool]:
+    async def switch_tile_claim(user: discord.Member, planner_channel_id: int, tile: str) -> tuple[str, bool]:
         """Claims or unclaims a tile for an user.
 
         :param user: The member who wants to claim the tile.

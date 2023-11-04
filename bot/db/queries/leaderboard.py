@@ -1,7 +1,6 @@
 import time
 import bot.db.connection
 import bot.utils.bloons
-from typing import List
 from ..model.LeaderboardChannel import LeaderboardChannel
 postgres = bot.db.connection.postgres
 
@@ -21,6 +20,6 @@ async def remove_leaderboard_channel(guild: int, channel: int, conn=None) -> Non
 
 
 @postgres
-async def leaderboard_channels(conn=None) -> List[LeaderboardChannel]:
+async def leaderboard_channels(conn=None) -> list[LeaderboardChannel]:
     payload = await conn.fetch("SELECT guild, channel FROM lbchannels")
     return [LeaderboardChannel(row["guild"], row["channel"]) for row in payload]

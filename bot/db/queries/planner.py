@@ -2,7 +2,7 @@ import time
 import datetime
 import bot.db.connection
 import bot.utils.bloons
-from typing import List, Dict, Tuple, Any, Literal
+from typing import Any, Literal
 from ..model.Planner import Planner
 from ..model.PlannedTile import PlannedTile
 postgres = bot.db.connection.postgres
@@ -10,7 +10,7 @@ bloons = bot.utils.bloons
 
 
 @postgres
-async def get_planners(only_active: bool = False, conn=None) -> List[Planner]:
+async def get_planners(only_active: bool = False, conn=None) -> list[Planner]:
     only_active_q = " WHERE is_active" if only_active else ""
     planners = await conn.fetch("SELECT * FROM planners" + only_active_q)
     return [Planner(row["planner_channel"], row["claims_channel"], row["ping_role"], row["ping_role_with_tickets"],
@@ -76,10 +76,10 @@ async def change_planner(
 
 @postgres
 async def get_planned_tiles(planner_channel: int,
-                            tile_codes: List[str],
+                            tile_codes: list[str],
                             expire_between: tuple[datetime.datetime, datetime.datetime] = None,
                             claimed_status: Literal["UNCLAIMED", "CLAIMED", "ANY"] = "ANY",
-                            conn=None) -> List[PlannedTile]:
+                            conn=None) -> list[PlannedTile]:
     event_start, _event_end = bloons.get_current_ct_period()
     tile_captures = """
         SELECT c.tile, c.claimed_at, ptc.user_id, p.claims_channel, p.ping_role, p.ping_channel, p.planner_channel,
@@ -133,7 +133,7 @@ async def get_planned_tiles(planner_channel: int,
 
 @postgres
 async def get_tile_closest_to_expire(from_date: datetime.datetime,
-                                     conn=None) -> List[PlannedTile]:
+                                     conn=None) -> list[PlannedTile]:
     clear_time = "(SELECT clear_time FROM planners p2 WHERE p.planner_channel = p2.planner_channel)"
     # Gets all tiles that expire after from_date
     tile_captures = f"""
@@ -274,7 +274,7 @@ async def get_planner_linked_to(tile_claim_ch: int, conn=None) -> int:
 
 
 @postgres
-async def get_claims_by(user: int, planner_channel: int, conn=None) -> List[Dict[str, Any]]:
+async def get_claims_by(user: int, planner_channel: int, conn=None) -> list[dict[str, Any]]:
     event_start, _ee = bot.utils.bloons.get_current_ct_period()
     return await conn.fetch("""
         SELECT *
@@ -341,7 +341,7 @@ async def add_tile_to_planner(planner_id: int, tile: str, recap_after: int, conn
 
 
 @postgres
-async def get_planner_tracked_tiles(planner_id: int, conn=None) -> List[str]:
+async def get_planner_tracked_tiles(planner_id: int, conn=None) -> list[str]:
     result = await conn.fetch("""
         SELECT tile FROM plannertrackedtiles WHERE planner_channel=$1
     """, planner_id)

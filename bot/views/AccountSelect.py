@@ -1,10 +1,14 @@
 import discord
-from typing import List, Tuple, Callable
+from typing import Callable, Awaitable
 import bloonspy
 
 
+AccountChooserCallback = Callable[[discord.Interaction, bloonspy.btd6.User, str], Awaitable[None]]
+AccountSelectorCallback = Callable[[discord.Interaction, str], Awaitable[None]]
+
+
 class AccountSelect(discord.ui.Select):
-    def __init__(self, users: List[Tuple[bloonspy.btd6.User, str]], callback: Callable = None):
+    def __init__(self, users: list[tuple[bloonspy.btd6.User, str]], callback: AccountSelectorCallback = None):
         options = [
             discord.SelectOption(label=user.name)
             for user, _oak in users
@@ -23,8 +27,8 @@ class AccountSelect(discord.ui.Select):
 
 class AccountChooserView(discord.ui.View):
     def __init__(self,
-                 users: List[Tuple[bloonspy.btd6.User, str]],
-                 callback: Callable,
+                 users: list[tuple[bloonspy.btd6.User, str]],
+                 callback: AccountChooserCallback,
                  timeout: float = 180):
         super().__init__(timeout=timeout)
         self.users = users

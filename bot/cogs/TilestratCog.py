@@ -12,7 +12,6 @@ from bot.utils.emojis import LEAST_TIERS, LEAST_CASH, BLOONARIUS, VORTEX, LYCH, 
 from bot.utils.images import IMG_LEAST_CASH, IMG_LEAST_TIERS, IMG_BLOONARIUS, IMG_VORTEX, IMG_LYCH, IMG_TIME_ATTACK, \
     IMG_DREADBLOON, IMG_PHAYZE
 import re
-from typing import Dict, Optional
 from bot.exceptions import TilestratForumNotFound, NotACommunity
 
 
@@ -65,7 +64,7 @@ class TilestratCog(ErrorHandlerCog):
 
     def __init__(self, bot: commands.Bot) -> None:
         super().__init__(bot)
-        self.check_back: Dict[int, datetime] = {}
+        self.check_back: dict[int, datetime] = {}
 
     async def cog_load(self) -> None:
         await self.load_state()
@@ -216,7 +215,7 @@ class TilestratCog(ErrorHandlerCog):
     @group_tilestratchannel.command(name="stats", description="Get the raid log stats of the current season!")
     @discord.app_commands.describe(season="The CT season to check stats for.")
     @discord.app_commands.guild_only()
-    async def cmd_stats(self, interaction: discord.Interaction, season: Optional[int] = None) -> None:
+    async def cmd_stats(self, interaction: discord.Interaction, season: None or int = None) -> None:
         forum_id = await bot.db.queries.tilestrat.get_tile_strat_forum(interaction.guild_id)
         if forum_id is None:
             raise TilestratForumNotFound()

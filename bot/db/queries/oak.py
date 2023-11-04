@@ -1,13 +1,12 @@
 import time
 import bot.db.connection
 import bot.utils.bloons
-from typing import List
 from ..model.Oak import Oak
 postgres = bot.db.connection.postgres
 
 
 @postgres
-async def get_oaks(user: int, conn=None) -> List[Oak]:
+async def get_oaks(user: int, conn=None) -> list[Oak]:
     payload = await conn.fetch("""
         SELECT oak, is_main
         FROM btd6players

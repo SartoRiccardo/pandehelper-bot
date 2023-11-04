@@ -1,4 +1,3 @@
-from typing import List, Tuple
 import bot.exceptions
 import discord
 import asyncio
@@ -7,7 +6,7 @@ from discord.ext import commands
 
 async def update_messages(
         bot: discord.ClientUser,
-        content: List[Tuple[str, discord.ui.View or None]],
+        content: list[tuple[str, discord.ui.View or None]],
         channel: discord.TextChannel,
         tolerance: int = 10,
         delete_user_messages: bool = True) -> None:

@@ -1,10 +1,13 @@
 import discord
-from typing import Any, Callable
+from typing import Any, Callable, Awaitable
 import bot.utils.bloons
 
 
+SelectPageCallback = Callable[[discord.Interaction, int], Awaitable[None]]
+
+
 class TileButton(discord.ui.Button):
-    def __init__(self, tile_name: str, idx: int, sup_callback: Callable, active: bool = True):
+    def __init__(self, tile_name: str, idx: int, sup_callback: SelectPageCallback, active: bool = True):
         self.idx = idx
         self.sup_callback = sup_callback
         super().__init__(

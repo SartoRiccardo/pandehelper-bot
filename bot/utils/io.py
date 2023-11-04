@@ -1,4 +1,4 @@
-from typing import Dict, List, Any
+from typing import Any
 from datetime import datetime
 import json
 import os
@@ -9,14 +9,14 @@ if not os.path.exists(CACHE_DIR):
     os.mkdir(CACHE_DIR)
 
 
-def get_race_rounds() -> List[Dict[str, Any]]:
+def get_race_rounds() -> list[dict[str, Any]]:
     fin = open("bot/files/json/rounds-race.json")
     data = json.loads(fin.read())
     fin.close()
     return data
 
 
-def get_tag_list() -> List[str]:
+def get_tag_list() -> list[str]:
     fin = open("bot/files/json/tags.json")
     data = json.loads(fin.read())
     fin.close()
@@ -32,7 +32,7 @@ def get_tag(tag_name: str) -> str or None:
     return data[tag_name]
 
 
-def save_cog_state(cog_name: str, state: Dict[str, Any]) -> None:
+def save_cog_state(cog_name: str, state: dict[str, Any]) -> None:
     data = json.dumps({
         "saved_at": datetime.now().timestamp(),
         "data": state,
@@ -42,7 +42,7 @@ def save_cog_state(cog_name: str, state: Dict[str, Any]) -> None:
     fout.close()
 
 
-def get_cog_state(cog_name: str) -> Dict[str, Any] or None:
+def get_cog_state(cog_name: str) -> dict[str, Any] or None:
     if not os.path.exists(state_path(cog_name)):
         return None
     fin = open(state_path(cog_name))

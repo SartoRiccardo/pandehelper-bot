@@ -1,11 +1,10 @@
 import re
 from discord.ext import commands
-from typing import Dict, Union
 
 
 class HelpMessageCog(commands.Cog):
     has_help_msg: bool = True
-    help_descriptions: Dict[str or None, Union[str, Dict[str, str]]] = {}
+    help_descriptions: dict[str or None, str or dict[str, str]] = {}
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot

@@ -6,7 +6,6 @@ import asyncio
 import bot.db.queries.leaderboard
 import bot.utils.io
 from bot.classes import ErrorHandlerCog
-from typing import Dict, List
 from bot.utils.emojis import TOP_1_GLOBAL, TOP_2_GLOBAL, TOP_3_GLOBAL, TOP_25_GLOBAL, ECO, ECO_NEGATIVE, NEW_TEAM, \
     TOP_1_PERCENT
 
@@ -26,7 +25,7 @@ class LeaderboardCog(ErrorHandlerCog):
     def __init__(self, bot: commands.Bot) -> None:
         super().__init__(bot)
 
-        self.last_hour_score: Dict[str, int] = {}
+        self.last_hour_score: dict[str, int] = {}
         self.current_ct_id = ""
         self.first_run = True
         self.next_update = datetime.now().replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
@@ -175,7 +174,7 @@ class LeaderboardCog(ErrorHandlerCog):
 
         await self.save_state()
 
-    async def send_leaderboard(self, messages: List[str]) -> None:
+    async def send_leaderboard(self, messages: list[str]) -> None:
         channels = await bot.db.queries.leaderboard.leaderboard_channels()
         for leaderboard in channels:
             guild_id, channel_id = leaderboard.guild_id, leaderboard.channel_id

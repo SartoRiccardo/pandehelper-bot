@@ -6,7 +6,6 @@ import re
 import bot.db.queries.tickets
 import bot.utils.bloons
 from bot.classes import ErrorHandlerCog
-from typing import Optional
 
 
 tracked_emojis = ["🟩", "👌", "🟢", "✅", "👍"]
@@ -62,8 +61,8 @@ class TrackerCog(ErrorHandlerCog):
     async def cmd_tickets_list(self,
                                interaction: discord.Interaction,
                                channel: discord.TextChannel,
-                               season: Optional[int] = 0,
-                               hide: Optional[bool] = False) -> None:
+                               season: None or int = 0,
+                               hide: None or bool = False) -> None:
         if channel.id not in (await bot.db.queries.tickets.tracked_channels()):
             await interaction.response.send_message("That channel is not being tracked!", ephemeral=True)
             return
@@ -107,8 +106,8 @@ class TrackerCog(ErrorHandlerCog):
     @discord.app_commands.default_permissions(administrator=True)
     @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def cmd_member_tickets(self, interaction: discord.Interaction, channel: discord.TextChannel,
-                                 member: discord.Member, season: Optional[int] = 0,
-                                 hide: Optional[bool] = False) -> None:
+                                 member: discord.Member, season: None or int = 0,
+                                 hide: None or bool = False) -> None:
         if channel.id not in (await bot.db.queries.tickets.tracked_channels()):
             await interaction.response.send_message("That channel is not being tracked!", ephemeral=True)
             return
@@ -146,8 +145,8 @@ class TrackerCog(ErrorHandlerCog):
     async def cmd_tile_history(self, interaction: discord.InteractionResponse,
                                channel: discord.TextChannel,
                                tile: str,
-                               season: Optional[int] = 0,
-                               hide: Optional[bool] = False) -> None:
+                               season: None or int = 0,
+                               hide: None or bool = False) -> None:
         if channel.id not in (await bot.db.queries.tickets.tracked_channels()):
             await interaction.response.send_message("That channel is not being tracked!", ephemeral=True)
             return

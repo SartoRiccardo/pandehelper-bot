@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from typing import Optional, Literal
+from typing import Literal
 import config
 
 
@@ -26,7 +26,7 @@ class OwnerCog(commands.Cog):
 
     @commands.command()
     @is_owner()
-    async def sync(self, ctx: discord.ext.commands.Context, where: Optional[Literal["."]] = None) -> None:
+    async def sync(self, ctx: discord.ext.commands.Context, where: None or [Literal["."]] = None) -> None:
         if where == ".":
             synced = await ctx.bot.tree.sync(guild=ctx.guild)
         else:

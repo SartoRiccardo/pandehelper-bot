@@ -1,12 +1,16 @@
 import discord
-from typing import List, Tuple, Callable
-import bloonspy
+from typing import Callable, Awaitable
 from bot.utils.emojis import X, ARROW_RIGHT
+
+
+SwitchTileCallback = Callable[[discord.User, int, str], Awaitable[tuple[str, bool]]]
+# TODO merge w/ PlannerAdmin.RefreshPlannerCallback & make it reusable
+RefreshPlannerCallback = Callable[[int], Awaitable[None]]
 
 
 class BannerSelect(discord.ui.Select):
     def __init__(self,
-                 banners: List[Tuple[str, bool]],
+                 banners: list[tuple[str, bool]],
                  planner_id: int,
                  select_idx: int = 0,
                  preview_list: bool = False,
@@ -38,10 +42,10 @@ class BannerSelect(discord.ui.Select):
 class PlannerUserView(discord.ui.View):
     """A list of actions usable by every user in the team."""
     def __init__(self,
-                 banners: List[Tuple[str, bool]],
+                 banners: list[tuple[str, bool]],
                  planner_channel_id: int,
-                 switch_tile_callback: Callable,
-                 refresh_planner: Callable,
+                 switch_tile_callback: SwitchTileCallback,
+                 refresh_planner: RefreshPlannerCallback,
                  timeout: float = None):
         super().__init__(timeout=timeout)
         banners = sorted(banners, key=lambda x: x[0])

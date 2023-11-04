@@ -2,7 +2,6 @@ import time
 import datetime
 import bot.db.connection
 import bot.utils.bloons
-from typing import List, Dict
 from ..model.TileCapture import TileCapture
 postgres = bot.db.connection.postgres
 bloons = bot.utils.bloons
@@ -23,7 +22,7 @@ async def untrack_channel(channel: int, conn=None) -> None:
 
 
 @postgres
-async def get_ticket_overview(channel: int, event: int = 0, conn=None) -> Dict[int, List[List[TileCapture]]]:
+async def get_ticket_overview(channel: int, event: int = 0, conn=None) -> dict[int, list[list[TileCapture]]]:
     if event == 0:
         event = bloons.get_ct_number_during(datetime.datetime.now())
     event_start, event_end = bloons.get_ct_period_during(event=event)
@@ -50,7 +49,7 @@ async def get_ticket_overview(channel: int, event: int = 0, conn=None) -> Dict[i
 
 
 @postgres
-async def get_tickets_from(member_id: int, channel: int, event: int = 0, conn=None) -> List[List[TileCapture]]:
+async def get_tickets_from(member_id: int, channel: int, event: int = 0, conn=None) -> list[list[TileCapture]]:
     if event == 0:
         event = bloons.get_ct_number_during(datetime.datetime.now())
     event_start, event_end = bloons.get_ct_period_during(event=event)
@@ -75,7 +74,7 @@ async def get_tickets_from(member_id: int, channel: int, event: int = 0, conn=No
 
 
 @postgres
-async def tracked_channels(conn=None) -> List[int]:
+async def tracked_channels(conn=None) -> list[int]:
     payload = await conn.fetch("SELECT channel FROM teams")
     channels = [row["channel"] for row in payload]
     return channels
