@@ -614,8 +614,11 @@ class PlannerCog(ErrorHandlerCog):
             if planner.ping_role_with_tickets:
                 ping_role_msg += f"\n - Team Role (with tickets): <@&{planner.ping_role_with_tickets}>"
 
+        admin_panel = PLANNER_ADMIN_PANEL
+        if cmd := await self.bot.get_app_command("planner"):
+            admin_panel = PLANNER_ADMIN_PANEL.replace("`/planner config`", f"</planner config:{cmd.id}>")
         messages = [
-            (PLANNER_ADMIN_PANEL.format(
+            (admin_panel.format(
                 planner_status,
                 f"<#{planner.claims_channel}>" if planner.claims_channel else
                 "⚠️ None *(members will have to register captures manually)*️",

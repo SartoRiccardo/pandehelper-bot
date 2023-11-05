@@ -112,12 +112,14 @@ class UtilsCog(ErrorHandlerCog):
                                   description="Get info about the bot's commands.")
     @discord.app_commands.describe(module="The module to get info for.")
     async def cmd_send_help_msg(self, interaction: discord.Interaction, module: str = None) -> None:
+        help_cmd = await self.bot.get_app_command("help")
+
         if module is None:
             cogs = self.get_help_cogs()
             cog_list = '`\n- `'.join(cogs)
             message = "This bot has many features, organized into \"modules\"! " \
                       "If you want info about a specific module, pass its name through the `module` " \
-                      "parameter the next time you use /help!\n" \
+                      f"parameter the next time you use </help:{help_cmd.id}>!\n" \
                       f"*Available modules:*\n- `{cog_list}`\n\n" \
                       "Also be sure to check out [the wiki](<https://github.com/SartoRiccardo/ct-ticket-tracker/wiki>) " \
                       "for help in setting up some of the more difficult to use modules!"
@@ -132,7 +134,7 @@ class UtilsCog(ErrorHandlerCog):
                 break
 
         if cog is None:
-            message = f"No module named `{module}`! Please use /help with no parameters " \
+            message = f"No module named `{module}`! Please use </help:{help_cmd.id}> with no parameters " \
                       "to see which modules are available!"
             await interaction.response.send_message(message, ephemeral=True)
             return

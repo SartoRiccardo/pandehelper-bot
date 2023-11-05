@@ -22,6 +22,7 @@ class CtTicketTracker(commands.Bot):
         self.remove_command("help")
         self.version = __version__
         self.last_restart = datetime.now()
+        self.synced_tree = None
 
     async def setup_hook(self):
         await bot.db.connection.start()
@@ -38,6 +39,11 @@ class CtTicketTracker(commands.Bot):
         ]
         for cog in cogs:
             await self.load_extension(f"bot.cogs.{cog}")
+
+    async def get_app_command(self, cmd_name: str) -> discord.app_commands.AppCommand or None:
+        if self.synced_tree is None:
+            self.synced_tree = await self.tree.fetch_commands()
+        return discord.utils.get(self.synced_tree, name=cmd_name)
 
     def reload_version(self):
         with open("bot/__init__.py") as fin:

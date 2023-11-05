@@ -10,15 +10,13 @@ class HelpMessageCog(commands.Cog):
         self.bot = bot
 
     async def help_message(self) -> str:
-        if not hasattr(self.bot, "synced_tree"):
-            self.bot.synced_tree = await self.bot.tree.fetch_commands()
-
         message = []
         if None in self.help_descriptions.keys():
             message.append(self.help_descriptions[None])
 
-        for cmd in self.bot.synced_tree:
-            if cmd.name not in self.help_descriptions.keys():
+        for cmd_name in self.help_descriptions:
+            cmd = await self.bot.get_app_command(cmd_name)
+            if cmd is None:
                 continue
 
             if isinstance(self.help_descriptions[cmd.name], str):
