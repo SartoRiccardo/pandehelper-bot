@@ -106,9 +106,10 @@ class TilestratCog(ErrorHandlerCog):
             if thread is None:
                 try:
                     thread = await self.bot.fetch_channel(thr_id)
-                    await thread.delete()
                 except discord.NotFound:
-                    pass
+                    thread = None
+            if thread is not None:
+                await thread.delete()
             to_delete.append(thr_id)
 
         for thr_id in to_delete:
@@ -158,7 +159,7 @@ class TilestratCog(ErrorHandlerCog):
         else:
             thread = interaction.guild.get_thread(current.thread_id)
             if thread is None:
-                thread = interaction.guild.fetch_channel(current.thread_id)
+                thread = await interaction.guild.fetch_channel(current.thread_id)
 
         await interaction.edit_original_response(
             embed=self.get_raidlog_embed(thread, strats, is_just_created, tile_info["EventNumber"])
