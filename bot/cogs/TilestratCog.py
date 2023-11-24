@@ -114,6 +114,7 @@ class TilestratCog(ErrorHandlerCog):
 
         for thr_id in to_delete:
             del self.check_back[thr_id]
+        await self.save_state()
 
     @discord.app_commands.command(name="raidlog", description="Alias for /tilestrat")
     @discord.app_commands.describe(tile_code="The tile code to look up.")
