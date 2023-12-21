@@ -52,7 +52,7 @@ async def get_tilestrats(tile_code: str, forum_id: int, conn=None) -> list[Tiles
         FROM tilestratthreads
         WHERE forum_id=$1
             AND tile_code=$2
-        ORDER BY event_num ASC
+        ORDER BY event_num DESC
     """, forum_id, tile_code)
     return [
         Tilestrat(forum_id, r["thread_id"], tile_code, r["event_num"], r["challenge_type"], r["boss"])

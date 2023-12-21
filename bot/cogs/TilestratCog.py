@@ -1,3 +1,4 @@
+import math
 import discord
 from datetime import datetime, timedelta
 from discord.ext import commands, tasks
@@ -6,6 +7,7 @@ import bot.db.queries.tilestrat
 import bot.utils.discordutils
 from bot.exceptions import UnknownTile
 from bot.classes import ErrorHandlerCog
+from bot.views import EmbedPaginateView
 import bot.utils.bloons
 from bot.utils.emojis import LEAST_TIERS, LEAST_CASH, BLOONARIUS, VORTEX, LYCH, TIME_ATTACK, BLANK, DREADBLOON, \
     PHAYZE
@@ -162,8 +164,10 @@ class TilestratCog(ErrorHandlerCog):
             if thread is None:
                 thread = await interaction.guild.fetch_channel(current.thread_id)
 
+        embeds = self.get_raidlog_embeds(thread, strats, is_just_created, tile_info["EventNumber"])
         await interaction.edit_original_response(
-            embed=self.get_raidlog_embed(thread, strats, is_just_created, tile_info["EventNumber"])
+            embed=embeds[0],
+            view=None if len(embeds) == 1 else EmbedPaginateView(embeds, original_interaction=interaction)
         )
 
     async def create_tilestrat_thread(self, tile_info: dict, forum_channel: discord.ForumChannel) -> discord.Thread:
@@ -381,12 +385,12 @@ class TilestratCog(ErrorHandlerCog):
         await bot.db.queries.tilestrat.del_tilestrat(thread_id)
 
     @staticmethod
-    def get_raidlog_embed(
+    def get_raidlog_embeds(
             thread: discord.Thread,
             strats: list[bot.db.model.Tilestrat.Tilestrat],
             is_just_created: bool,
             event_num: int
-    ) -> discord.Embed:
+    ) -> list[discord.Embed]:
         int_to_tile_type = {8: "Least Cash", 2: "Race", 9: "Least Tiers"}
         int_to_boss = {0: "Bloonarius", 1: "Lych", 2: "Vortex", 3: "Dreadbloon", 4: "Phayze"}
         tile_types = {
@@ -427,18 +431,37 @@ class TilestratCog(ErrorHandlerCog):
                 tile_type=tile_type
             ))
 
-        embed = discord.Embed(
+        embed_template = discord.Embed(
             title=thread.name,
             color=discord.Color.orange(),
             url=TilestratCog.get_channel_url(thread),
         )
         if len(thumb_url) > 0:
-            embed.set_thumbnail(url=thumb_url)
-        if len(old_threads_str) > 0:
-            embed.add_field(name="Previous Strats", value="\n".join(old_threads_str))
+            embed_template.set_thumbnail(url=thumb_url)
         if is_just_created:
-            embed.set_footer(text="⚠️ There are currently no strategies logged in the thread.")
-        return embed
+            embed_template.set_footer(text="⚠️ There are currently no strategies logged in the thread.")
+
+        strats_per_page = 7
+        pages = math.ceil(len(old_threads_str)/strats_per_page)
+        embeds = []
+        embed = embed_template.copy()
+        for i in range(pages):
+            embed.add_field(
+                name="Previous Strats",
+                value="\n".join(old_threads_str[i*strats_per_page:(i+1)*strats_per_page])
+            )
+            if pages > 1:
+                footer_parts = [f"Page {i+1}/{pages}"]
+                if embed.footer.text:
+                    footer_parts.append(embed.footer.text)
+                embed.set_footer(text=" • ".join(footer_parts))
+
+            embeds.append(embed)
+            embed = embed_template.copy()
+        if len(old_threads_str) == 0:
+            embeds.append(embed)
+
+        return embeds
 
     @staticmethod
     def get_channel_url(channel: discord.Thread):
