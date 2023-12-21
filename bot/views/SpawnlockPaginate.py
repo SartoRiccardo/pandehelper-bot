@@ -20,7 +20,7 @@ class TileButton(discord.ui.Button):
 
 
 class SpawnlockPaginateView(discord.ui.View):
-    """A list of actions usable by every user in the team."""
+    """UI to switch between 3 tiles' data."""
     def __init__(self,
                  tile_data: list[dict[str, Any]],
                  original_interaction: discord.Interaction = None,
