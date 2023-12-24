@@ -58,7 +58,7 @@ def get_radius(tile_count: int) -> int:
     return int((sqrt(1 + 8*(tile_count-1)/6) - 1) / 2)
 
 
-def tile_to_coords(tile_code: str, map_radius: int = 7) -> tuple[int, int, int]:
+def tile_to_coords(tile_code: str, map_radius: int = 7, team_pov: int = 0) -> tuple[int, int, int]:
     """
     First letter is which spawn the tile is closest to (A -> G counterclockwise).
     Second letter is how far horizontally it goes.
@@ -78,7 +78,7 @@ def tile_to_coords(tile_code: str, map_radius: int = 7) -> tuple[int, int, int]:
     if tile_code.startswith("FA") and ord(tile_code[2]) >= ord("H"):
         tile_code = tile_code[:2] + chr(ord(tile_code[2])-1)
 
-    rotations = ord(tile_code[0])-ord("A")
+    rotations = (ord(tile_code[0])-ord("A")-team_pov) % 6
     dist_from_center = map_radius - (ord(tile_code[2])-ord("A"))
     dist_from_radius = int((ord(tile_code[1])-ord("A")+1) / 2)
     qrs = (0, dist_from_center, -dist_from_center)
@@ -105,7 +105,7 @@ def make_map(tiles: list[btd6.CtTile], team_pov: int) -> None:
 
     a = list(HEX_FILL.keys())
     for t in tiles:
-        qrs = tile_to_coords(t.id, max(radius, 7))  # The max is a hack cause tile codes are not dynamic like they're supposed to
+        qrs = tile_to_coords(t.id, max(radius, 7), team_pov)  # The max is a hack cause tile codes are not dynamic like they're supposed to
         color = None #random.choice(a)
         draw_hexagon(
             qrs,
