@@ -4,7 +4,7 @@ from math import sqrt
 from bloonspy import Client, btd6
 from typing import Literal
 import random
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 
 TeamColor = Literal["Green", "Purple", "Red", "Yellow", "Pink", "Blue"]
@@ -40,6 +40,12 @@ HEX_FILL = {
     "Red": "#ff1524",
     None: "#eceff1",
 }
+
+TEXT_FONT = ImageFont.truetype(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "bin", "LuckiestGuy-Regular.ttf"), 100)
+TEXT_MARGIN = (0, 30, 30, 30)
+TEXT_C = (255, 255, 255)
+TEXT_STROKE_C = (0, 0, 0)
+TEXT_STROKE_W = 10
 
 
 def sign(num: float) -> int:
@@ -93,45 +99,106 @@ def tile_to_coords(tile_code: str, map_radius: int = 7, team_pov: int = 0) -> tu
     return qrs
 
 
-def make_map(tiles: list[btd6.CtTile], team_pov: int) -> None:
+def make_map(tiles: list[btd6.CtTile], team_pov: int = 0, title: str or None = None) -> None:
     radius = get_radius(len(tiles))
-    map_size = (
-        math.ceil(3/2 * HEX_FULL_RADIUS[0] * radius + HEX_FULL_RADIUS[0]) * 2 + (PADDING+MARGIN)*2,
-        math.ceil((radius*2+1) * HEX_FULL_RADIUS[1]*0.866*2) + (PADDING+MARGIN)*2,
-    )
+
+    width = math.ceil(3/2 * HEX_FULL_RADIUS[0] * radius + HEX_FULL_RADIUS[0]) * 2
+    width += (PADDING+MARGIN)*2
+
+    height = math.ceil((radius*2+1) * HEX_FULL_RADIUS[1]*0.866*2)
+    height += (PADDING+MARGIN)*2
+    height += TEXT_MARGIN[0] + TEXT_MARGIN[2]
+
+    map_size = (width, height)
 
     img = Image.new("RGBA", map_size, color=BACKGROUND)
     canvas = ImageDraw.Draw(img)
 
-    a = list(HEX_FILL.keys())
+    title_bbox = (0, 0)
+    if title is not None:
+        title = title.upper()
+        title_bbox = canvas.textbbox((0, 0), title, font=TEXT_FONT, stroke_width=TEXT_STROKE_W)
+        map_size = (map_size[0], map_size[1] + (title_bbox[3]-title_bbox[1]))
+        img = img.resize(map_size)
+        canvas = ImageDraw.Draw(img)
+
+    map_center = (
+        map_size[0]/2,
+        map_size[1]/2,
+    )
+    if title is not None:
+        map_center = (map_center[0], map_center[1] + TEXT_MARGIN[0] + TEXT_MARGIN[1])
+
     for t in tiles:
         qrs = tile_to_coords(t.id, max(radius, 7), team_pov)  # The max is a hack cause tile codes are not dynamic like they're supposed to
-        color = None #random.choice(a)
+        color = None
         draw_hexagon(
             qrs,
             canvas,
-            map_size,
+            map_center,
             color=color,
             is_spawn_tile=t.tile_type == btd6.CtTileType.TEAM_START
         )
         if t.tile_type == btd6.CtTileType.RELIC:
-            paste_relic(t.relic, qrs, img, map_size)
+            paste_relic(t.relic, qrs, img, map_center)
         elif t.tile_type == btd6.CtTileType.BANNER:
-            paste_banner(qrs, img, map_size)
+            paste_banner(qrs, img, map_center)
 
-    canvas.polygon(
-        [(PADDING, PADDING), (map_size[0]-PADDING, PADDING),
-         (map_size[0]-PADDING, map_size[1]-PADDING), (PADDING, map_size[1]-PADDING)],
-        outline="white",
-        width=10,
-    )
-    img.show()
+    make_border(canvas, map_size, title)
+
+    return img
 
 
-def qrs_to_xy(qrs: tuple[int, int, int], img_size: tuple[int, int]) -> tuple[int, int]:
+def make_border(
+        canvas: ImageDraw,
+        map_size: tuple[int, int],
+        title: str or None
+    ) -> None:
+    border_points = [
+        (PADDING, PADDING),
+        (PADDING, map_size[1]-PADDING),
+        (map_size[0]-PADDING, map_size[1]-PADDING),
+        (map_size[0]-PADDING, PADDING),
+        (PADDING, PADDING)
+    ]
+
+    if title is not None:
+        title = title.upper()
+        title_bbox = canvas.textbbox((0, 0), title, font=TEXT_FONT, stroke_width=TEXT_STROKE_W)
+        title_size = (title_bbox[2]-title_bbox[0], title_bbox[3]-title_bbox[1])
+        canvas.text(
+            ((map_size[0]-title_size[0])/2, TEXT_MARGIN[0] + MARGIN),
+            title,
+            font=TEXT_FONT,
+            fill=TEXT_C,
+            stroke_width=TEXT_STROKE_W,
+            stroke_fill=TEXT_STROKE_C,
+        )
+        border_points.insert(0, (
+            (map_size[0]-title_size[0])/2 - TEXT_MARGIN[3],
+            PADDING + TEXT_MARGIN[0] + title_size[1]/2 - 10,
+        ))
+        border_points[-1] = (
+            (map_size[0]+title_size[0])/2 + TEXT_MARGIN[1],
+            PADDING + TEXT_MARGIN[0] + title_size[1]/2 - 10,
+        )
+        border_points[1] = (border_points[1][0], border_points[1][1] + TEXT_MARGIN[0] + title_size[1]/2 - 10)
+        border_points[-2] = (border_points[-2][0], border_points[-2][1] + TEXT_MARGIN[0] + title_size[1]/2 - 10)
+
+    for i in range(len(border_points)-1):
+        canvas.line(
+            [border_points[i], border_points[i+1]],
+            fill="white",
+            width=10
+        )
+
+
+def qrs_to_xy(
+        qrs: tuple[int, int, int],
+        map_center: tuple[int, int]) -> tuple[int, int]:
     xy = (
-        img_size[0]/2 + qrs[0] * HEX_FULL_RADIUS[0] * 3/2,
-        img_size[1]/2 + qrs[0] * HEX_FULL_RADIUS[1] * 0.866,
+        map_center[0] + qrs[0] * HEX_FULL_RADIUS[0] * 3/2,
+        map_center[1] + qrs[0] * HEX_FULL_RADIUS[1] * 0.866,
     )
     xy = (
         xy[0],
@@ -143,10 +210,10 @@ def qrs_to_xy(qrs: tuple[int, int, int], img_size: tuple[int, int]) -> tuple[int
 def draw_hexagon(
         qrs: tuple[int, int, int],
         canvas: ImageDraw,
-        img_size: tuple[int, int],
+        map_center: tuple[int, int],
         color: TeamColor or None = None,
         is_spawn_tile: bool = False) -> None:
-    xy = qrs_to_xy(qrs, img_size)
+    xy = qrs_to_xy(qrs, map_center)
     angle = 1/3 * math.pi
     points = []
     for _ in range(6):
@@ -166,8 +233,8 @@ def paste_relic(
         relic: btd6.Relic,
         qrs: tuple[int, int, int],
         image: Image,
-        img_size: tuple[int, int]) -> None:
-    xy = qrs_to_xy(qrs, img_size)
+        map_center: tuple[int, int]) -> None:
+    xy = qrs_to_xy(qrs, map_center)
     xy = (xy[0]-int(TILE_OVERLAY_SIZE/2), xy[1]-int(TILE_OVERLAY_SIZE/2))
     relic_img = Image.open(os.path.join(TILE_OVERLAY_PATH, f"{relic.value.replace(' ', '')}.png")) \
                     .convert("RGBA") \
@@ -178,8 +245,8 @@ def paste_relic(
 def paste_banner(
         qrs: tuple[int, int, int],
         image: Image,
-        img_size: tuple[int, int]) -> None:
-    xy = qrs_to_xy(qrs, img_size)
+        map_center: tuple[int, int]) -> None:
+    xy = qrs_to_xy(qrs, map_center)
     xy = (xy[0]-int(TILE_OVERLAY_SIZE/2), xy[1]-int(TILE_OVERLAY_SIZE/2))
     relic_img = Image.open(os.path.join(TILE_OVERLAY_PATH, "Banner.png")) \
                     .convert("RGBA") \
@@ -188,12 +255,13 @@ def paste_banner(
 
 
 if __name__ == '__main__':
-    #tiles = Client.contested_territories()[0].tiles()
-    #make_map(tiles, 5)
+    tiles = Client.contested_territories()[0].tiles()
+    make_map(tiles, title="Pandemonium CT Map").show()
+    make_map(tiles).show()
 
     #for ct in Client.contested_territories():
     #    make_map(ct.tiles(), 1)
 
-    tiles = Client.contested_territories()[0].tiles()
-    for pov in range(6):
-        make_map(tiles, pov)
+    #tiles = Client.contested_territories()[0].tiles()
+    #for pov in range(6):
+    #    make_map(tiles, pov)
