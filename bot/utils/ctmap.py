@@ -17,10 +17,11 @@ MARGIN = 40
 TILE_OVERLAY_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "bin", "tile_overlays")
 TILE_OVERLAY_SIZE = 120
 
-HEX_RADIUS = 80
-HEX_PADDING = 0
+HEX_RADIUS = (80, 70)
+HEX_PADDING = 2
 HEX_STROKE_W = 4
-HEX_FULL_RADIUS = HEX_RADIUS + HEX_PADDING
+HEX_STROKE_W_SPAWN = 15
+HEX_FULL_RADIUS = (HEX_RADIUS[0] + HEX_PADDING, HEX_RADIUS[1] + HEX_PADDING)
 HEX_STROKE_C = {
     "Green": "#00713a",
     "Purple": "#68049c",
@@ -95,8 +96,8 @@ def tile_to_coords(tile_code: str, map_radius: int = 7) -> tuple[int, int, int]:
 def make_map(tiles: list[btd6.CtTile], team_pov: int) -> None:
     radius = get_radius(len(tiles))
     map_size = (
-        math.ceil(3/2 * HEX_FULL_RADIUS * radius + HEX_FULL_RADIUS) * 2 + (PADDING+MARGIN)*2,
-        math.ceil((radius*2+1) * HEX_FULL_RADIUS*0.866*2) + (PADDING+MARGIN)*2,
+        math.ceil(3/2 * HEX_FULL_RADIUS[0] * radius + HEX_FULL_RADIUS[0]) * 2 + (PADDING+MARGIN)*2,
+        math.ceil((radius*2+1) * HEX_FULL_RADIUS[1]*0.866*2) + (PADDING+MARGIN)*2,
     )
 
     img = Image.new("RGBA", map_size, color=BACKGROUND)
@@ -104,12 +105,13 @@ def make_map(tiles: list[btd6.CtTile], team_pov: int) -> None:
 
     a = list(HEX_FILL.keys())
     for t in tiles:
-        qrs = tile_to_coords(t.id, radius)
+        qrs = tile_to_coords(t.id, max(radius, 7))  # The max is a hack cause tile codes are not dynamic like they're supposed to
+        color = None #random.choice(a)
         draw_hexagon(
             qrs,
             canvas,
             map_size,
-            color=random.choice(a),
+            color=color,
             is_spawn_tile=t.tile_type == btd6.CtTileType.TEAM_START
         )
         if t.tile_type == btd6.CtTileType.RELIC:
@@ -128,12 +130,12 @@ def make_map(tiles: list[btd6.CtTile], team_pov: int) -> None:
 
 def qrs_to_xy(qrs: tuple[int, int, int], img_size: tuple[int, int]) -> tuple[int, int]:
     xy = (
-        img_size[0]/2 + qrs[0] * HEX_FULL_RADIUS * 3/2,
-        img_size[1]/2 + qrs[0] * HEX_FULL_RADIUS * 0.866,
+        img_size[0]/2 + qrs[0] * HEX_FULL_RADIUS[0] * 3/2,
+        img_size[1]/2 + qrs[0] * HEX_FULL_RADIUS[1] * 0.866,
     )
     xy = (
         xy[0],
-        xy[1] + qrs[1] * HEX_FULL_RADIUS * 0.866 * 2,
+        xy[1] + qrs[1] * HEX_FULL_RADIUS[1] * 0.866 * 2,
     )
     return (int(xy[0]), int(xy[1]))
 
@@ -149,13 +151,15 @@ def draw_hexagon(
     points = []
     for _ in range(6):
         points.append((
-            HEX_RADIUS * math.cos(angle) + xy[0],
-            HEX_RADIUS * math.sin(angle) + xy[1],
+            HEX_RADIUS[0] * math.cos(angle) + xy[0],
+            HEX_RADIUS[1] * math.sin(angle) + xy[1],
         ))
         angle += 1/3 * math.pi
 
     fill = HEX_STROKE_C[color] if is_spawn_tile else HEX_FILL[color]
-    canvas.polygon(points, fill=fill, outline=HEX_STROKE_C[color], width=HEX_STROKE_W)
+    outline = HEX_FILL[color] if is_spawn_tile else HEX_STROKE_C[color]
+    stroke = HEX_STROKE_W_SPAWN if is_spawn_tile else HEX_STROKE_W
+    canvas.polygon(points, fill=fill, outline=outline, width=stroke)
 
 
 def paste_relic(
@@ -184,5 +188,12 @@ def paste_banner(
 
 
 if __name__ == '__main__':
+    #tiles = Client.contested_territories()[0].tiles()
+    #make_map(tiles, 5)
+
+    #for ct in Client.contested_territories():
+    #    make_map(ct.tiles(), 1)
+
     tiles = Client.contested_territories()[0].tiles()
-    make_map(tiles, 5)
+    for pov in range(6):
+        make_map(tiles, pov)
