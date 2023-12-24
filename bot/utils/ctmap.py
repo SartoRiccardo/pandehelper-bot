@@ -153,16 +153,22 @@ def make_map(tiles: list[btd6.CtTile], team_pov: int = 0, title: str or None = N
         "AAB": "Purple", "BAB": "Pink", "CAB": "Green", "DAB": "Blue", "EAB": "Yellow", "FAB": "Red",
         "AAC": "Purple", "BAC": "Pink", "CAC": "Green", "DAC": "Blue", "EAC": "Yellow", "FAC": "Red",
     }
+    special_stale = [
+        "AAB", "BAB", "CAB", "DAB", "EAB", "FAB",
+        "AAC", "BAC", "CAC", "DAC", "EAC", "FAC",
+    ]
 
     for t in tiles:
         qrs = tile_to_coords(t.id, max(radius, 7), team_pov)  # The max is a hack cause tile codes are not dynamic like they're supposed to
         color = None if t.id not in special else special[t.id]
+        is_stale = t.id in special_stale
         draw_hexagon(
             qrs,
             canvas,
             map_center,
             color=color,
-            is_spawn_tile=t.tile_type == btd6.CtTileType.TEAM_START
+            is_spawn_tile=t.tile_type == btd6.CtTileType.TEAM_START,
+            is_stale=is_stale,
         )
         if t.tile_type == btd6.CtTileType.RELIC:
             paste_relic(t.relic, qrs, img, map_center)
@@ -237,7 +243,8 @@ def draw_hexagon(
         canvas: ImageDraw,
         map_center: tuple[int, int],
         color: TeamColor or None = None,
-        is_spawn_tile: bool = False) -> None:
+        is_spawn_tile: bool = False,
+        is_stale: bool = False) -> None:
     xy = qrs_to_xy(qrs, map_center)
     angle = 1/3 * math.pi
     points = []
@@ -248,7 +255,7 @@ def draw_hexagon(
         ))
         angle += 1/3 * math.pi
 
-    fill = HEX_FILL[color] #HEX_STROKE_C[color] if is_spawn_tile else HEX_FILL[color]
+    fill = HEX_FILL_STALE[color] if color and is_stale else HEX_FILL[color] #HEX_STROKE_C[color] if is_spawn_tile else HEX_FILL[color]
     outline = HEX_STROKE_C[color] #HEX_FILL[color] if is_spawn_tile else HEX_STROKE_C[color]
     stroke = HEX_STROKE_W #HEX_STROKE_W_SPAWN if is_spawn_tile else HEX_STROKE_W
     canvas.polygon(points, fill=fill, outline=outline, width=stroke)
