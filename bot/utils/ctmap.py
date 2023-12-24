@@ -20,7 +20,7 @@ TILE_OVERLAY_SIZE = 120
 HEX_RADIUS = (80, 70)
 HEX_PADDING = 2
 HEX_STROKE_W = 4
-HEX_STROKE_W_SPAWN = 15
+HEX_STROKE_W_SPAWN = 7
 HEX_FULL_RADIUS = (HEX_RADIUS[0] + HEX_PADDING, HEX_RADIUS[1] + HEX_PADDING)
 HEX_STROKE_C = {
     "Green": "#00713a",
@@ -39,6 +39,22 @@ HEX_FILL = {
     "Pink": "#f769a9",
     "Red": "#ff1524",
     None: "#eceff1",
+}
+HEX_FILL_STALE = {
+    "Green": "#c7ffdf",
+    "Purple": "#c4b7ed",
+    "Yellow": "#faf3ca",
+    "Blue": "#bae2f7",
+    "Pink": "#f2cbdd",
+    "Red": "#e8a5a9",
+}
+HEX_LETTER = {
+    "Green": "C",
+    "Purple": "A",
+    "Yellow": "E",
+    "Blue": "D",
+    "Pink": "B",
+    "Red": "F",
 }
 
 TEXT_FONT = ImageFont.truetype(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "bin", "LuckiestGuy-Regular.ttf"), 100)
@@ -129,9 +145,18 @@ def make_map(tiles: list[btd6.CtTile], team_pov: int = 0, title: str or None = N
     if title is not None:
         map_center = (map_center[0], map_center[1] + TEXT_MARGIN[0] + TEXT_MARGIN[1])
 
+    # Test cases
+    special = {
+        "AAA": "Purple", "BAA": "Pink", "CAA": "Green", "DAA": "Blue", "EAA": "Yellow", "FAA": "Red",
+        "ABA": "Purple", "BBA": "Pink", "CBA": "Green", "DBA": "Blue", "EBA": "Yellow", "FBA": "Red",
+        "ACA": "Purple", "BCA": "Pink", "CCA": "Green", "DCA": "Blue", "ECA": "Yellow", "FCA": "Red",
+        "AAB": "Purple", "BAB": "Pink", "CAB": "Green", "DAB": "Blue", "EAB": "Yellow", "FAB": "Red",
+        "AAC": "Purple", "BAC": "Pink", "CAC": "Green", "DAC": "Blue", "EAC": "Yellow", "FAC": "Red",
+    }
+
     for t in tiles:
         qrs = tile_to_coords(t.id, max(radius, 7), team_pov)  # The max is a hack cause tile codes are not dynamic like they're supposed to
-        color = None
+        color = None if t.id not in special else special[t.id]
         draw_hexagon(
             qrs,
             canvas,
@@ -223,10 +248,21 @@ def draw_hexagon(
         ))
         angle += 1/3 * math.pi
 
-    fill = HEX_STROKE_C[color] if is_spawn_tile else HEX_FILL[color]
-    outline = HEX_FILL[color] if is_spawn_tile else HEX_STROKE_C[color]
-    stroke = HEX_STROKE_W_SPAWN if is_spawn_tile else HEX_STROKE_W
+    fill = HEX_FILL[color] #HEX_STROKE_C[color] if is_spawn_tile else HEX_FILL[color]
+    outline = HEX_STROKE_C[color] #HEX_FILL[color] if is_spawn_tile else HEX_STROKE_C[color]
+    stroke = HEX_STROKE_W #HEX_STROKE_W_SPAWN if is_spawn_tile else HEX_STROKE_W
     canvas.polygon(points, fill=fill, outline=outline, width=stroke)
+
+    if is_spawn_tile and color:
+        canvas.text(
+            (xy[0], xy[1]+12),
+            HEX_LETTER[color],
+            font=TEXT_FONT,
+            fill=TEXT_C,
+            stroke_width=TEXT_STROKE_W,
+            stroke_fill=TEXT_STROKE_C,
+            anchor="mm",
+        )
 
 
 def paste_relic(
@@ -256,8 +292,8 @@ def paste_banner(
 
 if __name__ == '__main__':
     tiles = Client.contested_territories()[0].tiles()
-    make_map(tiles, title="Pandemonium CT Map").show()
-    make_map(tiles).show()
+    make_map(tiles, title="Pandemonium CT Map", team_pov=2).show()
+    #make_map(tiles).show()
 
     #for ct in Client.contested_territories():
     #    make_map(ct.tiles(), 1)
