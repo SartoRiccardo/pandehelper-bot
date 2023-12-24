@@ -10,13 +10,16 @@ from PIL import Image, ImageDraw
 TeamColor = Literal["Green", "Purple", "Red", "Yellow", "Pink", "Blue"]
 
 
-GLOW_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "bin", "mapglow.png")
 BACKGROUND = "#263238"#"#707696"
 PADDING = 40
 MARGIN = 40
+
+TILE_OVERLAY_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "bin", "tile_overlays")
+TILE_OVERLAY_SIZE = 120
+
 HEX_RADIUS = 80
 HEX_PADDING = 0
-HEX_STROKE_W = 2
+HEX_STROKE_W = 4
 HEX_FULL_RADIUS = HEX_RADIUS + HEX_PADDING
 HEX_STROKE_C = {
     "Green": "#00713a",
@@ -89,28 +92,31 @@ def tile_to_coords(tile_code: str, map_radius: int = 7) -> tuple[int, int, int]:
     return qrs
 
 
-def make_map(team_pov) -> None:
-    tiles = Client.contested_territories()[0].tiles()
+def make_map(tiles: list[btd6.CtTile], team_pov: int) -> None:
     radius = get_radius(len(tiles))
     map_size = (
         math.ceil(3/2 * HEX_FULL_RADIUS * radius + HEX_FULL_RADIUS) * 2 + (PADDING+MARGIN)*2,
         math.ceil((radius*2+1) * HEX_FULL_RADIUS*0.866*2) + (PADDING+MARGIN)*2,
     )
 
-    img = Image.new("RGB", map_size, color=BACKGROUND)
-    # glow = Image.open(GLOW_PATH).convert("RGBA")
-    # img.paste(glow, (0, 0), mask=glow)
+    img = Image.new("RGBA", map_size, color=BACKGROUND)
     canvas = ImageDraw.Draw(img)
 
     a = list(HEX_FILL.keys())
     for t in tiles:
+        qrs = tile_to_coords(t.id, radius)
         draw_hexagon(
-            tile_to_coords(t.id, radius),
+            qrs,
             canvas,
             map_size,
             color=random.choice(a),
             is_spawn_tile=t.tile_type == btd6.CtTileType.TEAM_START
         )
+        if t.tile_type == btd6.CtTileType.RELIC:
+            paste_relic(t.relic, qrs, img, map_size)
+        elif t.tile_type == btd6.CtTileType.BANNER:
+            paste_banner(qrs, img, map_size)
+
     canvas.polygon(
         [(PADDING, PADDING), (map_size[0]-PADDING, PADDING),
          (map_size[0]-PADDING, map_size[1]-PADDING), (PADDING, map_size[1]-PADDING)],
@@ -120,12 +126,7 @@ def make_map(team_pov) -> None:
     img.show()
 
 
-def draw_hexagon(
-        qrs: tuple[int, int, int],
-        canvas: ImageDraw,
-        img_size: tuple[int, int],
-        color: TeamColor or None = None,
-        is_spawn_tile: bool = False) -> None:
+def qrs_to_xy(qrs: tuple[int, int, int], img_size: tuple[int, int]) -> tuple[int, int]:
     xy = (
         img_size[0]/2 + qrs[0] * HEX_FULL_RADIUS * 3/2,
         img_size[1]/2 + qrs[0] * HEX_FULL_RADIUS * 0.866,
@@ -134,7 +135,16 @@ def draw_hexagon(
         xy[0],
         xy[1] + qrs[1] * HEX_FULL_RADIUS * 0.866 * 2,
     )
+    return (int(xy[0]), int(xy[1]))
 
+
+def draw_hexagon(
+        qrs: tuple[int, int, int],
+        canvas: ImageDraw,
+        img_size: tuple[int, int],
+        color: TeamColor or None = None,
+        is_spawn_tile: bool = False) -> None:
+    xy = qrs_to_xy(qrs, img_size)
     angle = 1/3 * math.pi
     points = []
     for _ in range(6):
@@ -148,5 +158,31 @@ def draw_hexagon(
     canvas.polygon(points, fill=fill, outline=HEX_STROKE_C[color], width=HEX_STROKE_W)
 
 
+def paste_relic(
+        relic: btd6.Relic,
+        qrs: tuple[int, int, int],
+        image: Image,
+        img_size: tuple[int, int]) -> None:
+    xy = qrs_to_xy(qrs, img_size)
+    xy = (xy[0]-int(TILE_OVERLAY_SIZE/2), xy[1]-int(TILE_OVERLAY_SIZE/2))
+    relic_img = Image.open(os.path.join(TILE_OVERLAY_PATH, f"{relic.value.replace(' ', '')}.png")) \
+                    .convert("RGBA") \
+                    .resize((TILE_OVERLAY_SIZE, TILE_OVERLAY_SIZE))
+    Image.Image.paste(image, relic_img, xy, mask=relic_img)
+
+
+def paste_banner(
+        qrs: tuple[int, int, int],
+        image: Image,
+        img_size: tuple[int, int]) -> None:
+    xy = qrs_to_xy(qrs, img_size)
+    xy = (xy[0]-int(TILE_OVERLAY_SIZE/2), xy[1]-int(TILE_OVERLAY_SIZE/2))
+    relic_img = Image.open(os.path.join(TILE_OVERLAY_PATH, "Banner.png")) \
+                    .convert("RGBA") \
+                    .resize((TILE_OVERLAY_SIZE, TILE_OVERLAY_SIZE))
+    Image.Image.paste(image, relic_img, xy, mask=relic_img)
+
+
 if __name__ == '__main__':
-    make_map(5)
+    tiles = Client.contested_territories()[0].tiles()
+    make_map(tiles, 5)
