@@ -15,7 +15,7 @@ PADDING = 40
 MARGIN = 40
 
 TILE_OVERLAY_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "bin", "tile_overlays")
-TILE_OVERLAY_SIZE = 120
+TILE_OVERLAY_SIZE = 100
 
 HEX_RADIUS = (80, 70)
 HEX_PADDING = 2
