@@ -161,6 +161,28 @@ class WelcomeCog(ErrorHandlerCog):
                 filtered += letter
         return filtered
 
+    @commands.Cog.listener()
+    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent) -> None:
+        MESSAGE_ID = 1189413700893949962
+        EMOTE = "🔥"
+        if str(payload.emoji) != EMOTE or payload.message_id != MESSAGE_ID:
+            return
+        
+        guild = await self.get_guild(payload.guild_id)
+        if payload.member:
+            member = payload.member
+        else:
+            member = guild.get_member(payload.user_id)
+            if member is None:
+                member = await guild.fetch_member(payload.user_id)
+
+        channel = guild.get_channel(payload.channel_id)
+        if channel is None:
+            channel = await guild.fetch_channel(payload.channel_id)
+        message = await channel.fetch_message(payload.message_id)
+        await message.remove_reaction(EMOTE, member)
+        await member.remove_roles(*member.roles)
+
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(WelcomeCog(bot))
