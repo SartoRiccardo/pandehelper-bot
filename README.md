@@ -4,8 +4,9 @@ be a versatile helper for many Contested territory Teams.
 
 # Usage
 
-If you are not interested in hosting your own instace, the `/help` command should provide all
-the information you need.
+If you just want to add the bot to your server, you can simply [invite the bot](https://discord.com/api/oauth2/authorize?client_id=1088892665422151710&permissions=8&scope=bot) and check out [the Wiki](https://github.com/SartoRiccardo/ct-ticket-tracker/wiki) and/or the `/help` command if you need help setting up its features.
+
+If you want to host your own instance, keep reading this document.
 
 # Hosting your own instance
 
