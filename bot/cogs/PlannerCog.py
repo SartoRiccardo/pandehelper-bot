@@ -859,10 +859,11 @@ class PlannerCog(ErrorHandlerCog):
         if not planner.ping_role_with_tickets:
             try:
                 new_ping_role = await self.create_ping_role(planner)
-                await bot.db.queries.planner.planner_update_config(
-                    planner.planner_channel,
-                    ping_role_with_tickets=new_ping_role.id
-                )
+                if new_ping_role:
+                    await bot.db.queries.planner.planner_update_config(
+                        planner.planner_channel,
+                        ping_role_with_tickets=new_ping_role.id
+                    )
             except discord.Forbidden:
                 pass
         else:
