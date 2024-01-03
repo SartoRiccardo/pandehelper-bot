@@ -17,7 +17,6 @@ class CtTicketTracker(commands.Bot):
             intents=intents,
             application_id=APP_ID,
             activity=discord.Game(name=f"/help"),
-            log_level=logging.ERROR,
         )
         self.remove_command("help")
         self.version = __version__
@@ -55,4 +54,4 @@ class CtTicketTracker(commands.Bot):
 
 
 if __name__ == '__main__':
-    CtTicketTracker().run(TOKEN)
+    CtTicketTracker().run(TOKEN, log_level=logging.ERROR)
