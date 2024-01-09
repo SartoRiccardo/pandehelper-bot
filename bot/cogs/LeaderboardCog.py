@@ -1,4 +1,5 @@
 import math
+import traceback
 from datetime import datetime, timedelta
 import discord
 from discord.ext import tasks, commands
@@ -202,6 +203,9 @@ class LeaderboardCog(ErrorHandlerCog):
                 )
             except discord.Forbidden:
                 pass
+            except discord.HTTPException as exc:
+                print(f"HTTPException in Leaderboard")
+                traceback.print_exc()
 
 
 async def setup(bot: commands.Bot) -> None:
