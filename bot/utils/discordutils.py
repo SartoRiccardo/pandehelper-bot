@@ -56,8 +56,11 @@ async def update_messages(
                 new_view = discord.ui.View()
             if messages_to_change[i].content != new_content or not \
                     (len(messages_to_change[i].components) == len(new_view.to_components()) == 0):
-                coros.append(messages_to_change[i].edit(content=new_content, view=new_view))
-        await asyncio.gather(*coros)
+                await messages_to_change[i].edit(content=new_content, view=new_view)
+                #coros.append(messages_to_change[i].edit(content=new_content, view=new_view))
+
+        # Either the library doesnt handle 429s as it should or it doesn't work with asyncio.gather for some reason
+        # await asyncio.gather(*coros)
         return
 
     coros = []
