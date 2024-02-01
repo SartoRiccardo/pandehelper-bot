@@ -890,7 +890,6 @@ class PlannerCog(ErrorHandlerCog):
         success = await bot.db.queries.planner.edit_tile_capture_time(
             claims_channel, tile, new_time - timedelta(days=1)
         )
-        self.banner_decays = await bot.db.queries.planner.get_tile_closest_to_expire(datetime.now())
         message = f"Got it! `{tile}` will decay at " \
                   f"<t:{int(new_time.timestamp())}:t> (<t:{int(new_time.timestamp())}:R>)"
         if not success:
@@ -911,6 +910,7 @@ class PlannerCog(ErrorHandlerCog):
         if tile_status and tile_status.claimed_by:
             member = interaction.guild.get_member(tile_status.claimed_by)
             await self.check_has_tickets_role(member, planner_info)
+        self.banner_decays = await bot.db.queries.planner.get_tile_closest_to_expire(datetime.now())
 
     async def force_unclaim(self, interaction: discord.Interaction, planner_id: int, tile: str) -> None:
         prev_status = await bot.db.queries.planner.planner_get_tile_status(tile, planner_id)

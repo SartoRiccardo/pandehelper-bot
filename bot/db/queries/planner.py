@@ -134,6 +134,7 @@ async def get_planned_tiles(planner_channel: int,
 @postgres
 async def get_tile_closest_to_expire(from_date: datetime.datetime,
                                      conn=None) -> list[PlannedTile]:
+    # TODO !!!URGENT!!! FIX THIS QUERY!!!!! ITS SUPER VERY SLOW!!!!!! EXTREMELY SLOW!!!!!!
     clear_time = "(SELECT clear_time FROM planners p2 WHERE p.planner_channel = p2.planner_channel)"
     # Gets all tiles that expire after from_date
     tile_captures = f"""
