@@ -115,11 +115,13 @@ class TimeEditModal(discord.ui.Modal, title="Edit a Tile's Expiration Time"):
             await interaction.response.send_message(
                 content="Invalid format for `Stale In`! Must be `hh:mm`, it's in "
                         "how many hours and minutes the tile will go stale in!\n"
-                        "For example: *13:55*."
+                        "For example: *13:55*.",
+                ephemeral=True,
             )
             return
 
         decay_time = now + timedelta(hours=hours, minutes=minutes)
+        print(interaction)
         await self.edit_tile_callback(interaction, self.planner_id, tile_code, decay_time)
 
 
