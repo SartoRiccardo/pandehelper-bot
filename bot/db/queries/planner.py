@@ -134,13 +134,32 @@ async def get_planned_tiles(planner_channel: int,
 @postgres
 async def get_tile_closest_to_expire(from_date: datetime.datetime,
                                      conn=None) -> list[PlannedTile]:
-    # TODO !!!URGENT!!! FIX THIS QUERY!!!!! ITS SUPER VERY SLOW!!!!!! EXTREMELY SLOW!!!!!!
-    clear_time = "(SELECT clear_time FROM planners p2 WHERE p.planner_channel = p2.planner_channel)"
-    # Gets all tiles that expire after from_date
-    tile_captures = f"""
-        SELECT p.planner_channel, c.tile, p.claims_channel, ptc.user_id, p.ping_channel, p.ping_role, c.claimed_at,
-                c.claimed_at + MAKE_INTERVAL(hours => ptt.expires_after_hr) AS expires_at, ptt.expires_after_hr
+    # Latest expire for every tile for every claim channel
+    latest_expire = f"""
+        SELECT channel, tile, MAX(claimed_at) as claimed_at
+        FROM claims
+        GROUP BY (channel, tile)
+    """
+
+    # Earliest expire for each planner
+    earliest_expire = f"""
+        SELECT p.planner_channel, MIN(c.claimed_at + MAKE_INTERVAL(hours => ptt.expires_after_hr)) AS expires_at
         FROM (
+            ({latest_expire}) c JOIN planners p ON c.channel = p.claims_channel
+            JOIN plannertrackedtiles ptt
+                ON ptt.planner_channel = p.planner_channel
+                    AND ptt.tile = c.tile
+            )
+            LEFT JOIN plannertileclaims ptc
+                ON p.planner_channel = ptc.planner_channel AND c.tile = ptc.tile
+        WHERE c.claimed_at + MAKE_INTERVAL(hours => ptt.expires_after_hr) >= $1
+        GROUP BY(p.planner_channel)
+    """
+
+    latest_tile_captures = f"""
+        SELECT eexp.expires_at, p.planner_channel, c.tile, p.claims_channel, ptc.user_id, p.ping_channel, p.ping_role,
+            c.claimed_at, ptt.expires_after_hr
+        FROM ({earliest_expire}) AS eexp JOIN (
             claims c JOIN planners p ON c.channel = p.claims_channel
             JOIN plannertrackedtiles ptt
                 ON ptt.planner_channel = p.planner_channel
@@ -148,42 +167,10 @@ async def get_tile_closest_to_expire(from_date: datetime.datetime,
             )
             LEFT JOIN plannertileclaims ptc
                 ON p.planner_channel = ptc.planner_channel AND c.tile = ptc.tile
-        WHERE c.claimed_at + MAKE_INTERVAL(hours => ptt.expires_after_hr) >= $1 
-            AND (
-                {clear_time} IS NULL
-                OR c.claimed_at >= {clear_time}
-            )
+        ON eexp.expires_at = c.claimed_at + MAKE_INTERVAL(hours => ptt.expires_after_hr)
     """
 
-    # Get the latest capture of each tile, for each claim channel
-    # For example, for these rows
-    #  tile |     captured_at
-    # ------+---------------------
-    #   FFB | 2023-01-01 10:00:00
-    #   FFB | 2023-01-01 11:00:00
-    #   FFB | 2023-01-01 09:00:00
-    # It will leave row 2 and filter out the rest.
-    latest_tile_captures = f"""
-        SELECT *
-        FROM ({tile_captures}) tcap
-        WHERE claimed_at = (
-            SELECT MAX(claimed_at)
-            FROM ({tile_captures}) tcap2
-            WHERE tcap.tile = tcap2.tile
-                AND tcap.claims_channel = tcap2.claims_channel
-        )
-    """
-
-    # Get the tile that expirest the soonest for each planner
-    tiles = await conn.fetch(f"""
-        SELECT *
-        FROM ({latest_tile_captures}) tcap
-        WHERE tcap.expires_at = (
-            SELECT MIN(tcap2.expires_at)
-            FROM ({latest_tile_captures}) tcap2
-            WHERE tcap2.planner_channel = tcap.planner_channel
-        )
-    """, from_date)
+    tiles = await conn.fetch(latest_tile_captures, from_date)
     return [PlannedTile(row["tile"], row["claimed_at"], row["user_id"], row["planner_channel"], row["claims_channel"],
                         row["ping_channel"], row["ping_role"], row["expires_after_hr"])
             for row in tiles]
