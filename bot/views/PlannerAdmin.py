@@ -121,7 +121,6 @@ class TimeEditModal(discord.ui.Modal, title="Edit a Tile's Expiration Time"):
             return
 
         decay_time = now + timedelta(hours=hours, minutes=minutes)
-        print(interaction)
         await self.edit_tile_callback(interaction, self.planner_id, tile_code, decay_time)
 
 

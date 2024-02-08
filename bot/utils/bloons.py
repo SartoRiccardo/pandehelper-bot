@@ -15,7 +15,7 @@ EVENT_EPOCHS = [
     (0, datetime.fromtimestamp(0)),
     (1, datetime.fromtimestamp(1660075200)),
     (26, datetime.fromtimestamp(1690927200)),
-    (35, datetime.fromtimestamp(1703023200)),
+    (36, datetime.fromtimestamp(1703023200)),
 ]
 
 CT_DATA_CACHE_HR = 12
