@@ -19,6 +19,7 @@ class UtilsCog(ErrorHandlerCog):
         "invite": "Invite the bot to your server!",
         "now": "Now!",
         "roster-timezones": "Check the timezones for a team's roster.",
+        "ct-period": "Check a CT event's start and end date by number.",
     }
 
     def __init__(self, bot: commands.Bot) -> None:
@@ -43,6 +44,25 @@ class UtilsCog(ErrorHandlerCog):
             await self.bot.change_presence(activity=discord.Game(name=f"{len(self.bot.guilds)} tiles | /help"))
         except AttributeError:  # Might be thrown on the first loop
             pass
+
+    @discord.app_commands.command(name="ct-period",
+                                  description="Check when a CT event started and ended.")
+    @discord.app_commands.describe(event="The event number to check.")
+    async def cmd_ct_period(self, interaction: discord.Interaction, event: int) -> None:
+        if event < 0:
+            await interaction.response.send_message("CT events must be positive.")
+            return
+
+        start, end = bot.utils.bloons.get_ct_period_during(event=event)
+        # Event 1 lasted 12 days. get_ct_period_during treats it as it having 7 days cause it was easier to code.
+        if event == 1:
+            start -= datetime.timedelta(days=5)
+
+        if start > datetime.datetime.now():
+            verb_start, verb_end = "will start", "end"
+        else:
+            verb_start, verb_end = "started", "ended"
+        await interaction.response.send_message(f"**CT #{event}** {verb_start} at <t:{int(start.timestamp())}> and {verb_end} at <t:{int(end.timestamp())}>.")
 
     @discord.app_commands.command(name="longestround",
                                   description="Get the longest round and its duration for races.")
