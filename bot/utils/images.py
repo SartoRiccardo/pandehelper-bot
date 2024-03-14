@@ -38,8 +38,8 @@ RELICS_IMG = {
     'OpenSeason': 'https://cdn.discordapp.com/attachments/924255725390270474/1120404336892194816/OpenSeason.png',
     'PrimaryPrimates': 'https://cdn.discordapp.com/attachments/924255725390270474/1120404337127067891/PrimaryPrimates.png',
     'PsiVision': 'https://cdn.discordapp.com/attachments/924255725390270474/1120404337408090192/PsiVision.png',
-    'Regeneration': 'https://cdn.discordapp.com/attachments/924255725390270474/1120404337693306950/Restoration.png',
-    'Restoration': 'https://cdn.discordapp.com/attachments/924255725390270474/1120404337944957059/Regeneration.png',
+    'Regeneration': 'https://cdn.discordapp.com/emojis/1147904393111412837.png',
+    'Restoration': 'https://cdn.discordapp.com/emojis/1147904388413792286.png',
     'RoadSpikes': 'https://cdn.discordapp.com/attachments/924255725390270474/1120404338205007902/RoadSpikes.png',
     'RoundingUp': 'https://cdn.discordapp.com/attachments/924255725390270474/1120404338460864592/RoundingUp.png',
     'RoyalTreatment': 'https://cdn.discordapp.com/attachments/924255725390270474/1120404338758651974/RoyalTreatment.png',
@@ -51,6 +51,7 @@ RELICS_IMG = {
     'Thrive': 'https://cdn.discordapp.com/attachments/924255725390270474/1120404356928385175/Thrive.png',
 }
 # Thanks hemi. Cyber Quincy a real one __100__
+UNFORTUNATE = "https://media.discordapp.net/attachments/1130842114520002672/1135682198574477332/unfortunate.png"
 MAPS = {
     "Logs": "https://media.discordapp.net/attachments/770247322633633792/1091540813961506876/logs.png",
     "Cubism": "https://media.discordapp.net/attachments/770247322633633792/1091540761138429992/cubism.png",
@@ -91,7 +92,7 @@ MAPS = {
     "Bazaar": "https://media.discordapp.net/attachments/770247322633633792/1091540737058934814/bazaar.png",
     "Encrypted": "https://media.discordapp.net/attachments/770247322633633792/1091540762132488232/encrypted.png",
     "Haunted": "https://media.discordapp.net/attachments/770247322633633792/1091540787436732526/haunted.png",
-    "Polyphemus": "",
+    "Polyphemus": UNFORTUNATE,
     "Chutes": "https://media.discordapp.net/attachments/770247322633633792/1091540760207310878/chutes.png",
     "Rake": "https://media.discordapp.net/attachments/770247322633633792/1091540833607635065/rake.png",
     "MidnightMansion": "https://media.discordapp.net/attachments/770247322633633792/1091540787759681616/hauntedmansion.png",
@@ -108,7 +109,7 @@ MAPS = {
     "SunkenColumns": "https://media.discordapp.net/attachments/770247322633633792/1091540862577692742/sunkencolumns.png",
     "Cargo": "https://media.discordapp.net/attachments/770247322633633792/1091540738141077595/cargo.png",
     "Mesa": "https://media.discordapp.net/attachments/770247322633633792/1091540814456426668/mesa.png",
-    "Erosion": "",
+    "Erosion": UNFORTUNATE,
     "Infernal": "https://media.discordapp.net/attachments/770247322633633792/1091540785910001705/infernal.png",
     "Workshop": "https://media.discordapp.net/attachments/770247322633633792/1091540874397237258/worksho.png",
     "Quad": "https://media.discordapp.net/attachments/770247322633633792/1091540832819105792/quad.png",
@@ -123,7 +124,7 @@ MAPS = {
     "Sanctuary": "https://cdn.discordapp.com/attachments/770247322633633792/851658653336731678/Screenshot_200.png",
     "WaterPark": "https://i.imgur.com/OVektwK.png",
     "DarkPath": "https://media.discordapp.net/attachments/1120685628812693504/1164110344344584322/latest.png",
-    None: "https://media.discordapp.net/attachments/1130842114520002672/1135682198574477332/unfortunate.png",
+    None: UNFORTUNATE,
 }
 
 IMG_BLOONARIUS = "https://i.gyazo.com/be511c1e97575bd2c50943be77783a95.png"
