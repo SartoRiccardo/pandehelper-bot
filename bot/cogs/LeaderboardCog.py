@@ -12,7 +12,7 @@ import bot.utils.io
 from bot.classes import ErrorHandlerCog
 from config import EMOTE_GUILD_ID
 from bot.utils.emojis import TOP_1_GLOBAL, TOP_2_GLOBAL, TOP_3_GLOBAL, TOP_25_GLOBAL, ECO, ECO_NEGATIVE, NEW_TEAM, \
-    TOP_1_PERCENT, BLANK
+    TOP_1_PERCENT, BLANK, TOP_100_GLOBAL
 
 
 class LeaderboardCog(ErrorHandlerCog):
@@ -104,7 +104,13 @@ class LeaderboardCog(ErrorHandlerCog):
                      if self.first_run else \
                      ("Team                                                        |    Points      (Gained)\n"
                       "—————————————————   +   ————————————")
-        placements_emojis = [TOP_1_GLOBAL, TOP_2_GLOBAL, TOP_3_GLOBAL] + [TOP_25_GLOBAL]*(25-3)
+        placements_emojis = {
+            0: TOP_1_GLOBAL,
+            1: TOP_2_GLOBAL,
+            2: TOP_3_GLOBAL,
+            24: TOP_25_GLOBAL,
+            99: TOP_100_GLOBAL,
+        }
         row_template = "{placement}{icon} `{name: <20}`    | `{score: <7,}`"
         eco_template = " ({emote} `{eco: <4}`)"
 
@@ -144,7 +150,7 @@ class LeaderboardCog(ErrorHandlerCog):
         for i in range(min(len(leaderboard), 100)):
             team = leaderboard[i]
             placement = f"`{i+1}`"
-            if i < len(placements_emojis):
+            if i in placements_emojis:
                 placement = placements_emojis[i]
             if team.is_disbanded:
                 placement = "❌"
