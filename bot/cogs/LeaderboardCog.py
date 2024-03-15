@@ -152,7 +152,7 @@ class LeaderboardCog(ErrorHandlerCog):
         message_full = msg_header
         for i in range(min(len(leaderboard), 100)):
             team = leaderboard[i]
-            placement = f"`{i+1}`"
+            placement = f"`{i+1: <2}`"
             if i in placements_emojis:
                 placement = placements_emojis[i]
             if team.is_disbanded:
