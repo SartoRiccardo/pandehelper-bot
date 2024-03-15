@@ -131,7 +131,7 @@ class LeaderboardCog(ErrorHandlerCog):
             return
         
         for i in range(min(len(leaderboard), 100)):
-            current_hour_score[team.id] = team.score
+            current_hour_score[leaderboard[i].id] = leaderboard[i].score
         self.last_hour_score = current_hour_score
         await self.save_state()
         
