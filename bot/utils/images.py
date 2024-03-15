@@ -124,6 +124,7 @@ MAPS = {
     "Sanctuary": "https://cdn.discordapp.com/attachments/770247322633633792/851658653336731678/Screenshot_200.png",
     "WaterPark": "https://i.imgur.com/OVektwK.png",
     "DarkPath": "https://media.discordapp.net/attachments/1120685628812693504/1164110344344584322/latest.png",
+    "SulfurSprings": "https://media.discordapp.net/attachments/1164868153571029073/1218340800539398224/SulfurSprings.webp",
     None: UNFORTUNATE,
 }
 
