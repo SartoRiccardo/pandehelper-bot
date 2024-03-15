@@ -130,6 +130,7 @@ class LeaderboardCog(ErrorHandlerCog):
         if len(leaderboard) == 0:
             return
         
+        current_hour_score = {}
         for i in range(min(len(leaderboard), 100)):
             current_hour_score[leaderboard[i].id] = leaderboard[i].score
         self.last_hour_score = current_hour_score
@@ -151,7 +152,6 @@ class LeaderboardCog(ErrorHandlerCog):
                 pass  # If the task takes longer than 7 minutes it probably hit rate limit on the create emoji endpoint.
         
         message_full = msg_header
-        current_hour_score = {}
         for i in range(min(len(leaderboard), 100)):
             team = leaderboard[i]
             placement = f"`{i+1}`"
