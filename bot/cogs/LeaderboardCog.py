@@ -133,8 +133,6 @@ class LeaderboardCog(ErrorHandlerCog):
         current_hour_score = {}
         for i in range(min(len(leaderboard), 100)):
             current_hour_score[leaderboard[i].id] = leaderboard[i].score
-        self.last_hour_score = current_hour_score
-        await self.save_state()
         
         # Load all teams 5 at a time
         for i in range(math.ceil(len(leaderboard)/5)):
@@ -175,6 +173,9 @@ class LeaderboardCog(ErrorHandlerCog):
                     message_full += eco_template.format(emote=eco_emote, eco=score_gained)
                 elif not self.first_run:
                     message_full += f" {NEW_TEAM}"
+        
+        self.last_hour_score = current_hour_score
+        await self.save_state()
 
         # Misc addendums to the leaderboard
         top_1_percent_message = ""
