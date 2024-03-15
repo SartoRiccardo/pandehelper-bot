@@ -102,7 +102,7 @@ class LeaderboardCog(ErrorHandlerCog):
         msg_header = ("Team                                                        |    Points\n"
                       "—————————————————   +   —————") \
                      if self.first_run else \
-                     ("Team                                                        |    Points         (Gained)\n"
+                     ("Team                                                        |    Points      (Gained)\n"
                       "—————————————————   +   ————————————")
         placements_emojis = [TOP_1_GLOBAL, TOP_2_GLOBAL, TOP_3_GLOBAL] + [TOP_25_GLOBAL]*(25-3)
         row_template = "{placement}{icon} `{name: <20}`    | `{score: <7,}`"
@@ -274,8 +274,8 @@ class LeaderboardCog(ErrorHandlerCog):
         await bot.utils.discordutils.download_files([f.url for f in frames], [f"tmp/{f.name}" for f in frames])
         await bot.utils.discordutils.download_files([i.url for i in icons], [f"tmp/{i.name}" for i in icons])
     
-    async def make_team_icon_emote(self,
-                                   emote_guild: discord.Guild,
+    @staticmethod
+    async def make_team_icon_emote(emote_guild: discord.Guild,
                                    emote_name: str,
                                    frame: "bloonspy.btd6.Asset",
                                    icon: "bloonspy.btd6.Asset",
