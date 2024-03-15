@@ -298,8 +298,9 @@ class LeaderboardCog(ErrorHandlerCog):
             # Be careful with this joint the rate limit is super low and
             # if you exceed it this function will be blocking for a whole hour.
             # If it's your first time running the leaderboard it WILL exceed it.
-            await emote_guild.create_custom_emoji(name=emote_name, image=image)
+            emote = await emote_guild.create_custom_emoji(name=emote_name, image=image)
         os.remove(merged_path)
+        return f"<{'a' if animated else ''}:_:{emote.id}>"
     
     @staticmethod
     def hash_team_icon(arg0: "bloonspy.btd6.Team" or "bloonspy.btd6.Asset", arg1: "bloonspy.btd6.Asset" = None) -> str:
