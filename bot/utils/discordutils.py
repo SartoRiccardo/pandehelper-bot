@@ -1,5 +1,7 @@
 import bot.exceptions
 import discord
+import aiohttp
+import aiofiles
 import asyncio
 from discord.ext import commands
 
@@ -97,3 +99,15 @@ def get_slash_command_id(bot: commands.Bot, command: str) -> int:
         if cmd.name == command:
             return cmd.id
     return -1
+
+
+async def download_file(session: aiohttp.ClientSession, url: str, path: str) -> None:
+    async with session.get(url) as response:
+        content = await response.read()
+    async with aiofiles.open(path, mode="wb") as fout:
+        await fout.write(content)
+
+
+async def download_files(urls: list[str], paths: list[str]) -> None:
+    async with aiohttp.ClientSession() as session:
+        await asyncio.gather(*[download_file(session, url, paths[i]) for i, url in enumerate(urls)])

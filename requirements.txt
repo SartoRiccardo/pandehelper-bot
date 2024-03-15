@@ -2,3 +2,5 @@ discord.py
 asyncpg
 aiohttp
 bloonspy
+pillow>=10.2.0
+aiofiles

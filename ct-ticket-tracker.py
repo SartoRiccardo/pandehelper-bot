@@ -1,3 +1,4 @@
+import os
 import discord
 import logging
 from datetime import datetime
@@ -22,6 +23,8 @@ class CtTicketTracker(commands.Bot):
         self.version = __version__
         self.last_restart = datetime.now()
         self.synced_tree = None
+        if not os.path.exists("tmp"):
+            os.mkdir("tmp")
 
     async def setup_hook(self):
         await bot.db.connection.start()

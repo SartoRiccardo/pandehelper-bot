@@ -1,4 +1,5 @@
 from typing import Any
+from PIL import Image
 from datetime import datetime
 import json
 import os
@@ -54,3 +55,31 @@ def get_cog_state(cog_name: str) -> dict[str, Any] or None:
 def state_path(cog_name: str) -> str:
     return f"{CACHE_DIR}/state-{cog_name}.json"
 
+
+def merge_images(img1_path: str, img2_path: str, save_path: str, gif: bool) -> None:
+    img1 = Image.open(img1_path)
+    img2 = Image.open(img2_path)
+    img1.paste(img2, (0, 0), img2)
+    
+    if gif:
+        frame2 = img1.copy()
+        pixels = frame2.load()
+        # This is so the frames are a little different but ALSO you can't add new colors
+        # because for some reason sometimes GIFs flicker if you do.
+        replaced = False
+        for i in range(frame2.size[0]):
+            for j in range(frame2.size[1]):
+                if pixels[i, j] != (0, 0, 0, 0):
+                    # Make a square 3 tall and 3 wide. Changing only one pixel sometimes
+                    # doesnt work due to compression or... something
+                    for x in range(3):
+                        for y in range(3):
+                            pixels[x, y] = pixels[i, j]
+                    replaced = True
+                    break
+            if replaced:
+                break
+        frames = [img1, frame2]
+        img1.save(save_path, format="GIF", append_images=frames, save_all=True, duration=100, loop=0)
+    else:
+        img1.save(save_path)
