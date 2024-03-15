@@ -130,6 +130,11 @@ class LeaderboardCog(ErrorHandlerCog):
         if len(leaderboard) == 0:
             return
         
+        for i in range(min(len(leaderboard), 100)):
+            current_hour_score[team.id] = team.score
+        self.last_hour_score = current_hour_score
+        await self.save_state()
+        
         # Load all teams 5 at a time
         for i in range(math.ceil(len(leaderboard)/5)):
             await asyncio.gather(*[
@@ -170,7 +175,6 @@ class LeaderboardCog(ErrorHandlerCog):
                     message_full += eco_template.format(emote=eco_emote, eco=score_gained)
                 elif not self.first_run:
                     message_full += f" {NEW_TEAM}"
-            current_hour_score[team.id] = team.score
 
         # Misc addendums to the leaderboard
         top_1_percent_message = ""
@@ -195,8 +199,6 @@ class LeaderboardCog(ErrorHandlerCog):
                         top_1_percent_message + \
                         time_remaining_message + \
                         f"\n*Last updated: <t:{int(now.timestamp())}:R>*"
-    
-        self.last_hour_score = current_hour_score
 
         # Split message
         messages = []
@@ -216,8 +218,6 @@ class LeaderboardCog(ErrorHandlerCog):
 
         await self.send_leaderboard(messages)
         self.first_run = False
-
-        await self.save_state()
     
     async def load_team_icon_emotes(self, emote_guild: discord.Guild, teams: list["bloonspy.btd6.Team"]) -> dict[str, str]:
         emotes = {}
