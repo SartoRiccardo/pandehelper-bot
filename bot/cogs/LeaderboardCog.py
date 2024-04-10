@@ -296,11 +296,16 @@ class LeaderboardCog(ErrorHandlerCog):
         await asyncio.to_thread(bot.utils.io.merge_images, frame_path, icon_path, merged_path, animated)
         async with aiofiles.open(merged_path, "rb") as fin:
             image = await fin.read()
-            # Be careful with this joint the rate limit is super low and
-            # if you exceed it this function will be blocking for a whole hour.
-            # If it's your first time running the leaderboard it WILL exceed it.
+        # Be careful with this joint the rate limit is super low and
+        # if you exceed it this function will be blocking for a whole hour.
+        # If it's your first time running the leaderboard it WILL exceed it.
+        try:
             emote = await emote_guild.create_custom_emoji(name=emote_name, image=image)
-        os.remove(merged_path)
+            os.remove(merged_path)
+        except discord.errors.HTTPException:
+            print(f"Couldn't upload {merged_path} ({animated=}). Animated emote uploaded as static?")
+            return BLANK
+        
         return f"<{'a' if animated else ''}:_:{emote.id}>"
     
     @staticmethod
