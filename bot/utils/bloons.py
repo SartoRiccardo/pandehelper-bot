@@ -13,7 +13,7 @@ from bot.utils.images import BANNER_IMG, REGULAR_IMG, RELICS_IMG, RELIC_IMG, MAP
 
 EVENT_EPOCHS = [
     (0, datetime.fromtimestamp(0)),
-    (1, datetime.fromtimestamp(1660075200)),
+    (1, datetime.fromtimestamp(1660078800)),
     (26, datetime.fromtimestamp(1690927200)),
     (36, datetime.fromtimestamp(1703023200)),
 ]
