@@ -303,7 +303,6 @@ class LeaderboardCog(ErrorHandlerCog):
             emote = await emote_guild.create_custom_emoji(name=emote_name, image=image)
             os.remove(merged_path)
         except discord.errors.HTTPException:
-            print(f"Couldn't upload {merged_path} ({animated=}). Animated emote uploaded as static?")
             return BLANK
         
         return f"<{'a' if animated else ''}:_:{emote.id}>"
