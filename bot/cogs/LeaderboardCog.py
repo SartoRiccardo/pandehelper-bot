@@ -122,7 +122,7 @@ class LeaderboardCog(ErrorHandlerCog):
             self.current_ct_id = current_event.id
             self.last_hour_score = {}
 
-        if now > current_event.end + timedelta(hours=1) or now < current_event.start:
+        if now > current_event.end + timedelta(hours=2) or now < current_event.start:
             return
 
         should_skip_eco = now > current_event.end
