@@ -26,6 +26,25 @@ class OwnerCog(commands.Cog):
 
     @commands.command()
     @is_owner()
+    async def tasks(self, ctx: discord.ext.commands.Context) -> None:
+        tasks = {}
+        for cog_name in self.bot.cogs:
+            for vname in vars(self.bot.cogs[cog_name]):
+                task = getattr(self.bot.cogs[cog_name], vname)
+                if not isinstance(task, discord.ext.tasks.Loop):
+                    continue
+                if cog_name not in tasks:
+                    tasks[cog_name] = {}
+                tasks[cog_name][vname] = task.is_running()
+        msg = "**__Bot tasks:__**\n"
+        for cog_name in tasks:
+            msg += f"- **{cog_name}:**\n"
+            for tname in tasks[cog_name]:
+                msg += f"  - {'🟢' if tasks[cog_name][tname] else '🔴'} {tname}\n"
+        await ctx.send(msg)
+
+    @commands.command()
+    @is_owner()
     async def sync(self, ctx: discord.ext.commands.Context, where: None or [Literal["."]] = None) -> None:
         if where == ".":
             synced = await ctx.bot.tree.sync(guild=ctx.guild)
