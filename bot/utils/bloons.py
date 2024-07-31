@@ -16,6 +16,7 @@ EVENT_EPOCHS = [
     (1, datetime.fromtimestamp(1660078800)),
     (26, datetime.fromtimestamp(1690927200)),
     (36, datetime.fromtimestamp(1703023200)),
+    (44, datetime.fromtimestamp(1712700000)),
     (52, datetime.fromtimestamp(1722981600)),
 ]
 
@@ -68,20 +69,21 @@ def get_ct_number_during(time: datetime, breakpoint_on_event_start: bool = True)
     will count as part of the last CT, if `False` it will count as the next.
     :return:
     """
+    end_off = timedelta(days=EVENT_DURATION
+                        if not breakpoint_on_event_start else 0)
     i = 0
     while i+1 < len(EVENT_EPOCHS) and time >= EVENT_EPOCHS[i+1][1]:
         i += 1
     event_start, epoch_start = EVENT_EPOCHS[i]
+    epoch_start += end_off
     next_epoch_event_start = 1000
     if i+1 < len(EVENT_EPOCHS):
         next_epoch_event_start = EVENT_EPOCHS[i+1][0]
 
-    if not breakpoint_on_event_start:
-        epoch_start -= timedelta(days=EVENT_DURATION)
     return min(
         int((time-epoch_start).days / (EVENT_DURATION*2)) + event_start,
         next_epoch_event_start-1
-    )
+    ) + (not breakpoint_on_event_start)
 
 
 def get_current_ct_number(breakpoint_on_event_start: bool = True) -> int:
