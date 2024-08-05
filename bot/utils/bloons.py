@@ -49,6 +49,7 @@ TOWER_CATEGORY = {
     "NinjaMonkey": "Magic",
     "Alchemist": "Magic",
     "Druid": "Magic",
+    "Mermonkey": "Magic",
     "BananaFarm": "Support",
     "SpikeFactory": "Support",
     "MonkeyVillage": "Support",
