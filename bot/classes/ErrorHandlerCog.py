@@ -12,11 +12,7 @@ class ErrorHandlerCog(HelpMessageCog):
 
     async def cog_app_command_error(self, interaction: discord.Interaction,
                                     error: discord.app_commands.AppCommandError) -> None:
-        print("\n\n\n")
-        traceback.print_exc()
-        print("\n\n\n")
-
-        content = "An error has occurred!"
+        content = default_error_msg = "An error has occurred!"
         thrown_error = error.__cause__
         error_type = type(error.__cause__)
         if error.__cause__ is None:
@@ -42,6 +38,13 @@ class ErrorHandlerCog(HelpMessageCog):
                       "Run /tilestratforum create or /tilestratforum set to have one."
         elif error_type == NotACommunity:
             content = "You need to enable Community on your server to run this command!"
+
+        if content == default_error_msg:
+            print()
+            traceback.print_exc()
+            print()
+        else:
+            print(error)
 
         if interaction.response.is_done():
             await interaction.edit_original_response(content=content)
