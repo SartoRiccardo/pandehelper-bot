@@ -82,7 +82,7 @@ def get_ct_number_during(time: datetime, breakpoint_on_event_start: bool = True)
         next_epoch_event_start = EVENT_EPOCHS[i+1][0]
 
     return min(
-        int((time-epoch_start).days / (EVENT_DURATION*2)) + event_start,
+        (time-epoch_start).days // (EVENT_DURATION*2) + event_start,
         next_epoch_event_start-1
     ) + (not breakpoint_on_event_start)
 
