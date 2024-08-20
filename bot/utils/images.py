@@ -126,6 +126,7 @@ MAPS = {
     "DarkPath": "https://media.discordapp.net/attachments/1120685628812693504/1164110344344584322/latest.png",
     "SulfurSprings": "https://media.discordapp.net/attachments/1164868153571029073/1218340800539398224/SulfurSprings.webp",
     "Tinkerton": "https://media.discordapp.net/attachments/1164868153571029073/1269941497986285628/Tinkerton_No_UI.webp",
+    "LuminousCove": "https://media.discordapp.net/attachments/1164868153571029073/1275428625067413619/LuminousCove_No_UI.webp",
     None: UNFORTUNATE,
 }
 
