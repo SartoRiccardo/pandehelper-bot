@@ -6,6 +6,7 @@ import bot.db.connection
 from bot import __version__
 from discord.ext import commands
 from config import TOKEN, APP_ID
+from bot.utils.colors import purple
 
 
 class CtTicketTracker(commands.Bot):
@@ -41,6 +42,7 @@ class CtTicketTracker(commands.Bot):
         ]
         for cog in cogs:
             await self.load_extension(f"bot.cogs.{cog}")
+        print(f"{purple('[PandeHelper]')} Loaded all cogs")
 
     async def get_app_command(self, cmd_name: str) -> discord.app_commands.AppCommand or None:
         if self.synced_tree is None:
