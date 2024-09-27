@@ -14,7 +14,15 @@ from bot.views import PlannerUserView, PlannerAdminView
 from bot.utils.emojis import EXPIRE_LATER, EXPIRE_DONT_RECAP, EXPIRE_AFTER_RESET, EXPIRE_STALE, EXPIRE_2HR, \
     EXPIRE_3HR, BLANK
 from bloonspy import btd6
+import logging
 
+formatter = logging.Formatter('[%(asctime)s] %(name)s: %(message)s')
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+ch.setFormatter(formatter)
+planner_logger = logging.getLogger("planner")
+planner_logger.setLevel(logging.DEBUG)
+planner_logger.addHandler(ch)
 
 PLANNER_ADMIN_PANEL = """
 # Control Panel
@@ -69,7 +77,7 @@ class PlannerCog(ErrorHandlerCog):
         self.banner_decays = []
         self.next_planner_refreshes = {}
         self.last_check_end = self.next_check
-        self.ct_day = 0
+        self.ct_day = bot.utils.bloons.get_current_ct_day()
 
     async def load_state(self) -> None:
         state = await asyncio.to_thread(bot.utils.io.get_cog_state, "planner")
@@ -344,6 +352,8 @@ class PlannerCog(ErrorHandlerCog):
         current_day = bot.utils.bloons.get_current_ct_day()
         if current_day == self.ct_day:
             return
+
+        planner_logger.debug(f"New day: {self.ct_day} -> {current_day}")
         self.ct_day = current_day
         if self.ct_day <= 7:
             asyncio.create_task(self.reassign_has_tickets_roles())
@@ -363,6 +373,7 @@ class PlannerCog(ErrorHandlerCog):
         If there's a new CT event live, inject the new event's banners into all planners.
         """
         current_event = await asyncio.to_thread(bot.utils.bloons.get_current_ct_event)
+        planner_logger.debug(f"Injecting? {current_event.id} == {self.current_event.id}")
         if current_event == self.current_event:
             return
         self.current_event = current_event
