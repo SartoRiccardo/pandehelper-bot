@@ -334,3 +334,23 @@ async def get_planner_tracked_tiles(planner_id: int, conn=None) -> list[str]:
         SELECT tile FROM plannertrackedtiles WHERE planner_channel=$1
     """, planner_id)
     return [r["tile"] for r in result]
+
+
+@postgres
+async def overwrite_planner_tiles(planner_id: int, tiles: list[tuple[str, int]], conn=None) -> None:
+    async with conn.transaction():
+        await conn.execute(
+            """
+            DELETE FROM plannertrackedtiles
+            WHERE planner_channel=$1
+            """,
+            planner_id,
+        )
+        await conn.executemany(
+            """
+            INSERT INTO plannertrackedtiles
+                (tile, expires_after_hr, registered_at, planner_channel)
+            VALUES ($1, $2, CURRENT_TIMESTAMP, $3)
+            """,
+            [(tile, expire, planner_id) for tile, expire in tiles]
+        )

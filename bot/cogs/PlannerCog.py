@@ -163,13 +163,15 @@ class PlannerCog(ErrorHandlerCog):
                 )
         await self.save_state()
 
-    async def check_planner_reminder(self,
-                                     planner_id: int,
-                                     ping_ch_id: int,
-                                     banner_codes: list[str],
-                                     check_from: datetime,
-                                     check_to: datetime,
-                                     check_to_unclaimed: datetime or None) -> dict[int or None, list[str]]:
+    async def check_planner_reminder(
+            self,
+            planner_id: int,
+            ping_ch_id: int,
+            banner_codes: list[str],
+            check_from: datetime,
+            check_to: datetime,
+            check_to_unclaimed: datetime or None
+    ) -> dict[int or None, list[str]]:
         if ping_ch_id is None:
             return {}
         banners = await bot.db.queries.planner.get_planned_tiles(planner_id, banner_codes,
@@ -344,8 +346,8 @@ class PlannerCog(ErrorHandlerCog):
             return
         self.ct_day = current_day
         if self.ct_day <= 7:
-            await self.reassign_has_tickets_roles()
-            await self.inject_new_banners()
+            asyncio.create_task(self.reassign_has_tickets_roles())
+            asyncio.create_task(self.inject_new_banners())
 
     @tasks.loop(seconds=3600*24)
     async def check_orphan_has_tickets_roles(self) -> None:
@@ -365,21 +367,16 @@ class PlannerCog(ErrorHandlerCog):
             return
         self.current_event = current_event
 
+        evt_tiles = await asyncio.to_thread(current_event.tiles)
         banners = [
-            tile.id for tile in (await asyncio.to_thread(current_event.tiles))
+            tile.id for tile in evt_tiles
             if tile.tile_type == btd6.CtTileType.BANNER
         ]
         planners = await bot.db.queries.planner.get_planners()
         for p in planners:
-            tiles = await bot.db.queries.planner.get_planner_tracked_tiles(p.planner_channel)
-            await asyncio.gather(*[
-                bot.db.queries.planner.remove_tile_from_planner(p.planner_channel, t)
-                for t in tiles
-            ])
-            await asyncio.gather(*[
-                bot.db.queries.planner.add_tile_to_planner(p.planner_channel, t, 24)
-                for t in banners
-            ])
+            await bot.db.queries.planner.overwrite_planner_tiles(
+                p.planner_channel, [(tile, 24) for tile in banners]
+            )
 
     async def reassign_has_tickets_roles(self) -> None:
         """
