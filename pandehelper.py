@@ -15,7 +15,7 @@ class CtTicketTracker(commands.Bot):
         intents.message_content = True
         intents.members = True
         super().__init__(
-            command_prefix=",,,",
+            command_prefix=commands.when_mentioned_or(",,,"),
             intents=intents,
             application_id=APP_ID,
             activity=discord.Game(name=f"/help"),
