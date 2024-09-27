@@ -556,16 +556,10 @@ class PlannerCog(ErrorHandlerCog):
             )
             return
 
-        currently_tracked = await bot.db.queries.planner.get_planner_tracked_tiles(planner_channel.id)
-        await asyncio.gather(*[
-            bot.db.queries.planner.remove_tile_from_planner(planner_channel.id, tile)
-            for tile in currently_tracked
-        ])
-
-        await asyncio.gather(*[
-            bot.db.queries.planner.add_tile_to_planner(planner_channel.id, tile, 24)
-            for tile in tile_list
-        ])
+        await bot.db.queries.planner.overwrite_planner_tiles(
+            planner_channel.id,
+            [(tile, 24) for tile in tile_list]
+        )
 
         await interaction.response.send_message(
             content="All done! The planner message will be updated in a bit...",
