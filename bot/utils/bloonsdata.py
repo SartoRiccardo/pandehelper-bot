@@ -54,7 +54,7 @@ async def fetch_tile_data(tile: str) -> dict | None:
     path = f"bot/files/json/tiles/{tile}.json"
     if not os.path.exists(path):
         return None
-    with aiofiles.open(path) as fin:
+    async with aiofiles.open(path) as fin:
         return json.loads(await fin.read())
 
 
