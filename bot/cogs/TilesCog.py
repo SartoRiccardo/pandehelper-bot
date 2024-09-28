@@ -163,14 +163,14 @@ class TilesCog(ErrorHandlerCog):
             for code, ttype in regs_by_round[key]:
                 regs_by_type[ttype].append(code)
             total_tiles = len(regs_by_type[btd6.GameType.LEAST_CASH])+len(regs_by_type[btd6.GameType.LEAST_TIERS])
-            message += f"\n**Round {key}** ({total_tiles}):"
+            message += f"\n**Round {key}** ({total_tiles})"
             if len(regs_by_type[btd6.GameType.LEAST_CASH]):
                 message += f"\n      {LEAST_CASH} `{'`, `'.join(regs_by_type[btd6.GameType.LEAST_CASH])}`"
             if len(regs_by_type[btd6.GameType.LEAST_TIERS]):
                 message += f"\n      {LEAST_TIERS} `{'`, `'.join(regs_by_type[btd6.GameType.LEAST_TIERS])}`"
 
         await interaction.edit_original_response(
-            content=f"## Non-Race Regs ({len(self.regs.value)}):" + message
+            content=f"## Non-Race Regs ({len(self.regs.value)})" + message
         )
 
 
