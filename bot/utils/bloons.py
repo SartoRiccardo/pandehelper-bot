@@ -71,7 +71,8 @@ async def init_bloonspy_client() -> None:
         global bpy_client
         async with aiohttp.ClientSession() as session:
             bpy_client = AsyncClient(aiohttp_client=session)
-            await asyncio.Future()
+            while True:
+                await asyncio.sleep(3600*24)
     asyncio.create_task(init())
 
 
