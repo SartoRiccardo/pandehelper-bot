@@ -21,6 +21,7 @@ from bot.classes import ErrorHandlerCog
 from bot.utils.emojis import TILE_BANNER, TILE_REGULAR, TILE_RELIC, RELICS
 from bot.views import PlannerUserView, PlannerAdminView
 from bot.utils.emojis import (
+    EXPIRE_SUBOPTIMAL,
     EXPIRE_LATER,
     EXPIRE_DONT_RECAP,
     EXPIRE_AFTER_RESET,
@@ -680,8 +681,15 @@ class PlannerCog(ErrorHandlerCog):
             expire_at = tile.claimed_at + timedelta(hours=tile.expires_in_hr)
             emoji_claim = EXPIRE_LATER
             if expire_at >= ct_end-timedelta(hours=12):
-                emoji_claim = EXPIRE_DONT_RECAP
-                emojis_explanations[EXPIRE_DONT_RECAP] = "Should __not__ be refreshed"
+                hours_left = (ct_end - expire_at).total_seconds() // 3600
+                banners_hours_left = (expire_at - expire_at).total_seconds() // 3600
+                if tile.tile in banner_codes and (hours_left+1) * 20 < (banners_hours_left+1) * 40:
+                    emoji_claim = EXPIRE_SUBOPTIMAL
+                    emojis_explanations[EXPIRE_SUBOPTIMAL] = "If you have any tickets left, " \
+                                                             "it's more optimal to take than a regular tile"
+                else:
+                    emoji_claim = EXPIRE_DONT_RECAP
+                    emojis_explanations[EXPIRE_DONT_RECAP] = "Should __not__ be refreshed"
             elif expire_at < now:
                 emoji_claim = EXPIRE_STALE
             elif now < next_reset_day <= expire_at:
