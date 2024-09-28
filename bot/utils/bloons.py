@@ -1,20 +1,33 @@
-import asyncio
-
-import aiohttp
 from datetime import datetime, timedelta
 import discord
-from bloonspy import AsyncClient, btd6
-import re
-import os
-import json
-from .Cache import Cache
-from bot.utils.emojis import NO_SELLING, NO_KNOWLEDGE, CERAM_HEALTH, MOAB_HEALTH, MOAB_SPEED, BLOON_SPEED, \
-    MAX_TOWERS, REGROW_RATE, CASH
-from bot.utils.images import BANNER_IMG, REGULAR_IMG, RELICS_IMG, RELIC_IMG, MAPS, IMG_BLOONARIUS, \
-    IMG_LYCH, IMG_VORTEX, IMG_PHAYZE, IMG_DREADBLOON, IMG_LEAST_CASH, IMG_LEAST_TIERS, IMG_TIME_ATTACK
+from bot.utils.misc import add_spaces
+from bot.utils.emojis import (
+    NO_SELLING,
+    NO_KNOWLEDGE,
+    CERAM_HEALTH,
+    MOAB_HEALTH,
+    MOAB_SPEED,
+    BLOON_SPEED,
+    MAX_TOWERS,
+    REGROW_RATE,
+    CASH,
+)
+from bot.utils.images import (
+    BANNER_IMG,
+    REGULAR_IMG,
+    RELICS_IMG,
+    RELIC_IMG,
+    MAPS,
+    IMG_BLOONARIUS,
+    IMG_LYCH,
+    IMG_VORTEX,
+    IMG_PHAYZE,
+    IMG_DREADBLOON,
+    IMG_LEAST_CASH,
+    IMG_LEAST_TIERS,
+    IMG_TIME_ATTACK,
+)
 
-
-bpy_client: AsyncClient
 
 EVENT_EPOCHS = [
     (0, datetime.fromtimestamp(0)),
@@ -24,9 +37,6 @@ EVENT_EPOCHS = [
     (44, datetime.fromtimestamp(1712700000)),
     (52, datetime.fromtimestamp(1722981600)),
 ]
-
-CT_DATA_CACHE_HR = 12
-tiles_cache = Cache([], datetime.now())
 
 EVENT_DURATION = 7
 DEFAULT_STARTING_LIVES = {
@@ -64,16 +74,6 @@ TOWER_CATEGORY = {
 CODE_TO_COORDS = {
     "MRX": (0, 0, 0),
 }
-
-
-async def init_bloonspy_client() -> None:
-    async def init():
-        global bpy_client
-        async with aiohttp.ClientSession() as session:
-            bpy_client = AsyncClient(aiohttp_client=session)
-            while True:
-                await asyncio.sleep(3600*24)
-    asyncio.create_task(init())
 
 
 def get_ct_number_during(time: datetime, breakpoint_on_event_start: bool = True) -> int:
@@ -288,104 +288,3 @@ def raw_challenge_to_embed(challenge) -> discord.Embed or None:
                 content += " — " if i % 2 == 0 else "\n"
         embed.add_field(name=f"{key} Towers", value=content, inline=False)
     return embed
-
-
-def add_spaces(text: str) -> str:
-    """Adds spaces to a text in PascalCase"""
-    def repl(matchobj):
-        return " " + matchobj.group(0)
-    return re.sub("[A-Z]", repl, text).strip()
-
-
-def fetch_tile_data(tile: str):
-    path = f"bot/files/json/tiles/{tile}.json"
-    if not os.path.exists(path):
-        return None
-    fin = open(path)
-    data = json.loads(fin.read())
-    fin.close()
-    return data
-
-
-def fetch_all_tiles():
-    path = f"bot/files/json/tiles"
-    tiles = []
-    for file in os.listdir(path):
-        data = fetch_tile_data(file[:3])
-        if data is not None:
-            tiles.append(data)
-    return tiles
-
-
-def relic_to_tile_code(relic: str) -> str or None:
-    relic = relic.lower().replace(" ", "_")
-    relics = {
-        'AirAndSea': ['aas', 'airandsea', 'air_and_sea', "ans"],
-        'Abilitized': ['abilitized'],
-        'AlchemistTouch': ['alchtouch', 'alch', 'alchemisttouch', 'alchemist_touch', 'alch_touch'],
-        'MonkeyBoost': ['boost', 'mboost', 'mb', 'monkeyboost', 'monkey_boost'],
-        'MarchingBoots': ['boots', 'mboots', 'marchingboots', 'marching_boots'],
-        'BoxOfMonkey': ['box', 'boxofmonkey', 'bom', 'box_of_monkey'],
-        'BoxOfChocolates': ['chocobox', 'chocbox', "boxofchocolates"],
-        'CamoTrap': ['ctrap', 'camotrap', 'camo_trap'],
-        'DurableShots': ['dshots', 'durableshots', 'durable_shotr'],
-        'ExtraEmpowered': ['eemp', 'extraemp', 'extra_empowered'],
-        'FlintTips': ['flinttips', 'flint_tips', "flint", "ft"],
-        'Camoflogged': ['flogged', 'cflogged', 'camo_flogged'],
-        'Fortifried': ['fried', 'ffried', 'fortifried'],
-        'GoingTheDistance': ['goingthedistance', 'gtd'],
-        'GlueTrap': ['gtrap', 'glue', 'gluetrap', 'glue_trap'],
-        'HardBaked': ['hardbaked', 'hb'],
-        'HeroBoost': ['hboost', 'heroboost', 'hero_boost'],
-        'ManaBulwark': ['manabulwark', "mana"],
-        'MoabClash': ['mc', 'clash', 'moabclash', 'moab_clash'],
-        'MoabMine': ['mine', 'moabmine'],
-        'Regeneration': ['regen', 'regeneration'],
-        'Restoration': ['resto', 'restoration'],
-        'RoundingUp': ["rup", 'roundingup', 'rounding_up'],
-        'RoyalTreatment': ['royal', 'rtreatment', 'royaltreatment', 'royal_treatment'],
-        'Sharpsplosion': ['sharp', 'sharpsplosion'],
-        'SuperMonkeyStorm': ['sms', 'supermonkeystorm', 'super_monkey_storm'],
-        'RoadSpikes': ['spikes', 'rspikes', 'roadspikes', 'road_spikes'],
-        'StartingStash': ['stash', 'startingstash', 'starting_stash'],
-        'Thrive': ['thrive'],
-        'ElDorado': ['eldorado', 'dorado', 'el_dorado'],
-        'DeepHeat': ['dheat', 'deepheat', 'deep_heat'],
-        "Techbot": ["techbot"],
-        "Heartless": ["heartless"],
-        "BrokenHeart": ["brokenheart", "broken_heart"],
-        "BiggerBloonSabotage": ["bbs", "bigger_bloon_sabotage", "biggerbloonsabotage"],
-    }
-    for key in relics:
-        if relic in relics[key]:
-            tiles = fetch_all_tiles()
-            for tile in tiles:
-                if tile["RelicType"] == key:
-                    return tile["Code"]
-    return None
-
-
-async def get_current_ct_event() -> btd6.ContestedTerritoryEvent | None:
-    now = datetime.now()
-    events = await bpy_client.contested_territories()
-    for ct in events:
-        if ct.start <= now:
-            return ct
-    return None
-
-
-async def get_current_ct_tiles() -> list[btd6.CtTile]:
-    global tiles_cache
-    if not tiles_cache.valid:
-        ct = await get_current_ct_event()
-        if ct is None:
-            return []
-        tiles_cache = Cache(
-            await ct.tiles(),
-            datetime.now() + timedelta(hours=CT_DATA_CACHE_HR)
-        )
-    return tiles_cache.value
-
-
-async def is_tile_code_valid(tile: str) -> bool:
-    return tile in [t.id for t in await get_current_ct_tiles()]

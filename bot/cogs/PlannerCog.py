@@ -10,10 +10,12 @@ import bot.utils.io
 import bot.utils.discordutils
 from bot.utils.bloons import (
     get_current_ct_day,
-    get_current_ct_event,
     get_current_ct_period,
-    get_current_ct_tiles,
     get_ct_day_during,
+)
+from bot.utils.bloonsdata import (
+    get_current_ct_event,
+    get_current_ct_tiles,
 )
 from bot.classes import ErrorHandlerCog
 from bot.utils.emojis import TILE_BANNER, TILE_REGULAR, TILE_RELIC, RELICS

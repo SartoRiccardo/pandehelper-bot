@@ -2,10 +2,10 @@ import asyncio
 import json
 import os
 from bloonspy import btd6
-from bot.utils.bloons import (
-    relic_to_tile_code,
+from bot.utils.bloons import raw_challenge_to_embed
+from bot.utils.bloonsdata import (
     get_current_ct_tiles,
-    raw_challenge_to_embed,
+    relic_to_tile_code,
 )
 from bot.utils.emojis import LEAST_TIERS, LEAST_CASH
 from bot.utils.Cache import Cache
@@ -55,7 +55,7 @@ class TilesCog(ErrorHandlerCog):
         tile = tile.upper()
         challenge_data = await asyncio.to_thread(self.fetch_challenge_data, tile)
         if challenge_data is None:
-            tile = await asyncio.to_thread(relic_to_tile_code, tile)
+            tile = await relic_to_tile_code(tile)
             challenge_data = await asyncio.to_thread(self.fetch_challenge_data, tile)
         if challenge_data is None:
             await interaction.response.send_message(

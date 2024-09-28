@@ -9,7 +9,7 @@ from discord.ext import tasks, commands
 import asyncio
 import bot.db.queries.leaderboard
 import bot.utils.io
-from bot.utils.bloons import get_current_ct_event
+from bot.utils.bloonsdata import get_current_ct_event
 from bot.classes import ErrorHandlerCog
 from config import EMOTE_GUILD_ID
 from bot.utils.emojis import (

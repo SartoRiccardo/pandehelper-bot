@@ -4,7 +4,8 @@ import discord
 from discord.ext import commands
 import re
 import bot.db.queries.tickets
-import bot.utils.bloons
+from bot.utils.bloons import get_ct_number_during
+from bot.utils.bloonsdata import is_tile_code_valid
 from bot.classes import ErrorHandlerCog
 
 
@@ -114,7 +115,7 @@ class TrackerCog(ErrorHandlerCog):
 
         await interaction.response.send_message("Just a moment...", ephemeral=hide)
         if season == 0:
-            season = bot.utils.bloons.get_ct_number_during(datetime.datetime.now())
+            season = get_ct_number_during(datetime.datetime.now())
         member_activity = await bot.db.queries.tickets.get_tickets_from(member.id, channel.id, season)
 
         embed = discord.Embed(
@@ -154,13 +155,13 @@ class TrackerCog(ErrorHandlerCog):
         tile = tile.upper()
         tile_re = r"(?:[a-gA-G][a-gA-G][a-hA-H]|[Mm][Rr][Xx]|[Zz]{3})"
         if re.search(tile_re, tile) is None or \
-                not await bot.utils.bloons.is_tile_code_valid(tile):
+                not await is_tile_code_valid(tile):
             await interaction.response.send_message(f"`{tile}` is not a valid tile code!", ephemeral=True)
             return
 
         await interaction.response.send_message("Just a moment...", ephemeral=hide)
         if season == 0:
-            season = bot.utils.bloons.get_ct_number_during(datetime.datetime.now())
+            season = get_ct_number_during(datetime.datetime.now())
         tile_claims = await bot.db.queries.tickets.get_tile_claims(tile, channel.id, season)
 
         content_template = "- <t:{tile_timestamp}> <@{user_id}>"
@@ -208,7 +209,7 @@ class TrackerCog(ErrorHandlerCog):
             return
 
         tile = match.group(0).upper()
-        if not await bot.utils.bloons.is_tile_code_valid(tile):
+        if not await is_tile_code_valid(tile):
             return
 
         await bot.db.queries.tickets.capture(payload.channel_id, message.author.id, tile, payload.message_id)
