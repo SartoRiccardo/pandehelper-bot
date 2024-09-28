@@ -3,6 +3,7 @@ import discord
 import logging
 from datetime import datetime
 import bot.db.connection
+import bot.utils.bloons
 from bot import __version__
 from discord.ext import commands
 from config import TOKEN, APP_ID
@@ -28,6 +29,7 @@ class CtTicketTracker(commands.Bot):
             os.mkdir("tmp")
 
     async def setup_hook(self):
+        await bot.utils.bloons.init_bloonspy_client()
         await bot.db.connection.start()
         cogs = [
             "OwnerCog",

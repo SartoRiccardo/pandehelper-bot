@@ -8,11 +8,25 @@ import bot.db.queries.planner
 import bot.db.queries.tickets
 import bot.utils.io
 import bot.utils.discordutils
+from bot.utils.bloons import (
+    get_current_ct_day,
+    get_current_ct_event,
+    get_current_ct_period,
+    get_current_ct_tiles,
+    get_ct_day_during,
+)
 from bot.classes import ErrorHandlerCog
 from bot.utils.emojis import TILE_BANNER, TILE_REGULAR, TILE_RELIC, RELICS
 from bot.views import PlannerUserView, PlannerAdminView
-from bot.utils.emojis import EXPIRE_LATER, EXPIRE_DONT_RECAP, EXPIRE_AFTER_RESET, EXPIRE_STALE, EXPIRE_2HR, \
-    EXPIRE_3HR, BLANK
+from bot.utils.emojis import (
+    EXPIRE_LATER,
+    EXPIRE_DONT_RECAP,
+    EXPIRE_AFTER_RESET,
+    EXPIRE_STALE,
+    EXPIRE_2HR,
+    EXPIRE_3HR,
+    BLANK
+)
 from bloonspy import btd6
 import logging
 
@@ -71,13 +85,13 @@ class PlannerCog(ErrorHandlerCog):
         next_check = next_check.replace(minute=int(next_check.minute/PlannerCog.CHECK_EVERY)*PlannerCog.CHECK_EVERY) \
                      + timedelta(minutes=PlannerCog.CHECK_EVERY)
         # This is updated in inject_new_banners which gets called every reset
-        self.current_event: btd6.ContestedTerritoryEvent = bot.utils.bloons.get_current_ct_event()
+        self.current_event: btd6.ContestedTerritoryEvent | None = None
         self.next_check = next_check
         self.next_check_unclaimed = next_check
         self.banner_decays = []
         self.next_planner_refreshes = {}
         self.last_check_end = self.next_check
-        self.ct_day = bot.utils.bloons.get_current_ct_day()
+        self.ct_day = get_current_ct_day()
 
     async def load_state(self) -> None:
         state = await asyncio.to_thread(bot.utils.io.get_cog_state, "planner")
@@ -103,6 +117,9 @@ class PlannerCog(ErrorHandlerCog):
 
     async def cog_load(self) -> None:
         await self.load_state()
+
+        self.current_event = await get_current_ct_event()
+
         views = await self.get_views()
         for v in views:
             self.bot.add_view(v)
@@ -136,7 +153,7 @@ class PlannerCog(ErrorHandlerCog):
         now = datetime.now()
         if now < self.next_check:
             return
-        _cts, ct_end = bot.utils.bloons.get_current_ct_period()
+        _cts, ct_end = get_current_ct_period()
         if now >= ct_end-timedelta(hours=12):
             return
 
@@ -150,7 +167,7 @@ class PlannerCog(ErrorHandlerCog):
             check_unclaimed = True
             self.next_check_unclaimed += timedelta(minutes=PlannerCog.CHECK_EVERY_UNCLAIMED)
 
-        _cts, ct_end = bot.utils.bloons.get_current_ct_period()
+        _cts, ct_end = get_current_ct_period()
         planners = await bot.db.queries.planner.get_planners(only_active=True)
         for planner in planners:
             tile_codes = await bot.db.queries.planner.get_planner_tracked_tiles(planner.planner_channel)
@@ -263,7 +280,7 @@ class PlannerCog(ErrorHandlerCog):
         Checks if a banner has just decayed and pings the team in the appropriate channel.
         """
         now = datetime.now()
-        _cts, ct_end = bot.utils.bloons.get_current_ct_period()
+        _cts, ct_end = get_current_ct_period()
         if now >= ct_end-timedelta(hours=12):
             return
 
@@ -349,7 +366,7 @@ class PlannerCog(ErrorHandlerCog):
     @tasks.loop(seconds=60)
     async def check_reset(self) -> None:
         """Calls functions at every CT Day reset"""
-        current_day = bot.utils.bloons.get_current_ct_day()
+        current_day = get_current_ct_day()
         if current_day == self.ct_day:
             return
 
@@ -372,7 +389,7 @@ class PlannerCog(ErrorHandlerCog):
         """
         If there's a new CT event live, inject the new event's banners into all planners.
         """
-        current_event = await asyncio.to_thread(bot.utils.bloons.get_current_ct_event)
+        current_event = await get_current_ct_event()
         planner_logger.debug(f"Injecting? {current_event.id} == {self.current_event.id}")
         if current_event == self.current_event:
             return
@@ -643,7 +660,7 @@ class PlannerCog(ErrorHandlerCog):
         relic_tiles = await self.get_relic_tile_list()
         relic_codes = [r.id for r in relic_tiles]
         tile_list = await bot.db.queries.planner.get_planner_tracked_tiles(channel)
-        ct_start, ct_end = bot.utils.bloons.get_current_ct_period()
+        ct_start, ct_end = get_current_ct_period()
         if now < ct_end:
             tracked_tiles = await bot.db.queries.planner.get_planned_tiles(
                 channel, tile_list, expire_between=(ct_start, ct_end)
@@ -758,7 +775,7 @@ class PlannerCog(ErrorHandlerCog):
     async def get_banner_tile_list() -> list[str]:
         """Returns a list of banner tile codes."""
         return [
-            tile.id for tile in bot.utils.bloons.get_current_ct_tiles()
+            tile.id for tile in await get_current_ct_tiles()
             if tile.tile_type == btd6.CtTileType.BANNER
         ]
 
@@ -766,7 +783,7 @@ class PlannerCog(ErrorHandlerCog):
     async def get_relic_tile_list() -> list[btd6.CtTile]:
         """Returns a list of relic tiles."""
         return [
-            r for r in bot.utils.bloons.get_current_ct_tiles()
+            r for r in await get_current_ct_tiles()
             if r.tile_type == btd6.CtTileType.RELIC
         ]
 
@@ -1002,7 +1019,7 @@ class PlannerCog(ErrorHandlerCog):
             await bot.db.queries.planner.planner_delete_config(planner.planner_channel, ping_role_with_tickets=True)
             return
 
-        today_ticket_idx = min(bot.utils.bloons.get_current_ct_day() - 1, 6)
+        today_ticket_idx = min(get_current_ct_day() - 1, 6)
         tickets_used = len(
             (await bot.db.queries.tickets.get_tickets_from(member.id, planner.claims_channel))[today_ticket_idx]
         )
@@ -1010,9 +1027,9 @@ class PlannerCog(ErrorHandlerCog):
         member_claims = await bot.db.queries.planner.get_claims_by(member.id, planner.planner_channel)
         tile_codes = [claim["tile"] for claim in member_claims]
         tile_infos = await bot.db.queries.planner.get_planned_tiles(planner.planner_channel, tile_codes)
-        today = bot.utils.bloons.get_current_ct_day()
+        today = get_current_ct_day()
         for ti in tile_infos:
-            expire_in_day = bot.utils.bloons.get_ct_day_during(ti.claimed_at + timedelta(hours=ti.expires_in_hr))
+            expire_in_day = get_ct_day_during(ti.claimed_at + timedelta(hours=ti.expires_in_hr))
             if expire_in_day == today:
                 tickets_used += 1
 

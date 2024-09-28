@@ -9,10 +9,21 @@ from discord.ext import tasks, commands
 import asyncio
 import bot.db.queries.leaderboard
 import bot.utils.io
+from bot.utils.bloons import get_current_ct_event
 from bot.classes import ErrorHandlerCog
 from config import EMOTE_GUILD_ID
-from bot.utils.emojis import TOP_1_GLOBAL, TOP_2_GLOBAL, TOP_3_GLOBAL, TOP_25_GLOBAL, ECO, ECO_NEGATIVE, NEW_TEAM, \
-    TOP_1_PERCENT, BLANK, TOP_100_GLOBAL
+from bot.utils.emojis import (
+    TOP_1_GLOBAL,
+    TOP_2_GLOBAL,
+    TOP_3_GLOBAL,
+    TOP_25_GLOBAL,
+    ECO,
+    ECO_NEGATIVE,
+    NEW_TEAM,
+    TOP_1_PERCENT,
+    BLANK,
+    TOP_100_GLOBAL,
+)
 
 
 class LeaderboardCog(ErrorHandlerCog):
@@ -114,7 +125,7 @@ class LeaderboardCog(ErrorHandlerCog):
         row_template = "{placement}{icon} `{name: <20}`    | `{score: <7,}`"
         eco_template = " ({emote} `{eco: <4}`)"
 
-        current_event = await asyncio.to_thread(bot.utils.bloons.get_current_ct_event)
+        current_event = await get_current_ct_event()
         if current_event is None:
             return
 

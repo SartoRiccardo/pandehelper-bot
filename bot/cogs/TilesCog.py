@@ -73,7 +73,7 @@ class TilesCog(ErrorHandlerCog):
     @discord.app_commands.command(name="raceregs",
                                   description="Get a list of all race regs.")
     async def cmd_raceregs(self, interaction: discord.Interaction) -> None:
-        tiles = get_current_ct_tiles()
+        tiles = await get_current_ct_tiles()
         race_regs = [
             tile.id for tile in tiles
             if tile.tile_type == btd6.CtTileType.REGULAR and tile.game_type == btd6.GameType.RACE
@@ -87,7 +87,7 @@ class TilesCog(ErrorHandlerCog):
     @grp_regs.command(name="race",
                       description="Get a list of all race regs.")
     async def cmd_regs_race(self, interaction: discord.Interaction) -> None:
-        tiles = get_current_ct_tiles()
+        tiles = await get_current_ct_tiles()
         race_regs = [
             tile.id for tile in tiles
             if tile.tile_type == btd6.CtTileType.REGULAR and tile.game_type == btd6.GameType.RACE
@@ -137,7 +137,7 @@ class TilesCog(ErrorHandlerCog):
         await interaction.response.defer(ephemeral=hide)
 
         if not self.regs.valid:
-            tiles = get_current_ct_tiles()
+            tiles = await get_current_ct_tiles()
             regs = [
                 self.fetch_challenge_data(tile.id) for tile in tiles
                 # if tile.tile_type in [btd6.CtTileType.REGULAR, btd6.CtTileType.TEAM_START]

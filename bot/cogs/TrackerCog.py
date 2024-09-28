@@ -153,7 +153,8 @@ class TrackerCog(ErrorHandlerCog):
 
         tile = tile.upper()
         tile_re = r"(?:[a-gA-G][a-gA-G][a-hA-H]|[Mm][Rr][Xx]|[Zz]{3})"
-        if re.search(tile_re, tile) is None or not bot.utils.bloons.is_tile_code_valid(tile):
+        if re.search(tile_re, tile) is None or \
+                not await bot.utils.bloons.is_tile_code_valid(tile):
             await interaction.response.send_message(f"`{tile}` is not a valid tile code!", ephemeral=True)
             return
 
@@ -207,7 +208,7 @@ class TrackerCog(ErrorHandlerCog):
             return
 
         tile = match.group(0).upper()
-        if not bot.utils.bloons.is_tile_code_valid(tile):
+        if not await bot.utils.bloons.is_tile_code_valid(tile):
             return
 
         await bot.db.queries.tickets.capture(payload.channel_id, message.author.id, tile, payload.message_id)

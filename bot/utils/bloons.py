@@ -1,6 +1,9 @@
+import asyncio
+
+import aiohttp
 from datetime import datetime, timedelta
 import discord
-from bloonspy import Client, btd6
+from bloonspy import AsyncClient, btd6
 import re
 import os
 import json
@@ -10,6 +13,8 @@ from bot.utils.emojis import NO_SELLING, NO_KNOWLEDGE, CERAM_HEALTH, MOAB_HEALTH
 from bot.utils.images import BANNER_IMG, REGULAR_IMG, RELICS_IMG, RELIC_IMG, MAPS, IMG_BLOONARIUS, \
     IMG_LYCH, IMG_VORTEX, IMG_PHAYZE, IMG_DREADBLOON, IMG_LEAST_CASH, IMG_LEAST_TIERS, IMG_TIME_ATTACK
 
+
+bpy_client: AsyncClient
 
 EVENT_EPOCHS = [
     (0, datetime.fromtimestamp(0)),
@@ -59,6 +64,15 @@ TOWER_CATEGORY = {
 CODE_TO_COORDS = {
     "MRX": (0, 0, 0),
 }
+
+
+async def init_bloonspy_client() -> None:
+    async def init():
+        global bpy_client
+        async with aiohttp.ClientSession() as session:
+            bpy_client = AsyncClient(aiohttp_client=session)
+            await asyncio.Future()
+    asyncio.create_task(init())
 
 
 def get_ct_number_during(time: datetime, breakpoint_on_event_start: bool = True) -> int:
@@ -350,25 +364,27 @@ def relic_to_tile_code(relic: str) -> str or None:
     return None
 
 
-def get_current_ct_event() -> btd6.ContestedTerritoryEvent or None:
+async def get_current_ct_event() -> btd6.ContestedTerritoryEvent | None:
     now = datetime.now()
-    events = Client.contested_territories()
+    events = await bpy_client.contested_territories()
     for ct in events:
         if ct.start <= now:
             return ct
     return None
 
 
-def get_current_ct_tiles() -> list[btd6.CtTile]:
-    """This is supposed to be awaited and turned into a thread but it's only blocking once every 12 hours so idc"""
+async def get_current_ct_tiles() -> list[btd6.CtTile]:
     global tiles_cache
     if not tiles_cache.valid:
-        ct = get_current_ct_event()
+        ct = await get_current_ct_event()
         if ct is None:
             return []
-        tiles_cache = Cache(ct.tiles(), datetime.now() + timedelta(hours=CT_DATA_CACHE_HR))
+        tiles_cache = Cache(
+            await ct.tiles(),
+            datetime.now() + timedelta(hours=CT_DATA_CACHE_HR)
+        )
     return tiles_cache.value
 
 
-def is_tile_code_valid(tile: str) -> bool:
-    return tile in [t.id for t in get_current_ct_tiles()]
+async def is_tile_code_valid(tile: str) -> bool:
+    return tile in [t.id for t in await get_current_ct_tiles()]
