@@ -1,11 +1,11 @@
 import asyncio
-import json
-import os
 from bloonspy import btd6
 from bot.utils.bloons import raw_challenge_to_embed
 from bot.utils.bloonsdata import (
     get_current_ct_tiles,
     relic_to_tile_code,
+    fetch_tile_data,
+    fetch_all_tiles,
 )
 from bot.utils.emojis import LEAST_TIERS, LEAST_CASH
 from bot.utils.Cache import Cache
@@ -53,10 +53,10 @@ class TilesCog(ErrorHandlerCog):
     @discord.app_commands.guild_only()
     async def cmd_tile(self, interaction: discord.Interaction, tile: str, hide: None or bool = True) -> None:
         tile = tile.upper()
-        challenge_data = await asyncio.to_thread(self.fetch_challenge_data, tile)
+        challenge_data = await fetch_tile_data(tile)
         if challenge_data is None:
             tile = await relic_to_tile_code(tile)
-            challenge_data = await asyncio.to_thread(self.fetch_challenge_data, tile)
+            challenge_data = await fetch_tile_data(tile)
         if challenge_data is None:
             await interaction.response.send_message(
                 content="I don't have the challenge data for that tile!",
@@ -105,10 +105,10 @@ class TilesCog(ErrorHandlerCog):
     async def cmd_spawnlock(self, interaction: discord.Interaction, team: TeamColor, hide: bool = True) -> None:
         tiles = spawn_tile_codes[team]
 
-        tiles_data = []
-        for tile in tiles:
-            tiles_data.append(asyncio.to_thread(self.fetch_challenge_data, tile))
-        tiles_data = await asyncio.gather(*tiles_data)
+        tiles_data = await asyncio.gather(*[
+            fetch_tile_data(tile)
+            for tile in tiles
+        ])
 
         idx = 0
         embed = raw_challenge_to_embed(tiles_data[idx])
@@ -139,7 +139,7 @@ class TilesCog(ErrorHandlerCog):
         if not self.regs.valid:
             tiles = await get_current_ct_tiles()
             regs = [
-                self.fetch_challenge_data(tile.id) for tile in tiles
+                await fetch_tile_data(tile.id) for tile in tiles
                 # if tile.tile_type in [btd6.CtTileType.REGULAR, btd6.CtTileType.TEAM_START]
                 #    and tile.game_type != btd6.GameType.RACE
             ]
@@ -172,16 +172,6 @@ class TilesCog(ErrorHandlerCog):
         await interaction.edit_original_response(
             content=f"## Non-Race Regs ({len(self.regs.value)}):" + message
         )
-
-    @staticmethod
-    def fetch_challenge_data(tile: str):
-        path = f"bot/files/json/tiles/{tile}.json"
-        if not os.path.exists(path):
-            return None
-        fin = open(path)
-        data = json.loads(fin.read())
-        fin.close()
-        return data
 
 
 async def setup(bot: commands.Bot) -> None:
