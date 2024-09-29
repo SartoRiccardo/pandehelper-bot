@@ -931,7 +931,6 @@ class PlannerCog(ErrorHandlerCog):
         if planner_info is None or planner_info.claims_channel is None:
             return
 
-        breakpoint()
         if not (interaction.user.guild_permissions.manage_guild or interaction.user.guild_permissions.administrator) \
                 and planner_info.team_role not in [rl.id for rl in interaction.user.roles]:
             return await interaction.response.send_message(
