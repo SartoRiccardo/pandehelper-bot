@@ -34,7 +34,7 @@ async def update_messages(
     messages_to_change = []
     bot_messages = []
     user_messages_delete = []
-    modify = True #not resend
+    modify = not resend
     tolerance_used = 0
     async for message in channel.history(limit=25):
         if message.author == bot:
