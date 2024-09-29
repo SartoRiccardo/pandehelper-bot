@@ -1,9 +1,11 @@
 from typing import Any
 from PIL import Image
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import os
+from .Cache import Cache
 
+rounds_cache = Cache.empty()
 
 CACHE_DIR = "bot/files/cache"
 if not os.path.exists(CACHE_DIR):
@@ -11,10 +13,13 @@ if not os.path.exists(CACHE_DIR):
 
 
 def get_race_rounds() -> list[dict[str, Any]]:
-    fin = open("bot/files/json/rounds-race.json")
-    data = json.loads(fin.read())
-    fin.close()
-    return data
+    global rounds_cache
+    if not rounds_cache.valid:
+        with open("bot/files/json/rounds-race.json") as fin:
+            data = json.loads(fin.read())
+            data.sort(key=lambda x: x["round"])
+            rounds_cache = Cache(data, timedelta(days=256))
+    return rounds_cache.value
 
 
 def get_tag_list() -> list[str]:

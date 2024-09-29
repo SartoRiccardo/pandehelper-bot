@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import discord
 from bot.utils.misc import add_spaces
+from bot.utils.io import get_race_rounds
 from bot.utils.emojis import (
     NO_SELLING,
     NO_KNOWLEDGE,
@@ -11,6 +12,7 @@ from bot.utils.emojis import (
     MAX_TOWERS,
     REGROW_RATE,
     CASH,
+    BLANK,
 )
 from bot.utils.images import (
     BANNER_IMG,
@@ -138,6 +140,15 @@ def get_current_ct_day() -> int:
     return get_ct_day_during(datetime.now())
 
 
+def format_seconds(seconds: int) -> str:
+    formatted = f"{seconds % 60:0>2}"
+    if (minutes := seconds // 60) > 0:
+        formatted = f"{minutes % 60:0>2}:{formatted}"
+    if (hours := seconds // 3600) > 0:
+        formatted = f"{hours}:{formatted}"
+    return formatted
+
+
 def raw_challenge_to_embed(challenge) -> discord.Embed or None:
     event_number = challenge["EventNumber"]
     # event_number = get_current_ct_number()
@@ -186,13 +197,24 @@ def raw_challenge_to_embed(challenge) -> discord.Embed or None:
     title = f"{add_spaces(challenge['selectedMap'])} — {challenge['selectedDifficulty']} {mode}"
 
     starting_lives = challenge['dcModel']['startRules']['lives']
+    start_round = challenge['dcModel']['startRules']['round']
     if starting_lives == -1:
         starting_lives = DEFAULT_STARTING_LIVES[challenge['selectedDifficulty']]
     end_round = challenge['dcModel']['startRules']['endRound']
+    end_round_value = end_round
     if end_round == -1:
-        end_round = f"{challenge['bossData']['TierCount'] * 20 + 20}+"
+        end_round_value = challenge['bossData']['TierCount'] * 20 + 20
+        end_round = f"{end_round_value}+"
+    str_time_complete = ""
+    if challenge['subGameType'] != 2:
+        round_lengths = get_race_rounds()
+        seconds_to_complete = int(sum([round_lengths[i]["length"] for i in range(start_round-1, end_round_value)]))
+        str_time_complete = f"\nMinimum duration: 🕖 {format_seconds(seconds_to_complete)}{BLANK}" \
+                            f"⏩ {format_seconds(seconds_to_complete//3)}"
     description = f"{CASH} ${challenge['dcModel']['startRules']['cash']} — ♥️ {starting_lives} — " \
-                  f"Rounds {challenge['dcModel']['startRules']['round']}/{end_round}\n\n"
+                  f"Rounds {start_round}/{end_round}" + \
+                  str_time_complete + "\n\n"
+
 
     if challenge['dcModel']['maxTowers'] > -1:
         description += f"{MAX_TOWERS} Max Towers: {challenge['dcModel']['maxTowers']}\n"
