@@ -14,6 +14,7 @@ async def update_messages(
         delete_user_messages: bool = True,
         resend: bool = False,
         allowed_mentions: discord.AllowedMentions = discord.AllowedMentions.none(),
+        silent: bool = True,
 ) -> None:
     """Edits a bunch of messages to reflect some new content. If other users
     sent messages in the channel in the meanwhile, it deletes its own old messages
@@ -28,6 +29,7 @@ async def update_messages(
                                  tolerance=0 turns this off as well.
     :param resend: If True, resends the messages without checking anything. Still deletes the previous ones.
     :param allowed_mentions: Allowed mentions for the send command.
+    :param silent: If it resends the message, toggle if it's silent.
     """
     messages_to_change = []
     bot_messages = []
@@ -79,6 +81,7 @@ async def update_messages(
             content=msg,
             view=view,
             allowed_mentions=allowed_mentions,
+            silent=silent,
         )
 
 
