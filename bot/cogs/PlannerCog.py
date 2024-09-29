@@ -814,7 +814,12 @@ class PlannerCog(ErrorHandlerCog):
         planner_content = await self.get_planner_msg(channel_id)
         self.next_planner_refreshes[channel_id] = datetime.now() + timedelta(hours=1)
         try:
-            await bot.utils.discordutils.update_messages(self.bot.user, planner_content, channel, tolerance=5)
+            await bot.utils.discordutils.update_messages(
+                self.bot.user,
+                planner_content,
+                channel,
+                resend=True,
+            )
         except discord.Forbidden:
             pass
 

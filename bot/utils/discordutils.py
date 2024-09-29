@@ -11,7 +11,10 @@ async def update_messages(
         content: list[tuple[str, discord.ui.View or None]],
         channel: discord.TextChannel,
         tolerance: int = 10,
-        delete_user_messages: bool = True) -> None:
+        delete_user_messages: bool = True,
+        resend: bool = False,
+        allowed_mentions: discord.AllowedMentions = discord.AllowedMentions.none(),
+) -> None:
     """Edits a bunch of messages to reflect some new content. If other users
     sent messages in the channel in the meanwhile, it deletes its own old messages
     and send the whole thing again, to make sure it's always the newest message sent.
@@ -23,11 +26,13 @@ async def update_messages(
     :param delete_user_messages: If True, it will delete user messages in the way. Only does so if it updates
                                  (so NOT if it resends) and will only delete the messages it "tolerated". So setting
                                  tolerance=0 turns this off as well.
+    :param resend: If True, resends the messages without checking anything. Still deletes the previous ones.
+    :param allowed_mentions: Allowed mentions for the send command.
     """
     messages_to_change = []
     bot_messages = []
     user_messages_delete = []
-    modify = True
+    modify = True #not resend
     tolerance_used = 0
     async for message in channel.history(limit=25):
         if message.author == bot:
@@ -58,11 +63,10 @@ async def update_messages(
                 new_view = discord.ui.View()
             if messages_to_change[i].content != new_content or not \
                     (len(messages_to_change[i].components) == len(new_view.to_components()) == 0):
-                await messages_to_change[i].edit(content=new_content, view=new_view)
-                #coros.append(messages_to_change[i].edit(content=new_content, view=new_view))
+                await messages_to_change[i].edit(content=new_content, view=new_view, allowed_mentions=allowed_mentions)
+                #coros.append(messages_to_change[i].edit(content=new_content, view=new_view, allowed_mentions=allowed_mentions))
 
-        # Either the library doesnt handle 429s as it should or it doesn't work with asyncio.gather for some reason
-        # await asyncio.gather(*coros)
+        await asyncio.gather(*coros)
         return
 
     coros = []
@@ -71,7 +75,11 @@ async def update_messages(
     await asyncio.gather(*coros)
 
     for msg, view in content:
-        await channel.send(content=msg, view=view)
+        await channel.send(
+            content=msg,
+            view=view,
+            allowed_mentions=allowed_mentions,
+        )
 
 
 def gatekeep():
