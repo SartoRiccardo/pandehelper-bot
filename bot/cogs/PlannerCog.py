@@ -676,13 +676,12 @@ class PlannerCog(ErrorHandlerCog):
             EXPIRE_AFTER_RESET: None,
         }
         banner_claims = []
-        for i in range(len(tracked_tiles)):
-            tile = tracked_tiles[i]
+        for i, tile in enumerate(tracked_tiles):
             expire_at = tile.claimed_at + timedelta(hours=tile.expires_in_hr)
             emoji_claim = EXPIRE_LATER
             if expire_at >= ct_end-timedelta(hours=12):
-                hours_left = (ct_end - expire_at).total_seconds() // 3600
-                banners_hours_left = (expire_at - expire_at).total_seconds() // 3600
+                hours_left = (ct_end - now).total_seconds() // 3600
+                banners_hours_left = (ct_end - expire_at).total_seconds() // 3600
                 if tile.tile in banner_codes and (hours_left+1) * 20 < (banners_hours_left+1) * 40:
                     emoji_claim = EXPIRE_SUBOPTIMAL
                     emojis_explanations[EXPIRE_SUBOPTIMAL] = "If you have any tickets left, " \
