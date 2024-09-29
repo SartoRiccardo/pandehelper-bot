@@ -922,7 +922,6 @@ class PlannerCog(ErrorHandlerCog):
             self.banner_decays = await qplanner.get_tile_closest_to_expire(datetime.now())
             await self.send_planner_msg(planner_id)
 
-    @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def edit_tile_time(self,
                              interaction: discord.Interaction,
                              planner_id: int,
@@ -931,6 +930,15 @@ class PlannerCog(ErrorHandlerCog):
         planner_info = await qplanner.get_planner(planner_id)
         if planner_info is None or planner_info.claims_channel is None:
             return
+
+        breakpoint()
+        if not (interaction.user.guild_permissions.manage_guild or interaction.user.guild_permissions.administrator) \
+                and planner_info.team_role not in [rl.id for rl in interaction.user.roles]:
+            return await interaction.response.send_message(
+                content=f"You don't have the team role! Only <@&{planner_info.team_role}> members can edit the tile!",
+                ephemeral=True,
+            )
+
         claims_channel = planner_info.claims_channel
         tracked_tile_list = await qplanner.get_planner_tracked_tiles(planner_id)
         success = await qplanner.edit_tile_capture_time(
