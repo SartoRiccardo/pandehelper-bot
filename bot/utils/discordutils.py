@@ -111,3 +111,12 @@ async def download_file(session: aiohttp.ClientSession, url: str, path: str) -> 
 async def download_files(urls: list[str], paths: list[str]) -> None:
     async with aiohttp.ClientSession() as session:
         await asyncio.gather(*[download_file(session, url, paths[i]) for i, url in enumerate(urls)])
+
+
+def composite_views(*views: discord.ui.View):
+    new_view = discord.ui.View()
+    for i, vw in enumerate(views):
+        for item in vw.children:
+            item.row = i
+            new_view.add_item(item)
+    return new_view

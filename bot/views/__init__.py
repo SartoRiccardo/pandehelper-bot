@@ -3,3 +3,4 @@ from .PlannerUser import PlannerUserView
 from .PlannerAdmin import PlannerAdminView
 from .SpawnlockPaginate import SpawnlockPaginateView
 from .EmbedPaginate import EmbedPaginateView
+from .VPaginateList import VPaginateList

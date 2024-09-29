@@ -1,12 +1,13 @@
 import asyncio
+import math
 from bloonspy import btd6
 from bot.utils.bloons import raw_challenge_to_embed
 from bot.utils.bloonsdata import (
     get_current_ct_tiles,
     relic_to_tile_code,
     fetch_tile_data,
-    fetch_all_tiles,
 )
+from bot.views import VPaginateList
 from bot.utils.emojis import LEAST_TIERS, LEAST_CASH
 from bot.utils.Cache import Cache
 import discord
@@ -134,6 +135,8 @@ class TilesCog(ErrorHandlerCog):
         for this since there might be mismatch. Please just give me API access
         bro please I am on my knees begging
         """
+        rows_per_msg = 6
+
         await interaction.response.defer(ephemeral=hide)
 
         if not self.regs.valid:
@@ -157,20 +160,37 @@ class TilesCog(ErrorHandlerCog):
             elif reg["GameData"]["subGameType"] == 8:
                 regs_by_round[end_round].append((reg["Code"], btd6.GameType.LEAST_CASH))
 
-        message = ""
+        rounds = []
         for key in sorted(regs_by_round.keys()):
             regs_by_type = {btd6.GameType.LEAST_CASH: [], btd6.GameType.LEAST_TIERS: []}
             for code, ttype in regs_by_round[key]:
                 regs_by_type[ttype].append(code)
             total_tiles = len(regs_by_type[btd6.GameType.LEAST_CASH])+len(regs_by_type[btd6.GameType.LEAST_TIERS])
-            message += f"\n**Round {key}** ({total_tiles})"
+            message = f"\n**Round {key}** ({total_tiles})"
             if len(regs_by_type[btd6.GameType.LEAST_CASH]):
                 message += f"\n      {LEAST_CASH} `{'`, `'.join(regs_by_type[btd6.GameType.LEAST_CASH])}`"
             if len(regs_by_type[btd6.GameType.LEAST_TIERS]):
                 message += f"\n      {LEAST_TIERS} `{'`, `'.join(regs_by_type[btd6.GameType.LEAST_TIERS])}`"
+            rounds.append(message.strip())
 
+        def build_msg(rows) -> str:
+            return f"## Non-Race Regs ({len(self.regs.value)})\n" + \
+                "\n".join(rows)
+
+        vpages = VPaginateList(
+            interaction,
+            math.ceil(len(rounds)/rows_per_msg),
+            1,
+            {1: rounds},
+            rows_per_msg,
+            len(rounds),
+            None,
+            build_msg,
+            list_key=None,
+        )
         await interaction.edit_original_response(
-            content=f"## Non-Race Regs ({len(self.regs.value)})" + message
+            content=build_msg(vpages.get_needed_rows(1, vpages.pages_saved)),
+            view=vpages,
         )
 
 
