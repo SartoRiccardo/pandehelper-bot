@@ -2,12 +2,9 @@ import math
 import os
 from math import sqrt
 from bloonspy import btd6
-from typing import Literal
+from bot.types import TeamColor
 from dataclasses import dataclass
 from PIL import Image, ImageDraw, ImageFont
-
-
-TeamColor = Literal["Green", "Purple", "Red", "Yellow", "Pink", "Blue"]
 
 
 @dataclass
@@ -101,7 +98,7 @@ def tile_to_coords(tile_code: str, map_radius: int = 7, team_pov: int = 0) -> tu
     return qrs
 
 
-def make_map(tiles: list[btd6.CtTile], team_pov: int = 0, title: str or None = None) -> None:
+def make_map(tiles: list[btd6.CtTile], team_pov: int = 0, title: str or None = None) -> Image.Image:
     radius = get_radius(len(tiles))
 
     width = math.ceil(3/2 * HEX_FULL_RADIUS[0] * radius + HEX_FULL_RADIUS[0]) * 2

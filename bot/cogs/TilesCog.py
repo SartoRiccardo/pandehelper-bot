@@ -1,12 +1,15 @@
 import asyncio
+import io
 import math
 from bloonspy import btd6
 from bot.utils.bloons import raw_challenge_to_embed
 from bot.utils.bloonsdata import (
     get_current_ct_tiles,
+    get_current_ct_event,
     relic_to_tile_code,
     fetch_tile_data,
 )
+from bot.types import TeamColor
 from bot.views import VPaginateList
 from bot.utils.emojis import LEAST_TIERS, LEAST_CASH
 from bot.utils.Cache import Cache
@@ -16,6 +19,7 @@ from .CogBase import CogBase
 from datetime import datetime, timedelta
 from typing import Literal
 from bot.views.SpawnlockPaginate import SpawnlockPaginateView
+from bot.utils.ctmap import make_map
 
 TeamColor = Literal["Purple", "Red", "Yellow", "Pink", "Blue", "Green"]
 spawn_tile_codes = {
@@ -35,6 +39,7 @@ class TilesCog(CogBase):
     )
     help_descriptions = {
         None: "Information about the map and its tiles.",
+        "ctmap": "Renders the CT map.",
         "tile": "Check a CT tile's information.",
         "spawnlock": "Check the 3 tiles next to a team's spawn.",
         "regs": {
@@ -51,7 +56,6 @@ class TilesCog(CogBase):
                                   description="Check a tile's challenge data")
     @discord.app_commands.describe(tile="The 3 letter tile code, or a relic name.",
                                    hide="Hide the output.")
-    @discord.app_commands.guild_only()
     async def cmd_tile(self, interaction: discord.Interaction, tile: str, hide: None or bool = True) -> None:
         tile = tile.upper()
         challenge_data = await fetch_tile_data(tile)
@@ -69,6 +73,36 @@ class TilesCog(CogBase):
         await interaction.response.send_message(
             embed=embed,
             ephemeral=hide,
+        )
+
+    @discord.app_commands.command(
+        name="ctmap",
+        description="Render the current event's map",
+    )
+    @discord.app_commands.describe(
+        hide="Hide the output",
+        team_pov="The point of view of the team you wanna see",
+    )
+    async def cmd_ctmap(
+            self,
+            interaction: discord.Interaction,
+            team_pov: TeamColor = "Purple",
+            hide: bool = False,
+    ) -> None:
+        await interaction.response.defer(ephemeral=hide)
+
+        ct = await get_current_ct_event()
+        map_img = await asyncio.to_thread(
+            make_map,
+            await ct.tiles(),
+            team_pov=["Purple", "Pink", "Green", "Blue", "Yellow", "Red"].index(team_pov),
+        )
+        bin_image = io.BytesIO()
+        map_img.save(bin_image, format="PNG")
+        bin_image.seek(0)
+
+        await interaction.edit_original_response(
+            attachments=[discord.File(bin_image, filename=f"{ct.id}-map.png")]
         )
 
     @discord.app_commands.command(name="raceregs",
