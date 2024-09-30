@@ -315,7 +315,7 @@ def paste_banner(
         map_center: tuple[int, int]) -> None:
     xy = qrs_to_xy(qrs, map_center)
     xy = (xy[0]-int(TILE_OVERLAY_SIZE/2), xy[1]-int(TILE_OVERLAY_SIZE/2))
-    relic_img = Image.open(os.path.join(TILE_OVERLAY_PATH, "Banner.png")) \
+    relic_img = Image.open(os.path.join(TILE_OVERLAY_PATH, "banner.png")) \
                     .convert("RGBA") \
                     .resize((TILE_OVERLAY_SIZE, TILE_OVERLAY_SIZE))
     Image.Image.paste(image, relic_img, xy, mask=relic_img)
