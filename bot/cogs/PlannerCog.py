@@ -29,7 +29,8 @@ from bot.utils.emojis import (
     EXPIRE_STALE,
     EXPIRE_2HR,
     EXPIRE_3HR,
-    BLANK
+    BLANK,
+    WARN_ALREADY_CLAIMED,
 )
 from bloonspy import btd6
 import logging
@@ -61,6 +62,7 @@ PLANNER_TABLE_EMPTY = "https://cdn.discordapp.com/attachments/924255725390270474
 PLANNER_TABLE_ROW = "{emoji_claim} {emoji_tile} `{tile}`  |  "
 PLANNER_TABLE_ROW_TIME = "<t:{expire_at}:T> (<t:{expire_at}:R>){claimer}\n"
 PLANNER_TABLE_ROW_STALE = "⚠️ **__STALE SINCE <t:{expire_at}:R>__** ⚠️\n"
+resp_alr_claimed = "That tile's not claimed by you! Hands off! 💢"
 
 
 class PlannerCog(CogBase):
@@ -846,7 +848,7 @@ class PlannerCog(CogBase):
         response = ""
         refresh = False
         if tile_status.claimed_by != user.id and tile_status.claimed_by is not None:
-            response = "That tile's not claimed by you! Hands off! 💢"
+            response = resp_alr_claimed
         elif tile_status.claimed_by == user.id and can_unclaim:
             await qplanner.planner_unclaim_tile(tile, planner_channel_id)
             response = f"You have unclaimed `{tile}`!"
@@ -894,19 +896,21 @@ class PlannerCog(CogBase):
         """
         await self.handle_tile_capture(tile, claim_channel, claimer, is_capture=False)
 
-    async def on_tile_started(self, tile: str, claim_channel: int, player: discord.Member) -> None:
+    async def on_tile_started(self, tile: str, claim_channel: int, message: discord.Message) -> None:
         """
         Event fired when a tile gets called in a tracked channel.
 
         :param tile: The ID of the tile.
         :param claim_channel: The ID of the Ticket Tracker channel.
-        :param player: The ID of the user who uncaptured it.
+        :param message: The message that was sent to start the tile.
         """
         if (planner_id := await qplanner.get_planner_linked_to(claim_channel)) is None:
             return
-        _m, should_refresh = await self.switch_tile_claim(player, planner_id, tile, can_unclaim=False)
+        msg, should_refresh = await self.switch_tile_claim(message.author, planner_id, tile, can_unclaim=False)
         if should_refresh:
             await self.send_planner_msg(planner_id)
+        if msg == resp_alr_claimed:
+            await message.add_reaction(WARN_ALREADY_CLAIMED)
 
     async def handle_tile_capture(self, tile: str, claim_channel: int, claimer: int, is_capture: bool = True) -> None:
         planner_id = await qplanner.get_planner_linked_to(claim_channel)
