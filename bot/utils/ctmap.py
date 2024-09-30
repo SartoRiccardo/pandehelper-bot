@@ -3,65 +3,51 @@ import os
 from math import sqrt
 from bloonspy import Client, btd6
 from typing import Literal
-import random
+from dataclasses import dataclass
 from PIL import Image, ImageDraw, ImageFont
 
 
 TeamColor = Literal["Green", "Purple", "Red", "Yellow", "Pink", "Blue"]
 
 
-BACKGROUND = "#263238"#"#707696"
-PADDING = 40
-MARGIN = 40
+@dataclass
+class ColorStyle:
+    hex_stroke: str
+    hex_fill: str
+    hex_fill_stale: str | None
+    letter: str | None
+
+
+# Everything is relative to this. Current resolution is 8:7
+HEX_RADIUS = (80 // 1.4, 70 // 1.4)
+
+BACKGROUND = "#263238"
+PADDING = round(max(HEX_RADIUS) / 2)
+MARGIN = round(max(HEX_RADIUS) / 2)
+
+HEX_PADDING = round(max(HEX_RADIUS) / 40)
+HEX_STROKE_W = round(max(HEX_RADIUS) / 20)
+HEX_STROKE_W_SPAWN = round(min(HEX_RADIUS) / 10)
+HEX_FULL_RADIUS = (HEX_RADIUS[0] + HEX_PADDING, HEX_RADIUS[1] + HEX_PADDING)
+COLOR_STYLES = {
+    "Green": ColorStyle("#00713a", "#00e763", "#c7ffdf", "C"),
+    "Purple": ColorStyle("#68049c", "#ac2aeb", "#c4b7ed", "A"),
+    "Yellow": ColorStyle("#ffa300", "#fad800", "#faf3ca", "E"),
+    "Blue": ColorStyle("#005cd5", "#00a0f9", "#bae2f7", "D"),
+    "Pink": ColorStyle("#bf1c6b", "#f769a9", "#f2cbdd", "B"),
+    "Red": ColorStyle("#bb0000", "#ff1524", "#e8a5a9", "F"),
+    None: ColorStyle("#b0bec5", "#eceff1", None, ""),
+}
 
 TILE_OVERLAY_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "bin", "tile_overlays")
-TILE_OVERLAY_SIZE = 100
+TILE_OVERLAY_SIZE = round(max(HEX_RADIUS) * 10/8)
 
-HEX_RADIUS = (80, 70)
-HEX_PADDING = 2
-HEX_STROKE_W = 4
-HEX_STROKE_W_SPAWN = 7
-HEX_FULL_RADIUS = (HEX_RADIUS[0] + HEX_PADDING, HEX_RADIUS[1] + HEX_PADDING)
-HEX_STROKE_C = {
-    "Green": "#00713a",
-    "Purple": "#68049c",
-    "Yellow": "#ffa300",
-    "Blue": "#005cd5",
-    "Pink": "#bf1c6b",
-    "Red": "#bb0000",
-    None: "#b0bec5",
-}
-HEX_FILL = {
-    "Green": "#00e763",
-    "Purple": "#ac2aeb",
-    "Yellow": "#fad800",
-    "Blue": "#00a0f9",
-    "Pink": "#f769a9",
-    "Red": "#ff1524",
-    None: "#eceff1",
-}
-HEX_FILL_STALE = {
-    "Green": "#c7ffdf",
-    "Purple": "#c4b7ed",
-    "Yellow": "#faf3ca",
-    "Blue": "#bae2f7",
-    "Pink": "#f2cbdd",
-    "Red": "#e8a5a9",
-}
-HEX_LETTER = {
-    "Green": "C",
-    "Purple": "A",
-    "Yellow": "E",
-    "Blue": "D",
-    "Pink": "B",
-    "Red": "F",
-}
-
-TEXT_FONT = ImageFont.truetype(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "bin", "LuckiestGuy-Regular.ttf"), 100)
-TEXT_MARGIN = (0, 30, 30, 30)
+TEXT_FONT = ImageFont.truetype(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "bin", "LuckiestGuy-Regular.ttf"), (max(HEX_RADIUS) * 10) // 8)
+text_margin_rel = round(max(HEX_RADIUS) * 3/8)
+TEXT_MARGIN = (0, text_margin_rel, text_margin_rel, text_margin_rel)
 TEXT_C = (255, 255, 255)
 TEXT_STROKE_C = (0, 0, 0)
-TEXT_STROKE_W = 10
+TEXT_STROKE_W = round(max(HEX_RADIUS) / 8)
 
 
 def sign(num: float) -> int:
@@ -145,30 +131,24 @@ def make_map(tiles: list[btd6.CtTile], team_pov: int = 0, title: str or None = N
     if title is not None:
         map_center = (map_center[0], map_center[1] + TEXT_MARGIN[0] + TEXT_MARGIN[1])
 
-    # Test cases
-    special = {
-        "AAA": "Purple", "BAA": "Pink", "CAA": "Green", "DAA": "Blue", "EAA": "Yellow", "FAA": "Red",
-        "ABA": "Purple", "BBA": "Pink", "CBA": "Green", "DBA": "Blue", "EBA": "Yellow", "FBA": "Red",
-        "ACA": "Purple", "BCA": "Pink", "CCA": "Green", "DCA": "Blue", "ECA": "Yellow", "FCA": "Red",
-        "AAB": "Purple", "BAB": "Pink", "CAB": "Green", "DAB": "Blue", "EAB": "Yellow", "FAB": "Red",
-        "AAC": "Purple", "BAC": "Pink", "CAC": "Green", "DAC": "Blue", "EAC": "Yellow", "FAC": "Red",
-    }
-    special_stale = [
-        "AAB", "BAB", "CAB", "DAB", "EAB", "FAB",
-        "AAC", "BAC", "CAC", "DAC", "EAC", "FAC",
-    ]
-
     for t in tiles:
-        qrs = tile_to_coords(t.id, max(radius, 7), team_pov)  # The max is a hack cause tile codes are not dynamic like they're supposed to
-        color = None if t.id not in special else special[t.id]
-        is_stale = t.id in special_stale
+        # The max is a hack cause tile codes are not dynamic like they're supposed to
+        qrs = tile_to_coords(t.id, max(radius, 7), team_pov)
+        is_spawn = t.tile_type == btd6.CtTileType.TEAM_START
+        color = None
+        if is_spawn:
+            for clr in COLOR_STYLES:
+                if t.id[0] == COLOR_STYLES[clr].letter:
+                    color = clr
+                    break
+
         draw_hexagon(
             qrs,
             canvas,
             map_center,
             color=color,
-            is_spawn_tile=t.tile_type == btd6.CtTileType.TEAM_START,
-            is_stale=is_stale,
+            is_spawn_tile=is_spawn,
+            is_stale=False,
         )
         if t.tile_type == btd6.CtTileType.RELIC:
             paste_relic(t.relic, qrs, img, map_center)
@@ -235,7 +215,7 @@ def qrs_to_xy(
         xy[0],
         xy[1] + qrs[1] * HEX_FULL_RADIUS[1] * 0.866 * 2,
     )
-    return (int(xy[0]), int(xy[1]))
+    return int(xy[0]), int(xy[1])
 
 
 def draw_hexagon(
@@ -255,15 +235,16 @@ def draw_hexagon(
         ))
         angle += 1/3 * math.pi
 
-    fill = HEX_FILL_STALE[color] if color and is_stale else HEX_FILL[color] #HEX_STROKE_C[color] if is_spawn_tile else HEX_FILL[color]
-    outline = HEX_STROKE_C[color] #HEX_FILL[color] if is_spawn_tile else HEX_STROKE_C[color]
-    stroke = HEX_STROKE_W #HEX_STROKE_W_SPAWN if is_spawn_tile else HEX_STROKE_W
+    style = COLOR_STYLES[color]
+    fill = style.hex_fill_stale if color and is_stale else style.hex_fill #HEX_STROKE_C[color] if is_spawn_tile else HEX_FILL[color]
+    outline = style.hex_stroke #HEX_FILL[color] if is_spawn_tile else HEX_STROKE_C[color]
+    stroke = HEX_STROKE_W_SPAWN if is_spawn_tile else HEX_STROKE_W
     canvas.polygon(points, fill=fill, outline=outline, width=stroke)
 
     if is_spawn_tile and color:
         canvas.text(
             (xy[0], xy[1]+12),
-            HEX_LETTER[color],
+            style.letter,
             font=TEXT_FONT,
             fill=TEXT_C,
             stroke_width=TEXT_STROKE_W,
@@ -299,12 +280,4 @@ def paste_banner(
 
 if __name__ == '__main__':
     tiles = Client.contested_territories()[0].tiles()
-    make_map(tiles, title="Pandemonium CT Map", team_pov=2).show()
-    #make_map(tiles).show()
-
-    #for ct in Client.contested_territories():
-    #    make_map(ct.tiles(), 1)
-
-    #tiles = Client.contested_territories()[0].tiles()
-    #for pov in range(6):
-    #    make_map(tiles, pov)
+    make_map(tiles, title="heyhay").show()
