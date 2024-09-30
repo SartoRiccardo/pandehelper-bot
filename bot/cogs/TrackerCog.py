@@ -9,6 +9,7 @@ from bot.utils.bloonsdata import is_tile_code_valid
 from .CogBase import CogBase
 
 tracked_emojis = ["🟩", "👌", "🟢", "✅", "👍"]
+tile_re = r"(?i)(?:\W|^)([a-g][a-g][a-h]|mrx|zzz)(?:\W|$)"
 
 
 class TrackerCog(CogBase):
@@ -56,8 +57,6 @@ class TrackerCog(CogBase):
     @discord.app_commands.describe(channel="The channel to check.",
                                    season="The CT season to check. Defaults to the current one.")
     @discord.app_commands.guild_only()
-    # @discord.app_commands.default_permissions(administrator=True)
-    # @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def cmd_tickets_list(self,
                                interaction: discord.Interaction,
                                channel: discord.TextChannel,
@@ -103,8 +102,6 @@ class TrackerCog(CogBase):
                                    channel="The channel to check.",
                                    season="The CT season to check. Defaults to the current one.")
     @discord.app_commands.guild_only()
-    # @discord.app_commands.default_permissions(administrator=True)
-    # @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def cmd_member_tickets(self, interaction: discord.Interaction, channel: discord.TextChannel,
                                  member: discord.Member, season: None or int = 0,
                                  hide: None or bool = False) -> None:
@@ -140,8 +137,6 @@ class TrackerCog(CogBase):
                                    season="The CT season to check. Defaults to the current one.",
                                    hide="If True, the message will be ephemeral.")
     @discord.app_commands.guild_only()
-    # @discord.app_commands.default_permissions(administrator=True)
-    # @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def cmd_tile_history(self, interaction: discord.InteractionResponse,
                                channel: discord.TextChannel,
                                tile: str,
@@ -152,7 +147,6 @@ class TrackerCog(CogBase):
             return
 
         tile = tile.upper()
-        tile_re = r"(?:[a-gA-G][a-gA-G][a-hA-H]|[Mm][Rr][Xx]|[Zz]{3})"
         if re.search(tile_re, tile) is None or \
                 not await is_tile_code_valid(tile):
             await interaction.response.send_message(f"`{tile}` is not a valid tile code!", ephemeral=True)
@@ -195,29 +189,30 @@ class TrackerCog(CogBase):
         )
 
     @commands.Cog.listener()
+    async def on_message(self, message: discord.Message) -> None:
+        if (match := re.search(tile_re, message.content)) is None or \
+                message.channel.id not in (await bot.db.queries.tickets.tracked_channels()):
+            return
+
+        await self.bot.signal("on_tile_started", match.group(1).upper(), message.channel.id, message.author.id)
+
+    @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent) -> None:
         if str(payload.emoji) not in tracked_emojis or \
                 payload.channel_id not in (await bot.db.queries.tickets.tracked_channels()):
             return
 
-        tile_re = r"(?:[a-gA-G][a-gA-G][a-hA-H]|[Mm][Rr][Xx]|[Zz]{3})"
         channel = self.bot.get_channel(payload.channel_id)
         message = await channel.fetch_message(payload.message_id)
-        match = re.search(tile_re, message.content)
-        if match is None:
+        if (match := re.search(tile_re, message.content)) is None:
             return
 
-        tile = match.group(0).upper()
+        tile = match.group(1).upper()
         if not await is_tile_code_valid(tile):
             return
 
         await bot.db.queries.tickets.capture(payload.channel_id, message.author.id, tile, payload.message_id)
-
-        # Forward event to those who are listening
-        for cog_name in self.bot.cogs:
-            cog = self.bot.cogs[cog_name]
-            if hasattr(cog, "on_tile_captured"):
-                await cog.on_tile_captured(tile, payload.channel_id, message.author.id)
+        await self.bot.signal("on_tile_captured", tile, payload.channel_id, message.author.id)
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent) -> None:
@@ -232,12 +227,7 @@ class TrackerCog(CogBase):
                 return
         capture = await bot.db.queries.tickets.get_capture_by_message(payload.message_id)
         await bot.db.queries.tickets.uncapture(payload.message_id)
-
-        # Forward event to those who are listening
-        for cog_name in self.bot.cogs:
-            cog = self.bot.cogs[cog_name]
-            if hasattr(cog, "on_tile_uncaptured"):
-                await cog.on_tile_uncaptured(capture.tile, capture.channel_id, capture.user_id)
+        await self.bot.signal("on_tile_uncaptured", capture.tile, capture.channel_id, capture.user_id)
 
 
 async def setup(bot: commands.Bot) -> None:

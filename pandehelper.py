@@ -56,6 +56,13 @@ class PandeHelper(commands.Bot):
                     self.version = ln[len("__version__ = \""):-1]
                     return
 
+    async def signal(self, event: str, *args, **kwargs) -> None:
+        for cog_name in self.cogs:
+            cog = self.cogs[cog_name]
+            if hasattr(cog, event):
+                handler = getattr(cog, event)
+                await handler(*args, **kwargs)
+
 
 if __name__ == '__main__':
     os.chdir(os.path.abspath(os.path.dirname(__file__)))
