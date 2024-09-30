@@ -194,7 +194,7 @@ class TrackerCog(CogBase):
                 message.channel.id not in (await bot.db.queries.tickets.tracked_channels()):
             return
 
-        await self.bot.signal("on_tile_started", match.group(1).upper(), message.channel.id, message.author.id)
+        await self.bot.signal("on_tile_started", match.group(1).upper(), message.channel.id, message.author)
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent) -> None:

@@ -820,14 +820,16 @@ class PlannerCog(CogBase):
     async def switch_tile_claim(
             user: discord.Member,
             planner_channel_id: int,
-            tile: str
+            tile: str,
+            can_unclaim: bool = True,
     ) -> tuple[str, bool]:
         """Claims or unclaims a tile for an user.
 
         :param user: The member who wants to claim the tile.
         :param planner_channel_id: The Planner channel ID.
         :param tile: The ID of the tile.
-        :return: A message to give to the user.
+        :param can_unclaim: If False, it won't unclaim the tile if it's already the user's.
+        :return: A message to give to the user + whether the planner should refresh.
         """
         planner_info = await qplanner.get_planner(planner_channel_id)
         if planner_info is None:
@@ -841,27 +843,31 @@ class PlannerCog(CogBase):
             return "That tile isn't in the planner...?", False
         tile_expire_day = get_ct_day_during(tile_status.claimed_at + timedelta(hours=tile_status.expires_in_hr))
 
-        claimed_by_user = await qplanner.get_claims_by(user.id, planner_channel_id)
-        tile_infos = await qplanner.get_planned_tiles(planner_channel_id, [claim["tile"] for claim in claimed_by_user])
-        claims_on_days = {}
-        for ti in tile_infos:
-            expire_in_day = get_ct_day_during(ti.claimed_at + timedelta(hours=ti.expires_in_hr))
-            if expire_in_day not in claims_on_days:
-                claims_on_days[expire_in_day] = []
-            claims_on_days[expire_in_day].append(ti)
-
-        response = "That tile's not claimed by you! Hands off! 💢"
+        response = ""
         refresh = False
-        if tile_status.claimed_by == user.id:
+        if tile_status.claimed_by != user.id and tile_status.claimed_by is not None:
+            response = "That tile's not claimed by you! Hands off! 💢"
+        elif tile_status.claimed_by == user.id and can_unclaim:
             await qplanner.planner_unclaim_tile(tile, planner_channel_id)
             response = f"You have unclaimed `{tile}`!"
             refresh = True
-        elif tile_expire_day in claims_on_days and len(claims_on_days[tile_expire_day]) >= 4:
-            response = "You already have 4 tiles claimed _for that CT day._ You can't claim any more."
-        elif tile_status.claimed_by is None:
-            await qplanner.planner_claim_tile(user.id, tile, planner_channel_id)
-            response = f"You have claimed `{tile}`!\n*Select it again if you want to unclaim it.*"
-            refresh = True
+        else:
+            claimed_by_user = await qplanner.get_claims_by(user.id, planner_channel_id)
+            tile_infos = await qplanner.get_planned_tiles(planner_channel_id,
+                                                          [claim["tile"] for claim in claimed_by_user])
+            claims_on_days = {}
+            for ti in tile_infos:
+                expire_in_day = get_ct_day_during(ti.claimed_at + timedelta(hours=ti.expires_in_hr))
+                if expire_in_day not in claims_on_days:
+                    claims_on_days[expire_in_day] = []
+                claims_on_days[expire_in_day].append(ti)
+
+            if tile_expire_day in claims_on_days and len(claims_on_days[tile_expire_day]) >= 4:
+                response = "You already have 4 tiles claimed _for that CT day._ You can't claim any more."
+            elif tile_status.claimed_by is None:
+                await qplanner.planner_claim_tile(user.id, tile, planner_channel_id)
+                response = f"You have claimed `{tile}`!\n*Select it again if you want to unclaim it.*"
+                refresh = True
 
         if refresh:
             await PlannerCog.check_has_tickets_role(user, planner_info)
@@ -887,6 +893,20 @@ class PlannerCog(CogBase):
         :param claimer: The ID of the user who uncaptured it.
         """
         await self.handle_tile_capture(tile, claim_channel, claimer, is_capture=False)
+
+    async def on_tile_started(self, tile: str, claim_channel: int, player: discord.Member) -> None:
+        """
+        Event fired when a tile gets called in a tracked channel.
+
+        :param tile: The ID of the tile.
+        :param claim_channel: The ID of the Ticket Tracker channel.
+        :param player: The ID of the user who uncaptured it.
+        """
+        if (planner_id := await qplanner.get_planner_linked_to(claim_channel)) is None:
+            return
+        _m, should_refresh = await self.switch_tile_claim(player, planner_id, tile, can_unclaim=False)
+        if should_refresh:
+            await self.send_planner_msg(planner_id)
 
     async def handle_tile_capture(self, tile: str, claim_channel: int, claimer: int, is_capture: bool = True) -> None:
         planner_id = await qplanner.get_planner_linked_to(claim_channel)
