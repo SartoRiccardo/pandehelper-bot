@@ -12,7 +12,7 @@ import bot.db.queries.leaderboard
 import bot.utils.io
 from bot.utils.bloonsdata import get_current_ct_event
 from .CogBase import CogBase
-from config import EMOTE_GUILD_ID
+from config import EMOTE_GUILD_ID, DATA_PATH
 from bot.utils.emojis import (
     TOP_1_GLOBAL,
     TOP_2_GLOBAL,
@@ -276,27 +276,37 @@ class LeaderboardCog(CogBase):
     
     @staticmethod
     async def download_team_icon_assets(to_make: list[tuple["bloonspy.btd6.Asset", "bloonspy.btd6.Asset"]]) -> None:
+        tmp_path = os.path.join(DATA_PATH, "tmp")
         frames, icons = [], []
         for frame, icon in to_make:
-            if frame not in frames and not os.path.exists(f"tmp/{frame.name}"):
+            if frame not in frames and not os.path.exists(os.path.join(tmp_path, frame.name)):
                 frames.append(frame)
-            if icon not in icons and not os.path.exists(f"tmp/{icon.name}"):
+            if icon not in icons and not os.path.exists(os.path.join(tmp_path, icon.name)):
                 icons.append(icon)
         
-        await bot.utils.discordutils.download_files([f.url for f in frames], [f"tmp/{f.name}" for f in frames])
-        await bot.utils.discordutils.download_files([i.url for i in icons], [f"tmp/{i.name}" for i in icons])
+        await bot.utils.discordutils.download_files(
+            [f.url for f in frames],
+            [os.path.join(tmp_path, f.name) for f in frames]
+        )
+        await bot.utils.discordutils.download_files(
+            [i.url for i in icons],
+            [os.path.join(tmp_path, i.name) for i in icons]
+        )
     
     @staticmethod
-    async def make_team_icon_emote(emote_guild: discord.Guild,
-                                   emote_name: str,
-                                   frame: "bloonspy.btd6.Asset",
-                                   icon: "bloonspy.btd6.Asset",
-                                   animated: bool) -> str:
-        frame_path = f"tmp/{frame.name}"
-        icon_path = f"tmp/{icon.name}"
+    async def make_team_icon_emote(
+            emote_guild: discord.Guild,
+            emote_name: str,
+            frame: "bloonspy.btd6.Asset",
+            icon: "bloonspy.btd6.Asset",
+            animated: bool
+    ) -> str:
+        tmp_path = os.path.join(DATA_PATH, "tmp")
+        frame_path = os.path.join(tmp_path, frame.name)
+        icon_path = os.path.join(tmp_path, icon.name)
         if not os.path.exists(frame_path) or not os.path.exists(icon_path):
-            return
-        merged_path = f"tmp/{emote_name}.{'gif' if animated else 'png'}"
+            return BLANK
+        merged_path = os.path.join(tmp_path, f"{emote_name}.{'gif' if animated else 'png'}")
         
         await asyncio.to_thread(bot.utils.io.merge_images, frame_path, icon_path, merged_path, animated)
         async with aiofiles.open(merged_path, "rb") as fin:

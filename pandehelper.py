@@ -6,7 +6,7 @@ import bot.db.connection
 import bot.utils.bloonsdata
 from bot import __version__
 from discord.ext import commands
-from config import TOKEN, APP_ID
+from config import TOKEN, APP_ID, DATA_PATH
 from bot.utils.colors import purple
 
 
@@ -25,8 +25,6 @@ class CtTicketTracker(commands.Bot):
         self.version = __version__
         self.last_restart = datetime.now()
         self.synced_tree = None
-        if not os.path.exists("tmp"):
-            os.mkdir("tmp")
 
     async def setup_hook(self):
         await bot.utils.bloonsdata.init_bloonspy_client()
@@ -62,4 +60,5 @@ class CtTicketTracker(commands.Bot):
 
 if __name__ == '__main__':
     os.chdir(os.path.abspath(os.path.dirname(__file__)))
+    os.makedirs(os.path.join(DATA_PATH, "tmp"), exist_ok=True)
     CtTicketTracker().run(TOKEN, log_level=logging.ERROR)
