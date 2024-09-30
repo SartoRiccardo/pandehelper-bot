@@ -29,7 +29,7 @@ class WelcomeCog(CogBase):
         await super().cog_load()
         self.check_inactive_rooms.start()
 
-    def cog_unload(self) -> None:
+    async def cog_unload(self) -> None:
         await super().cog_unload()
         self.check_inactive_rooms.cancel()
 

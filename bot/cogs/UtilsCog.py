@@ -3,7 +3,6 @@ import datetime
 import bot.utils.io
 import bot.utils.bloons
 import bot.utils.discordutils
-from bot.classes.HelpMessageCog import HelpMessageCog
 import discord
 from discord.ext import commands, tasks
 from .CogBase import CogBase
@@ -26,12 +25,12 @@ class UtilsCog(CogBase):
         super().__init__(bot)
         self.tag_list: list[str] = []
 
-    def cog_load(self) -> None:
+    async def cog_load(self) -> None:
         await super().cog_load()
         self.update_tag_list.start()
         self.update_status.start()
 
-    def cog_unload(self) -> None:
+    async def cog_unload(self) -> None:
         await super().cog_unload()
         self.update_tag_list.cancel()
         self.update_status.cancel()
