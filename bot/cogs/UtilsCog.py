@@ -38,7 +38,7 @@ class UtilsCog(CogBase):
 
     @tasks.loop(seconds=60*60)
     async def update_tag_list(self) -> None:
-        self.tag_list = await asyncio.to_thread(bot.utils.io.get_tag_list)
+        self.tag_list = await bot.utils.io.get_tag_list()
 
     @tasks.loop(seconds=60*60)
     async def update_status(self) -> None:
@@ -186,11 +186,11 @@ class UtilsCog(CogBase):
     async def cmd_send_tag(self, interaction: discord.Interaction, tag_name: str = None) -> None:
         await interaction.response.defer()
         if tag_name is None:
-            tags = await asyncio.to_thread(bot.utils.io.get_tag_list)
+            tags = await bot.utils.io.get_tag_list()
             await interaction.edit_original_response(content=f"Tags: `{'` `'.join(tags)}`")
             return
 
-        tag_content = await asyncio.to_thread(bot.utils.io.get_tag, tag_name.lower())
+        tag_content = await bot.utils.io.get_tag(tag_name.lower())
         response_content = tag_content if tag_content else "No tag with that name!"
         await interaction.edit_original_response(content=response_content)
 

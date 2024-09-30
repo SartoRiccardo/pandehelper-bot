@@ -1,64 +1,36 @@
 from typing import Any
 from PIL import Image
-from datetime import datetime, timedelta
+import aiofiles
+from datetime import timedelta
 import json
 import os
 from .Cache import Cache
 
 rounds_cache = Cache.empty()
 
-CACHE_DIR = "bot/files/cache"
-if not os.path.exists(CACHE_DIR):
-    os.mkdir(CACHE_DIR)
 
-
-def get_race_rounds() -> list[dict[str, Any]]:
+async def get_race_rounds() -> list[dict[str, Any]]:
     global rounds_cache
     if not rounds_cache.valid:
-        with open("bot/files/json/rounds-race.json") as fin:
-            data = json.loads(fin.read())
+        async with aiofiles.open(os.path.join("files", "rounds-race.json")) as fin:
+            data = json.loads(await fin.read())
             data.sort(key=lambda x: x["round"])
             rounds_cache = Cache(data, timedelta(days=256))
     return rounds_cache.value
 
 
-def get_tag_list() -> list[str]:
-    fin = open("bot/files/json/tags.json")
-    data = json.loads(fin.read())
-    fin.close()
-    return data.keys()
+async def get_tag_list() -> list[str]:
+    async with aiofiles.open(os.path.join("files", "tags.json")) as fin:
+        data = json.loads(await fin.read())
+        return data.keys()
 
 
-def get_tag(tag_name: str) -> str or None:
-    fin = open("bot/files/json/tags.json")
-    data = json.loads(fin.read())
-    if tag_name not in data.keys():
-        return None
-    fin.close()
-    return data[tag_name]
-
-
-def save_cog_state(cog_name: str, state: dict[str, Any]) -> None:
-    data = json.dumps({
-        "saved_at": datetime.now().timestamp(),
-        "data": state,
-    })
-    fout = open(state_path(cog_name), "w")
-    fout.write(data)
-    fout.close()
-
-
-def get_cog_state(cog_name: str) -> dict[str, Any] or None:
-    if not os.path.exists(state_path(cog_name)):
-        return None
-    fin = open(state_path(cog_name))
-    data = json.loads(fin.read())
-    fin.close()
-    return data
-
-
-def state_path(cog_name: str) -> str:
-    return f"{CACHE_DIR}/state-{cog_name}.json"
+async def get_tag(tag_name: str) -> str or None:
+    async with aiofiles.open(os.path.join("files", "tags.json")) as fin:
+        data = json.loads(await fin.read())
+        if tag_name not in data.keys():
+            return None
+        return data[tag_name]
 
 
 def merge_images(img1_path: str, img2_path: str, save_path: str, gif: bool) -> None:
