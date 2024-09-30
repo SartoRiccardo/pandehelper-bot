@@ -10,7 +10,7 @@ from config import TOKEN, APP_ID, DATA_PATH
 from bot.utils.colors import purple
 
 
-class CtTicketTracker(commands.Bot):
+class PandeHelper(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
         intents.message_content = True
@@ -35,7 +35,6 @@ class CtTicketTracker(commands.Bot):
             "LeaderboardCog",
             "TilestratCog",
             "UtilsCog",
-            #"VerifyCog",
             "PlannerCog",
             "WelcomeCog",
             "TilesCog",
@@ -61,4 +60,4 @@ class CtTicketTracker(commands.Bot):
 if __name__ == '__main__':
     os.chdir(os.path.abspath(os.path.dirname(__file__)))
     os.makedirs(os.path.join(DATA_PATH, "tmp"), exist_ok=True)
-    CtTicketTracker().run(TOKEN, log_level=logging.ERROR)
+    PandeHelper().run(TOKEN, log_level=logging.ERROR)
