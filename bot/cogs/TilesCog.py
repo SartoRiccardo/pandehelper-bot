@@ -92,17 +92,14 @@ class TilesCog(CogBase):
         await interaction.response.defer(ephemeral=hide)
 
         ct = await get_current_ct_event()
-        map_img = await asyncio.to_thread(
+        image_path = await asyncio.to_thread(
             make_map,
             await ct.tiles(),
             team_pov=["Purple", "Pink", "Green", "Blue", "Yellow", "Red"].index(team_pov),
         )
-        bin_image = io.BytesIO()
-        map_img.save(bin_image, format="PNG")
-        bin_image.seek(0)
 
         await interaction.edit_original_response(
-            attachments=[discord.File(bin_image, filename=f"{ct.id}-map.png")]
+            attachments=[discord.File(image_path, filename=f"{ct.id}-map.png")]
         )
 
     @discord.app_commands.command(name="raceregs",

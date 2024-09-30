@@ -1,3 +1,4 @@
+import io
 import math
 import os
 from math import sqrt
@@ -5,6 +6,11 @@ from bloonspy import btd6
 from bot.types import TeamColor
 from dataclasses import dataclass
 from PIL import Image, ImageDraw, ImageFont
+from config import DATA_PATH
+from functools import wraps
+from pathlib import Path
+import hashlib
+from datetime import datetime
 
 
 @dataclass
@@ -98,7 +104,41 @@ def tile_to_coords(tile_code: str, map_radius: int = 7, team_pov: int = 0) -> tu
     return qrs
 
 
-def make_map(tiles: list[btd6.CtTile], team_pov: int = 0, title: str or None = None) -> Image.Image:
+def cache_image(cache_path: str, limit: int):
+    def deco(wrapped):
+        @wraps(wrapped)
+        def wrapper(tiles: list[btd6.CtTile], **kwargs) -> str:
+            imghash = ""
+            for tl in sorted(tiles, key=lambda x: x.id):
+                imghash += str(tl)
+            for kw in sorted(kwargs.keys()):
+                imghash += f"[{kw}]{kwargs[kw]}"
+            imghash = hashlib.sha256(imghash.encode()).hexdigest()
+            fpath = os.path.join(cache_path, f"{imghash}.png")
+
+            if not os.path.exists(fpath):
+                cached_imgs = sorted(Path(cache_path).iterdir(), key=os.path.getmtime, reverse=True)
+                for i in range(limit-1, len(cached_imgs)):
+                    os.remove(cached_imgs[i])
+                wrapped(tiles, **kwargs, file_out=fpath)
+
+            now = int(datetime.now().timestamp())
+            os.utime(fpath, times=(now, now))
+            return fpath
+
+        return wrapper
+
+    os.makedirs(cache_path, exist_ok=True)
+    return deco
+
+
+@cache_image(os.path.join(DATA_PATH, "tmp", "map-images"), limit=20)
+def make_map(
+        tiles: list[btd6.CtTile],
+        team_pov: int = 0,
+        title: str or None = None,
+        file_out: str | None = None
+) -> io.BytesIO | None:
     radius = get_radius(len(tiles))
 
     width = math.ceil(3/2 * HEX_FULL_RADIUS[0] * radius + HEX_FULL_RADIUS[0]) * 2
@@ -154,7 +194,13 @@ def make_map(tiles: list[btd6.CtTile], team_pov: int = 0, title: str or None = N
 
     make_border(canvas, map_size, title)
 
-    return img
+    if file_out is None:
+        imgbin = io.BytesIO()
+        img.save(imgbin, format="PNG")
+        imgbin.seek(0)
+        return imgbin
+    else:
+        img.save(file_out, format="PNG")
 
 
 def make_border(
