@@ -121,7 +121,7 @@ class TilestratCog(CogBase):
 
         for thr_id in to_delete:
             del self.check_back[thr_id]
-        await self.save_state()
+        await self._save_state()
 
     @discord.app_commands.command(name="raidlog", description="Alias for /tilestrat")
     @discord.app_commands.describe(tile_code="The tile code to look up.")
@@ -361,7 +361,7 @@ class TilestratCog(CogBase):
     async def on_message(self, message: discord.Message) -> None:
         if message.channel.id in self.check_back:
             del self.check_back[message.channel.id]
-            await self.save_state()
+            await self._save_state()
 
     @discord.ext.commands.Cog.listener()
     async def on_raw_thread_delete(self, payload: discord.RawThreadDeleteEvent) -> None:
@@ -376,11 +376,11 @@ class TilestratCog(CogBase):
     async def on_raidlog_requested(self, thread: discord.Thread) -> None:
         if thread.id in self.check_back:
             self.check_back[thread.id] = datetime.now() + timedelta(hours=3)
-            await self.save_state()
+            await self._save_state()
 
     async def on_raidlog_created(self, thread: discord.Thread, tile_info: dict, forum_id: int) -> None:
         self.check_back[thread.id] = datetime.now() + timedelta(hours=3)
-        await self.save_state()
+        await self._save_state()
         await bot.db.queries.tilestrat.create_tilestrat(
             forum_id, thread.id, tile_info["Code"], tile_info["EventNumber"], tile_info["GameData"]["subGameType"],
             tile_info["GameData"]["bossData"]["bossBloon"] if "bossData" in tile_info["GameData"] else None

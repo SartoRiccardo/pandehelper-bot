@@ -180,7 +180,7 @@ class LeaderboardCog(CogBase):
                     message_full += f" {NEW_TEAM}"
         
         self.last_hour_score = current_hour_score
-        await self.save_state()
+        await self._save_state()
 
         # Misc addendums to the leaderboard
         top_1_percent_message = ""

@@ -184,7 +184,7 @@ class PlannerCog(CogBase):
                     planner.ping_channel,
                     planner.ping_role_with_tickets if planner.ping_role_with_tickets else planner.team_role,
                 )
-        await self.save_state()
+        await self._save_state()
 
     async def check_planner_reminder(
             self,

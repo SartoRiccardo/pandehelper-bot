@@ -79,7 +79,7 @@ class WelcomeCog(CogBase):
         member = message.author
         if member.id in self.waiting_rooms and message.channel.topic == str(member.id):
             self.waiting_rooms[member.id] = datetime.now() + timedelta(seconds=self.VISITOR_AFTER)
-            await self.save_state()
+            await self._save_state()
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member) -> None:
@@ -117,7 +117,7 @@ class WelcomeCog(CogBase):
         )
         self.waiting_rooms[member.id] = datetime.now() + timedelta(seconds=self.VISITOR_AFTER)
         await new_ch.send(self.WELCOME_MSG.format(member.id))
-        await self.save_state()
+        await self._save_state()
 
     async def remove_waiting_room(self, member: discord.Member | discord.User, guild_id: int = None) -> None:
         if member.guild.id != self.PANDEMONIUM_GID:
@@ -138,7 +138,7 @@ class WelcomeCog(CogBase):
                 await channel.delete()
                 if member.id in self.waiting_rooms:
                     del self.waiting_rooms[member.id]
-                    await self.save_state()
+                    await self._save_state()
                 return
 
     async def get_guild(self, guild_id: int) -> discord.Guild:
