@@ -5,6 +5,7 @@ import aiofiles
 import asyncio
 import io
 import traceback
+from datetime import datetime, timedelta
 from discord.ext import commands
 
 
@@ -29,20 +30,23 @@ async def update_messages(
     :param delete_user_messages: If True, it will delete user messages in the way. Only does so if it updates
                                  (so NOT if it resends) and will only delete the messages it "tolerated". So setting
                                  tolerance=0 turns this off as well.
-    :param resend: If True, resends the messages without checking anything. Still deletes the previous ones.
+    :param resend: If True, resends the messages if the previous ones are older than 1hr. Still deletes the previous ones.
     :param allowed_mentions: Allowed mentions for the send command.
     :param silent: If it resends the message, toggle if it's silent.
     """
     messages_to_change = []
     bot_messages = []
     user_messages_delete = []
-    modify = not resend
+    modify = True
     tolerance_used = 0
+    now = discord.utils.utcnow()
     async for message in channel.history(limit=25):
         if message.author == bot:
             tolerance_used = tolerance+1  # If there's any more user messages after this, break.
             if modify:
                 messages_to_change.insert(0, message)
+                if resend and message.created_at < now - timedelta(hours=1):
+                    modify = False
             bot_messages.append(message)
             if len(content) < len(messages_to_change):
                 modify = False
