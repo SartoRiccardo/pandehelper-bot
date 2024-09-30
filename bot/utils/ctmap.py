@@ -1,7 +1,7 @@
 import math
 import os
 from math import sqrt
-from bloonspy import Client, btd6
+from bloonspy import btd6
 from typing import Literal
 from dataclasses import dataclass
 from PIL import Image, ImageDraw, ImageFont
@@ -39,10 +39,10 @@ COLOR_STYLES = {
     None: ColorStyle("#b0bec5", "#eceff1", None, ""),
 }
 
-TILE_OVERLAY_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "bin", "tile_overlays")
+TILE_OVERLAY_PATH = os.path.join("files", "bin", "tile_overlays")
 TILE_OVERLAY_SIZE = round(max(HEX_RADIUS) * 10/8)
 
-TEXT_FONT = ImageFont.truetype(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "bin", "LuckiestGuy-Regular.ttf"), (max(HEX_RADIUS) * 10) // 8)
+TEXT_FONT = ImageFont.truetype(os.path.join("files", "bin", "LuckiestGuy-Regular.ttf"), (max(HEX_RADIUS) * 10) // 8)
 text_margin_rel = round(max(HEX_RADIUS) * 3/8)
 TEXT_MARGIN = (0, text_margin_rel, text_margin_rel, text_margin_rel)
 TEXT_C = (255, 255, 255)
@@ -276,8 +276,3 @@ def paste_banner(
                     .convert("RGBA") \
                     .resize((TILE_OVERLAY_SIZE, TILE_OVERLAY_SIZE))
     Image.Image.paste(image, relic_img, xy, mask=relic_img)
-
-
-if __name__ == '__main__':
-    tiles = Client.contested_territories()[0].tiles()
-    make_map(tiles, title="heyhay").show()
