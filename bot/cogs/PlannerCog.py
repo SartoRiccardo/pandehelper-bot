@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import re
+from typing import Any
 import discord
 from discord.ext import tasks, commands
 import asyncio
@@ -17,7 +18,7 @@ from bot.utils.bloonsdata import (
     get_current_ct_event,
     get_current_ct_tiles,
 )
-from bot.classes import ErrorHandlerCog
+from .CogBase import CogBase
 from bot.utils.emojis import TILE_BANNER, TILE_REGULAR, TILE_RELIC, RELICS
 from bot.views import PlannerUserView, PlannerAdminView
 from bot.utils.emojis import (
@@ -62,7 +63,7 @@ PLANNER_TABLE_ROW_TIME = "<t:{expire_at}:T> (<t:{expire_at}:R>){claimer}\n"
 PLANNER_TABLE_ROW_STALE = "⚠️ **__STALE SINCE <t:{expire_at}:R>__** ⚠️\n"
 
 
-class PlannerCog(ErrorHandlerCog):
+class PlannerCog(CogBase):
     planner_group = discord.app_commands.Group(name="planner", description="Various CT Planner commands")
     help_descriptions = {
         None: "Please check out [the wiki](<https://github.com/SartoRiccardo/ct-ticket-tracker/wiki>) for a "
@@ -96,30 +97,23 @@ class PlannerCog(ErrorHandlerCog):
         self.last_check_end = self.next_check
         self.ct_day = get_current_ct_day()
 
-    async def load_state(self) -> None:
-        state = await asyncio.to_thread(bot.utils.io.get_cog_state, "planner")
-        if state is None:
-            return
-
-        saved_at = datetime.fromtimestamp(state["saved_at"])
+    async def parse_state(self, saved_at: datetime, state: dict[str, Any]) -> None:
         if self.next_check-saved_at > timedelta(minutes=PlannerCog.CHECK_EVERY):
             return
 
-        data = state["data"]
-        if "next_check" in data:
-            self.next_check = datetime.fromtimestamp(data["next_check"])
-        if "last_check_end" in data:
-            self.last_check_end = datetime.fromtimestamp(data["last_check_end"])
+        if "next_check" in state:
+            self.next_check = datetime.fromtimestamp(state["next_check"])
+        if "last_check_end" in state:
+            self.last_check_end = datetime.fromtimestamp(state["last_check_end"])
 
-    async def save_state(self) -> None:
-        data = {
+    async def serialize_state(self) -> dict[str, Any]:
+        return {
             "next_check": self.next_check.timestamp(),
             "last_check_end": self.last_check_end.timestamp(),
         }
-        await asyncio.to_thread(bot.utils.io.save_cog_state, "planner", data)
 
     async def cog_load(self) -> None:
-        await self.load_state()
+        await super().cog_load()
 
         self.current_event = await get_current_ct_event()
 
@@ -140,7 +134,8 @@ class PlannerCog(ErrorHandlerCog):
         self.check_reset.start()
         self.check_orphan_has_tickets_roles.start()
 
-    def cog_unload(self) -> None:
+    async def cog_unload(self) -> None:
+        await super().cog_unload()
         self.check_reminders.cancel()
         self.check_decay.cancel()
         self.check_planner_refresh.cancel()

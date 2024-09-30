@@ -12,7 +12,7 @@ from bot.utils.emojis import LEAST_TIERS, LEAST_CASH
 from bot.utils.Cache import Cache
 import discord
 from discord.ext import commands
-from bot.classes import ErrorHandlerCog
+from .CogBase import CogBase
 from datetime import datetime, timedelta
 from typing import Literal
 from bot.views.SpawnlockPaginate import SpawnlockPaginateView
@@ -28,7 +28,7 @@ spawn_tile_codes = {
 }
 
 
-class TilesCog(ErrorHandlerCog):
+class TilesCog(CogBase):
     grp_regs = discord.app_commands.Group(
         name="regs",
         description="Different commands for regular tiles",

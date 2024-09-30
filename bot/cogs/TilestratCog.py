@@ -3,10 +3,11 @@ import discord
 from datetime import datetime, timedelta
 from discord.ext import commands, tasks
 import asyncio
+from typing import Any
 import bot.db.queries.tilestrat
 import bot.utils.discordutils
 from bot.exceptions import UnknownTile
-from bot.classes import ErrorHandlerCog
+from .CogBase import CogBase
 from bot.views import EmbedPaginateView
 from bot.utils.bloons import (
     raw_challenge_to_embed,
@@ -55,7 +56,7 @@ You can do one of 2 things for race tiles, which one is up to you:
 TOTAL_TILES = 163
 
 
-class TilestratCog(ErrorHandlerCog):
+class TilestratCog(CogBase):
     help_descriptions = {
         None: "Manages a forum to post tile strategies",
         "tilestrat-forum": {
@@ -78,31 +79,26 @@ class TilestratCog(ErrorHandlerCog):
         self.check_back: dict[int, datetime] = {}
 
     async def cog_load(self) -> None:
-        await self.load_state()
+        await super().cog_load()
         self.clean_raidlog.start()
 
     async def cog_unload(self) -> None:
-        await self.load_state()
+        await super().cog_unload()
         self.clean_raidlog.cancel()
 
-    async def load_state(self) -> None:
-        state = await asyncio.to_thread(bot.utils.io.get_cog_state, "raidlog")
-        if state is None:
-            return
-
-        data = state["data"]
-        if "check_back" in data:
+    async def parse_state(self, saved_at: datetime, state: dict[str, Any]) -> None:
+        if "check_back" in state:
             self.check_back = {}
-            for key in data["check_back"]:
-                self.check_back[int(key)] = datetime.fromtimestamp(data["check_back"][key])
+            for key in state["check_back"]:
+                self.check_back[int(key)] = datetime.fromtimestamp(state["check_back"][key])
 
-    async def save_state(self) -> None:
+    async def serialize_state(self) -> dict[str, Any]:
         data = {
             "check_back": {},
         }
         for key in self.check_back.keys():
             data["check_back"][str(key)] = self.check_back[key].timestamp()
-        await asyncio.to_thread(bot.utils.io.save_cog_state, "raidlog", data)
+        return data
 
     @tasks.loop(seconds=3600)
     async def clean_raidlog(self) -> None:

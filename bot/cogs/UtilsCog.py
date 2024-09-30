@@ -6,10 +6,10 @@ import bot.utils.discordutils
 from bot.classes.HelpMessageCog import HelpMessageCog
 import discord
 from discord.ext import commands, tasks
-from bot.classes import ErrorHandlerCog
+from .CogBase import CogBase
 
 
-class UtilsCog(ErrorHandlerCog):
+class UtilsCog(CogBase):
     help_descriptions = {
         "longestround": "Gives you info about a race's longest round, and the rounds that follow.",
         # "mintime": "Tells you what time you'll get if you pclean a race after fullsending on a certain round.",
@@ -27,10 +27,12 @@ class UtilsCog(ErrorHandlerCog):
         self.tag_list: list[str] = []
 
     def cog_load(self) -> None:
+        await super().cog_load()
         self.update_tag_list.start()
         self.update_status.start()
 
     def cog_unload(self) -> None:
+        await super().cog_unload()
         self.update_tag_list.cancel()
         self.update_status.cancel()
 

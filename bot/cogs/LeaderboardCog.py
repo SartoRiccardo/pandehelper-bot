@@ -2,6 +2,7 @@ import math
 import os
 import aiofiles
 import re
+from typing import Any
 import traceback
 from datetime import datetime, timedelta
 import discord
@@ -10,7 +11,7 @@ import asyncio
 import bot.db.queries.leaderboard
 import bot.utils.io
 from bot.utils.bloonsdata import get_current_ct_event
-from bot.classes import ErrorHandlerCog
+from .CogBase import CogBase
 from config import EMOTE_GUILD_ID
 from bot.utils.emojis import (
     TOP_1_GLOBAL,
@@ -26,7 +27,7 @@ from bot.utils.emojis import (
 )
 
 
-class LeaderboardCog(ErrorHandlerCog):
+class LeaderboardCog(CogBase):
     leaderboard_group = discord.app_commands.Group(name="leaderboard", description="Various leaderboard commands")
     help_descriptions = {
         "leaderboard": {
@@ -47,34 +48,27 @@ class LeaderboardCog(ErrorHandlerCog):
         self.next_update = datetime.now().replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
 
     async def cog_load(self) -> None:
-        await self.load_state()
+        await super().cog_load()
         self.track_leaderboard.start()
 
-    def cog_unload(self) -> None:
+    async def cog_unload(self) -> None:
+        await super().cog_load()
         self.track_leaderboard.cancel()
 
-    async def load_state(self) -> None:
-        state = await asyncio.to_thread(bot.utils.io.get_cog_state, "leaderboard")
-        if state is None:
-            return
-
-        saved_at = datetime.fromtimestamp(state["saved_at"])
-        if self.next_update-saved_at > timedelta(hours=1):
-            return
-
-        data = state["data"]
-        if "current_ct_id" in data:
-            self.current_ct_id = data["current_ct_id"]
-        if "last_hour_score" in data:
-            self.last_hour_score = data["last_hour_score"]
-        self.first_run = False
-
-    async def save_state(self) -> None:
-        data = {
+    async def serialize_state(self) -> dict[str, Any]:
+        return {
             "current_ct_id": self.current_ct_id,
             "last_hour_score": self.last_hour_score,
         }
-        await asyncio.to_thread(bot.utils.io.save_cog_state, "leaderboard", data)
+
+    async def parse_state(self, saved_at: datetime, state: dict[str, Any]) -> None:
+        if self.next_update-saved_at > timedelta(hours=1):
+            return
+        if "current_ct_id" in state:
+            self.current_ct_id = state["current_ct_id"]
+        if "last_hour_score" in state:
+            self.last_hour_score = state["last_hour_score"]
+        self.first_run = False
 
     @leaderboard_group.command(name="add", description="Add a leaderboard to a channel.")
     @discord.app_commands.describe(channel="The channel to add it to.")

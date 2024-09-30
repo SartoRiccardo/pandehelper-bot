@@ -6,13 +6,12 @@ import re
 import bot.db.queries.tickets
 from bot.utils.bloons import get_ct_number_during
 from bot.utils.bloonsdata import is_tile_code_valid
-from bot.classes import ErrorHandlerCog
-
+from .CogBase import CogBase
 
 tracked_emojis = ["🟩", "👌", "🟢", "✅", "👍"]
 
 
-class TrackerCog(ErrorHandlerCog):
+class TrackerCog(CogBase):
     help_descriptions = {
         None: "Please check out [the wiki](<https://github.com/SartoRiccardo/ct-ticket-tracker/wiki>) for a "
               "step-by-step setup guide!",
