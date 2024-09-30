@@ -1,8 +1,6 @@
 import string
 import discord
-import asyncio
 from typing import Any
-import bot.utils.io
 from discord.ext import commands, tasks
 from datetime import datetime, timedelta
 from .CogBase import CogBase

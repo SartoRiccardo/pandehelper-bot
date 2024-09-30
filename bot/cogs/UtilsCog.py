@@ -28,23 +28,14 @@ class UtilsCog(CogBase):
     async def cog_load(self) -> None:
         await super().cog_load()
         self.update_tag_list.start()
-        self.update_status.start()
 
     async def cog_unload(self) -> None:
         await super().cog_unload()
         self.update_tag_list.cancel()
-        self.update_status.cancel()
 
     @tasks.loop(seconds=60*60)
     async def update_tag_list(self) -> None:
         self.tag_list = await bot.utils.io.get_tag_list()
-
-    @tasks.loop(seconds=60*60)
-    async def update_status(self) -> None:
-        try:
-            await self.bot.change_presence(activity=discord.Game(name=f"{len(self.bot.guilds)} tiles | /help"))
-        except AttributeError:  # Might be thrown on the first loop
-            pass
 
     @discord.app_commands.command(name="ct-period",
                                   description="Check when a CT event started and ended.")
@@ -176,7 +167,7 @@ class UtilsCog(CogBase):
         return [
             cog.replace("Cog", "").title()
             for cog in self.bot.cogs.keys()
-            if isinstance(self.bot.cogs[cog], HelpMessageCog) and self.bot.cogs[cog].has_help_msg
+            if isinstance(self.bot.cogs[cog], CogBase) and self.bot.cogs[cog].has_help_msg
         ]
 
     @discord.app_commands.command(name="tag",
@@ -268,9 +259,10 @@ class UtilsCog(CogBase):
     async def cmd_info(self, interaction: discord.Interaction) -> None:
         lr = int(self.bot.last_restart.timestamp())
         embed = discord.Embed(
-            title="Pandemonium Helper (`ct-ticket-tracker`)",
-            description=f"- Version: **__{self.bot.version}__**\n"
+            title=f"PandeHelper v{self.bot.version}",
+            description=f"- Playing **__{len(self.bot.guilds)}__** tiles (server count)\n"
                         f"- Last Restart: <t:{lr}> (<t:{lr}:R>)\n"
+                        "More information and help at [pandehelper.sarto.dev](https://pandehelper.sarto.dev)"
                         "Found a bug? Yell at the maintainer or make [an issue on Github](https://github.com/SartoRiccardo/ct-ticket-tracker/issues)\n\n"
                         f"*Coded & maintained by __Chime__ (@chime.nemo) <:chimichanga:1147529275499614288>*",
             color=discord.Color.orange()

@@ -19,7 +19,7 @@ class PandeHelper(commands.Bot):
             command_prefix=commands.when_mentioned_or(",,,"),
             intents=intents,
             application_id=APP_ID,
-            activity=discord.Game(name=f"/help"),
+            activity=discord.CustomActivity(name="pandehelper.sarto.dev"),
         )
         self.remove_command("help")
         self.version = __version__
