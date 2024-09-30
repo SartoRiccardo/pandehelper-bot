@@ -1,11 +1,12 @@
 # Changelog
 
-## 1.9.0 - 2024-XX-XX
+## 1.9.0 - 2024-10-XX
 
 ### Added
-- Added [pandehelper.sarto.dev](https://pandehelper.sarto.dev)
+- Released [pandehelper.sarto.dev](https://pandehelper.sarto.dev)
 - Added `CHANGELOG.md`
 - Added `/regs sorted` and `/regs race`
+- Added `/ctmap`
 
 ### Changed
 - `/raceregs` is deprecated in favor of `/regs race` and will be removed in a future version.

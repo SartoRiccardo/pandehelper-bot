@@ -1,5 +1,4 @@
 import asyncio
-import io
 import math
 from bloonspy import btd6
 from bot.utils.bloons import raw_challenge_to_embed
