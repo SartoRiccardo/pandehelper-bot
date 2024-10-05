@@ -17,8 +17,8 @@ tile_re = r"(?i)(?:\W|^)([a-g][a-g][a-h]|mrx|zzz)(?:\W|$)"
 
 class TrackerCog(CogBase):
     help_descriptions = {
-        None: "Please check out [the wiki](<https://github.com/SartoRiccardo/ct-ticket-tracker/wiki>) for a "
-              "step-by-step setup guide!",
+        None: "For a more detailed explanation on how Tracker Channels work, check out the "
+              "[Tracker Channel setup guide](https://pandehelper.sarto.dev/setup/tracker-channel) on the website.",
         "tickets": {
             "track": "Starts tracking a channel for tile captures. A tile is considered captured when an user reacts "
                      "to a message with ✅ in that channel, and the message they reacted to contains a valid "
