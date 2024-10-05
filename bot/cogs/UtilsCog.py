@@ -64,7 +64,7 @@ class UtilsCog(CogBase):
             await interaction.response.send_message(f"{end_round} is not a valid round.")
             return
 
-        rounds = await asyncio.to_thread(bot.utils.io.get_race_rounds)
+        rounds = await bot.utils.io.get_race_rounds()
         start_round = 0
         round_checkpoints = []
         while start_round < end_round:
@@ -105,7 +105,7 @@ class UtilsCog(CogBase):
     #         minutes, seconds = send_time_formatted.split(":")
     #         send_time = int(minutes)*60 + int(seconds)
     #
-    #     rounds = await asyncio.to_thread(ct_ticket_tracker.utils.io.get_race_rounds)
+    #     rounds = await ct_ticket_tracker.utils.io.get_race_rounds()
     #     longest = sorted(rounds[from_round-1:to_round], key=lambda x: x["length"])[-1]
     #     send_delay = (longest["round"]-from_round)*0.2
     #     final_time = send_time + longest["length"] + send_delay

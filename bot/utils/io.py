@@ -7,12 +7,13 @@ import os
 from .Cache import Cache
 
 rounds_cache = Cache.empty()
+files_dir = os.path.join(os.getcwd(), "files")
 
 
 async def get_race_rounds() -> list[dict[str, Any]]:
     global rounds_cache
     if not rounds_cache.valid:
-        async with aiofiles.open(os.path.join("files", "rounds-race.json")) as fin:
+        async with aiofiles.open(os.path.join(files_dir, "rounds-race.json")) as fin:
             data = json.loads(await fin.read())
             data.sort(key=lambda x: x["round"])
             rounds_cache = Cache(data, timedelta(days=256))
@@ -20,13 +21,13 @@ async def get_race_rounds() -> list[dict[str, Any]]:
 
 
 async def get_tag_list() -> list[str]:
-    async with aiofiles.open(os.path.join("files", "tags.json")) as fin:
+    async with aiofiles.open(os.path.join(files_dir, "tags.json")) as fin:
         data = json.loads(await fin.read())
         return data.keys()
 
 
 async def get_tag(tag_name: str) -> str or None:
-    async with aiofiles.open(os.path.join("files", "tags.json")) as fin:
+    async with aiofiles.open(os.path.join(files_dir, "tags.json")) as fin:
         data = json.loads(await fin.read())
         if tag_name not in data.keys():
             return None

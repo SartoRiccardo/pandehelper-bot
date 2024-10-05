@@ -8,6 +8,7 @@ from config import DATA_PATH
 import json
 
 bpy_client: AsyncClient
+files_dir = os.path.join(os.getcwd(), "files")
 
 
 async def init_bloonspy_client() -> None:
@@ -51,7 +52,7 @@ async def is_tile_code_valid(tile: str) -> bool:
 
 
 async def fetch_tile_data(tile: str) -> dict | None:
-    path = f"bot/files/json/tiles/{tile}.json"
+    path = os.path.join(files_dir, "tiles", f"{tile}.json")
     if not os.path.exists(path):
         return None
     async with aiofiles.open(path) as fin:
@@ -59,7 +60,7 @@ async def fetch_tile_data(tile: str) -> dict | None:
 
 
 async def fetch_all_tiles() -> list[dict]:
-    path = f"bot/files/json/tiles"
+    path = os.path.join(files_dir, "tiles")
     tiles = []
     for file in os.listdir(path):
         data = await fetch_tile_data(file[:3])
