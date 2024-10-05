@@ -262,7 +262,7 @@ class UtilsCog(CogBase):
             title=f"PandeHelper v{self.bot.version}",
             description=f"- Playing **__{len(self.bot.guilds)}__** tiles (server count)\n"
                         f"- Last Restart: <t:{lr}> (<t:{lr}:R>)\n"
-                        "More information and help at [pandehelper.sarto.dev](https://pandehelper.sarto.dev)"
+                        "More information and help at [pandehelper.sarto.dev](https://pandehelper.sarto.dev)\n"
                         "Found a bug? Yell at the maintainer or make "
                         "[an issue on Github](https://github.com/SartoRiccardo/pandehelper-bot/issues)\n\n"
                         f"*Coded & maintained by __Chime__ (@chimenea.mo) <:chimichanga:1147529275499614288>*",
