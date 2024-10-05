@@ -149,7 +149,7 @@ def format_seconds(seconds: int) -> str:
     return formatted
 
 
-def raw_challenge_to_embed(challenge) -> discord.Embed or None:
+async def raw_challenge_to_embed(challenge) -> discord.Embed or None:
     event_number = challenge["EventNumber"]
     # event_number = get_current_ct_number()
 
@@ -207,7 +207,7 @@ def raw_challenge_to_embed(challenge) -> discord.Embed or None:
         end_round = f"{end_round_value}+"
     str_time_complete = ""
     if challenge['subGameType'] != 2:
-        round_lengths = get_race_rounds()
+        round_lengths = await get_race_rounds()
         seconds_to_complete = int(sum([round_lengths[i]["length"] for i in range(start_round-1, end_round_value)]))
         str_time_complete = f"\nMinimum duration: 🕖 {format_seconds(seconds_to_complete)}{BLANK}" \
                             f"⏩ {format_seconds(seconds_to_complete//3)}"

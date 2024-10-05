@@ -218,7 +218,7 @@ class TilestratCog(CogBase):
             name=thread_template.format(event_num=tile_info["EventNumber"], map=map_name, tile_code=tile_info["Code"]),
             content=thread_init_message,
             applied_tags=tags,
-            embed=raw_challenge_to_embed(tile_info),
+            embed=await raw_challenge_to_embed(tile_info),
         )).thread
         await self.on_raidlog_created(thread, tile_info, forum_channel.id)
         return thread

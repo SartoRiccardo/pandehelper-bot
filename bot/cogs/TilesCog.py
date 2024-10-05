@@ -68,7 +68,7 @@ class TilesCog(CogBase):
             )
             return
 
-        embed = raw_challenge_to_embed(challenge_data)
+        embed = await raw_challenge_to_embed(challenge_data)
         await interaction.response.send_message(
             embed=embed,
             ephemeral=hide,
@@ -142,7 +142,7 @@ class TilesCog(CogBase):
         ])
 
         idx = 0
-        embed = raw_challenge_to_embed(tiles_data[idx])
+        embed = await raw_challenge_to_embed(tiles_data[idx])
         view = SpawnlockPaginateView(tiles_data)
         await interaction.response.send_message(
             embed=embed,
