@@ -197,7 +197,7 @@ class UtilsCog(CogBase):
     @discord.app_commands.command(name="github",
                                   description="Get the bot's repo")
     async def cmd_github(self, interaction: discord.Interaction) -> None:
-        await interaction.response.send_message("https://github.com/SartoRiccardo/ct-ticket-tracker/")
+        await interaction.response.send_message("https://github.com/SartoRiccardo/pandehelper-bot")
 
     @discord.app_commands.command(name="invite",
                                   description="Invite Pandemonium Helper to your server!")
@@ -263,8 +263,9 @@ class UtilsCog(CogBase):
             description=f"- Playing **__{len(self.bot.guilds)}__** tiles (server count)\n"
                         f"- Last Restart: <t:{lr}> (<t:{lr}:R>)\n"
                         "More information and help at [pandehelper.sarto.dev](https://pandehelper.sarto.dev)"
-                        "Found a bug? Yell at the maintainer or make [an issue on Github](https://github.com/SartoRiccardo/ct-ticket-tracker/issues)\n\n"
-                        f"*Coded & maintained by __Chime__ (@chime.nemo) <:chimichanga:1147529275499614288>*",
+                        "Found a bug? Yell at the maintainer or make "
+                        "[an issue on Github](https://github.com/SartoRiccardo/pandehelper-bot/issues)\n\n"
+                        f"*Coded & maintained by __Chime__ (@chimenea.mo) <:chimichanga:1147529275499614288>*",
             color=discord.Color.orange()
         )
         await interaction.response.send_message(embed=embed)
