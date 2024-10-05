@@ -131,7 +131,7 @@ class LeaderboardCog(CogBase):
             return
 
         should_skip_eco = now > current_event.end
-        leaderboard = await asyncio.to_thread(current_event.leaderboard_team, pages=4)
+        leaderboard = await current_event.leaderboard_team(pages=4)
         if len(leaderboard) == 0:
             return
         
@@ -142,7 +142,7 @@ class LeaderboardCog(CogBase):
         # Load all teams 5 at a time
         for i in range(math.ceil(len(leaderboard)/5)):
             await asyncio.gather(*[
-                asyncio.to_thread(team.load_resource) for team in leaderboard[i*5:(i+1)*5]
+                team.load_resource() for team in leaderboard[i*5:(i+1)*5]
             ])
         
         # Load all team icon emotes if EMOTE_GUILD_ID is set
