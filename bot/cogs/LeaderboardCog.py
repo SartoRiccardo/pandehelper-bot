@@ -2,6 +2,7 @@ import math
 import os
 import aiofiles
 import re
+from typing import Any
 import traceback
 from datetime import datetime, timedelta
 import discord
@@ -9,13 +10,24 @@ from discord.ext import tasks, commands
 import asyncio
 import bot.db.queries.leaderboard
 import bot.utils.io
-from bot.classes import ErrorHandlerCog
-from config import EMOTE_GUILD_ID
-from bot.utils.emojis import TOP_1_GLOBAL, TOP_2_GLOBAL, TOP_3_GLOBAL, TOP_25_GLOBAL, ECO, ECO_NEGATIVE, NEW_TEAM, \
-    TOP_1_PERCENT, BLANK, TOP_100_GLOBAL
+from bot.utils.bloonsdata import get_current_ct_event
+from .CogBase import CogBase
+from config import EMOTE_GUILD_ID, DATA_PATH
+from bot.utils.emojis import (
+    TOP_1_GLOBAL,
+    TOP_2_GLOBAL,
+    TOP_3_GLOBAL,
+    TOP_25_GLOBAL,
+    ECO,
+    ECO_NEGATIVE,
+    NEW_TEAM,
+    TOP_1_PERCENT,
+    BLANK,
+    TOP_100_GLOBAL,
+)
 
 
-class LeaderboardCog(ErrorHandlerCog):
+class LeaderboardCog(CogBase):
     leaderboard_group = discord.app_commands.Group(name="leaderboard", description="Various leaderboard commands")
     help_descriptions = {
         "leaderboard": {
@@ -36,34 +48,27 @@ class LeaderboardCog(ErrorHandlerCog):
         self.next_update = datetime.now().replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
 
     async def cog_load(self) -> None:
-        await self.load_state()
+        await super().cog_load()
         self.track_leaderboard.start()
 
-    def cog_unload(self) -> None:
+    async def cog_unload(self) -> None:
+        await super().cog_load()
         self.track_leaderboard.cancel()
 
-    async def load_state(self) -> None:
-        state = await asyncio.to_thread(bot.utils.io.get_cog_state, "leaderboard")
-        if state is None:
-            return
-
-        saved_at = datetime.fromtimestamp(state["saved_at"])
-        if self.next_update-saved_at > timedelta(hours=1):
-            return
-
-        data = state["data"]
-        if "current_ct_id" in data:
-            self.current_ct_id = data["current_ct_id"]
-        if "last_hour_score" in data:
-            self.last_hour_score = data["last_hour_score"]
-        self.first_run = False
-
-    async def save_state(self) -> None:
-        data = {
+    async def serialize_state(self) -> dict[str, Any]:
+        return {
             "current_ct_id": self.current_ct_id,
             "last_hour_score": self.last_hour_score,
         }
-        await asyncio.to_thread(bot.utils.io.save_cog_state, "leaderboard", data)
+
+    async def parse_state(self, saved_at: datetime, state: dict[str, Any]) -> None:
+        if self.next_update-saved_at > timedelta(hours=1):
+            return
+        if "current_ct_id" in state:
+            self.current_ct_id = state["current_ct_id"]
+        if "last_hour_score" in state:
+            self.last_hour_score = state["last_hour_score"]
+        self.first_run = False
 
     @leaderboard_group.command(name="add", description="Add a leaderboard to a channel.")
     @discord.app_commands.describe(channel="The channel to add it to.")
@@ -114,7 +119,7 @@ class LeaderboardCog(ErrorHandlerCog):
         row_template = "{placement}{icon} `{name: <20}`    | `{score: <7,}`"
         eco_template = " ({emote} `{eco: <4}`)"
 
-        current_event = await asyncio.to_thread(bot.utils.bloons.get_current_ct_event)
+        current_event = await get_current_ct_event()
         if current_event is None:
             return
 
@@ -175,7 +180,7 @@ class LeaderboardCog(ErrorHandlerCog):
                     message_full += f" {NEW_TEAM}"
         
         self.last_hour_score = current_hour_score
-        await self.save_state()
+        await self._save_state()
 
         # Misc addendums to the leaderboard
         top_1_percent_message = ""
@@ -271,27 +276,37 @@ class LeaderboardCog(ErrorHandlerCog):
     
     @staticmethod
     async def download_team_icon_assets(to_make: list[tuple["bloonspy.btd6.Asset", "bloonspy.btd6.Asset"]]) -> None:
+        tmp_path = os.path.join(DATA_PATH, "tmp")
         frames, icons = [], []
         for frame, icon in to_make:
-            if frame not in frames and not os.path.exists(f"tmp/{frame.name}"):
+            if frame not in frames and not os.path.exists(os.path.join(tmp_path, frame.name)):
                 frames.append(frame)
-            if icon not in icons and not os.path.exists(f"tmp/{icon.name}"):
+            if icon not in icons and not os.path.exists(os.path.join(tmp_path, icon.name)):
                 icons.append(icon)
         
-        await bot.utils.discordutils.download_files([f.url for f in frames], [f"tmp/{f.name}" for f in frames])
-        await bot.utils.discordutils.download_files([i.url for i in icons], [f"tmp/{i.name}" for i in icons])
+        await bot.utils.discordutils.download_files(
+            [f.url for f in frames],
+            [os.path.join(tmp_path, f.name) for f in frames]
+        )
+        await bot.utils.discordutils.download_files(
+            [i.url for i in icons],
+            [os.path.join(tmp_path, i.name) for i in icons]
+        )
     
     @staticmethod
-    async def make_team_icon_emote(emote_guild: discord.Guild,
-                                   emote_name: str,
-                                   frame: "bloonspy.btd6.Asset",
-                                   icon: "bloonspy.btd6.Asset",
-                                   animated: bool) -> str:
-        frame_path = f"tmp/{frame.name}"
-        icon_path = f"tmp/{icon.name}"
+    async def make_team_icon_emote(
+            emote_guild: discord.Guild,
+            emote_name: str,
+            frame: "bloonspy.btd6.Asset",
+            icon: "bloonspy.btd6.Asset",
+            animated: bool
+    ) -> str:
+        tmp_path = os.path.join(DATA_PATH, "tmp")
+        frame_path = os.path.join(tmp_path, frame.name)
+        icon_path = os.path.join(tmp_path, icon.name)
         if not os.path.exists(frame_path) or not os.path.exists(icon_path):
-            return
-        merged_path = f"tmp/{emote_name}.{'gif' if animated else 'png'}"
+            return BLANK
+        merged_path = os.path.join(tmp_path, f"{emote_name}.{'gif' if animated else 'png'}")
         
         await asyncio.to_thread(bot.utils.io.merge_images, frame_path, icon_path, merged_path, animated)
         async with aiofiles.open(merged_path, "rb") as fin:

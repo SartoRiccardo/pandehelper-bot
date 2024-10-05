@@ -3,13 +3,12 @@ import datetime
 import bot.utils.io
 import bot.utils.bloons
 import bot.utils.discordutils
-from bot.classes.HelpMessageCog import HelpMessageCog
 import discord
 from discord.ext import commands, tasks
-from bot.classes import ErrorHandlerCog
+from .CogBase import CogBase
 
 
-class UtilsCog(ErrorHandlerCog):
+class UtilsCog(CogBase):
     help_descriptions = {
         "longestround": "Gives you info about a race's longest round, and the rounds that follow.",
         # "mintime": "Tells you what time you'll get if you pclean a race after fullsending on a certain round.",
@@ -26,24 +25,17 @@ class UtilsCog(ErrorHandlerCog):
         super().__init__(bot)
         self.tag_list: list[str] = []
 
-    def cog_load(self) -> None:
+    async def cog_load(self) -> None:
+        await super().cog_load()
         self.update_tag_list.start()
-        self.update_status.start()
 
-    def cog_unload(self) -> None:
+    async def cog_unload(self) -> None:
+        await super().cog_unload()
         self.update_tag_list.cancel()
-        self.update_status.cancel()
 
     @tasks.loop(seconds=60*60)
     async def update_tag_list(self) -> None:
-        self.tag_list = await asyncio.to_thread(bot.utils.io.get_tag_list)
-
-    @tasks.loop(seconds=60*60)
-    async def update_status(self) -> None:
-        try:
-            await self.bot.change_presence(activity=discord.Game(name=f"{len(self.bot.guilds)} tiles | /help"))
-        except AttributeError:  # Might be thrown on the first loop
-            pass
+        self.tag_list = await bot.utils.io.get_tag_list()
 
     @discord.app_commands.command(name="ct-period",
                                   description="Check when a CT event started and ended.")
@@ -141,8 +133,8 @@ class UtilsCog(ErrorHandlerCog):
                       "If you want info about a specific module, pass its name through the `module` " \
                       f"parameter the next time you use </help:{help_cmd.id}>!\n" \
                       f"*Available modules:*\n- `{cog_list}`\n\n" \
-                      "Also be sure to check out [the wiki](<https://github.com/SartoRiccardo/ct-ticket-tracker/wiki>) " \
-                      "for help in setting up some of the more difficult to use modules!"
+                      "Also be sure to check out [the website](https://pandehelper.sarto.dev) for help in setting up " \
+                      "some of the more difficult to use modules!"
             await interaction.response.send_message(message, ephemeral=True)
             return
 
@@ -175,7 +167,7 @@ class UtilsCog(ErrorHandlerCog):
         return [
             cog.replace("Cog", "").title()
             for cog in self.bot.cogs.keys()
-            if isinstance(self.bot.cogs[cog], HelpMessageCog) and self.bot.cogs[cog].has_help_msg
+            if isinstance(self.bot.cogs[cog], CogBase) and self.bot.cogs[cog].has_help_msg
         ]
 
     @discord.app_commands.command(name="tag",
@@ -184,11 +176,11 @@ class UtilsCog(ErrorHandlerCog):
     async def cmd_send_tag(self, interaction: discord.Interaction, tag_name: str = None) -> None:
         await interaction.response.defer()
         if tag_name is None:
-            tags = await asyncio.to_thread(bot.utils.io.get_tag_list)
+            tags = await bot.utils.io.get_tag_list()
             await interaction.edit_original_response(content=f"Tags: `{'` `'.join(tags)}`")
             return
 
-        tag_content = await asyncio.to_thread(bot.utils.io.get_tag, tag_name.lower())
+        tag_content = await bot.utils.io.get_tag(tag_name.lower())
         response_content = tag_content if tag_content else "No tag with that name!"
         await interaction.edit_original_response(content=response_content)
 
@@ -205,7 +197,7 @@ class UtilsCog(ErrorHandlerCog):
     @discord.app_commands.command(name="github",
                                   description="Get the bot's repo")
     async def cmd_github(self, interaction: discord.Interaction) -> None:
-        await interaction.response.send_message("https://github.com/SartoRiccardo/ct-ticket-tracker/")
+        await interaction.response.send_message("https://github.com/SartoRiccardo/pandehelper-bot")
 
     @discord.app_commands.command(name="invite",
                                   description="Invite Pandemonium Helper to your server!")
@@ -267,11 +259,13 @@ class UtilsCog(ErrorHandlerCog):
     async def cmd_info(self, interaction: discord.Interaction) -> None:
         lr = int(self.bot.last_restart.timestamp())
         embed = discord.Embed(
-            title="Pandemonium Helper (`ct-ticket-tracker`)",
-            description=f"- Version: **__{self.bot.version}__**\n"
+            title=f"PandeHelper v{self.bot.version}",
+            description=f"- Playing **__{len(self.bot.guilds)}__** tiles (server count)\n"
                         f"- Last Restart: <t:{lr}> (<t:{lr}:R>)\n"
-                        "Found a bug? Yell at the maintainer or make [an issue on Github](https://github.com/SartoRiccardo/ct-ticket-tracker/issues)\n\n"
-                        f"*Coded & maintained by __Chime__ (@chime.nemo) <:chimichanga:1147529275499614288>*",
+                        "More information and help at [pandehelper.sarto.dev](https://pandehelper.sarto.dev)"
+                        "Found a bug? Yell at the maintainer or make "
+                        "[an issue on Github](https://github.com/SartoRiccardo/pandehelper-bot/issues)\n\n"
+                        f"*Coded & maintained by __Chime__ (@chimenea.mo) <:chimichanga:1147529275499614288>*",
             color=discord.Color.orange()
         )
         await interaction.response.send_message(embed=embed)

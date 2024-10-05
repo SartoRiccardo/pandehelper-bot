@@ -6,11 +6,11 @@ import bot.utils.io
 import bot.db.queries.oak
 import discord
 from discord.ext import commands
-from bot.classes import ErrorHandlerCog
+from .CogBase import CogBase
 from bot.views import AccountChooserView
 
 
-class VerifyCog(ErrorHandlerCog):
+class VerifyCog(CogBase):
     verify_group = discord.app_commands.Group(name="verify", description="Tell the bot who you are in BTD6")
     help_descriptions = {
         "verify": {

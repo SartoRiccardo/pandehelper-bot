@@ -4,17 +4,21 @@ import discord
 from discord.ext import commands
 import re
 import bot.db.queries.tickets
-import bot.utils.bloons
-from bot.classes import ErrorHandlerCog
+from bot.utils.bloons import get_ct_number_during
+from bot.utils.bloonsdata import is_tile_code_valid
+from .CogBase import CogBase
+from datetime import timedelta
+from bot.utils.emojis import WARN_ALREADY_CLAIMED
 
-
+qtickets = bot.db.queries.tickets
 tracked_emojis = ["🟩", "👌", "🟢", "✅", "👍"]
+tile_re = r"(?i)(?:\W|^)([a-g][a-g][a-h]|mrx|zzz)(?:\W|$)"
 
 
-class TrackerCog(ErrorHandlerCog):
+class TrackerCog(CogBase):
     help_descriptions = {
-        None: "Please check out [the wiki](<https://github.com/SartoRiccardo/ct-ticket-tracker/wiki>) for a "
-              "step-by-step setup guide!",
+        None: "For a more detailed explanation on how Tracker Channels work, check out the "
+              "[Tracker Channel setup guide](https://pandehelper.sarto.dev/setup/tracker-channel) on the website.",
         "tickets": {
             "track": "Starts tracking a channel for tile captures. A tile is considered captured when an user reacts "
                      "to a message with ✅ in that channel, and the message they reacted to contains a valid "
@@ -40,7 +44,7 @@ class TrackerCog(ErrorHandlerCog):
     @discord.app_commands.default_permissions(administrator=True)
     @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def cmd_track(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
-        await bot.db.queries.tickets.track_channel(channel.id)
+        await qtickets.track_channel(channel.id)
         await interaction.response.send_message(f"I am now tracking <#{channel.id}>", ephemeral=True)
 
     @tickets_group.command(name="untrack", description="Stop tracking a channel.")
@@ -49,21 +53,19 @@ class TrackerCog(ErrorHandlerCog):
     @discord.app_commands.default_permissions(administrator=True)
     @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def cmd_untrack(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
-        await bot.db.queries.tickets.untrack_channel(channel.id)
+        await qtickets.untrack_channel(channel.id)
         await interaction.response.send_message(f"I am no longer tracking <#{channel.id}>", ephemeral=True)
 
     @tickets_group.command(name="view", description="See how many tickets each member used.")
     @discord.app_commands.describe(channel="The channel to check.",
                                    season="The CT season to check. Defaults to the current one.")
     @discord.app_commands.guild_only()
-    # @discord.app_commands.default_permissions(administrator=True)
-    # @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def cmd_tickets_list(self,
                                interaction: discord.Interaction,
                                channel: discord.TextChannel,
                                season: None or int = 0,
                                hide: None or bool = False) -> None:
-        if channel.id not in (await bot.db.queries.tickets.tracked_channels()):
+        if channel.id not in (await qtickets.tracked_channels()):
             await interaction.response.send_message("That channel is not being tracked!", ephemeral=True)
             return
 
@@ -73,7 +75,7 @@ class TrackerCog(ErrorHandlerCog):
         # separator = "------------- + --- + --  + --  + --  + --- + --  + ---\n"
         row = "`{:10.10}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}` | `{:<2}`\n"
 
-        claims = await bot.db.queries.tickets.get_ticket_overview(channel.id, season)
+        claims = await qtickets.get_ticket_overview(channel.id, season)
 
         async def get_member(uid: int) -> discord.Member:
             member = interaction.guild.get_member(uid)
@@ -103,19 +105,17 @@ class TrackerCog(ErrorHandlerCog):
                                    channel="The channel to check.",
                                    season="The CT season to check. Defaults to the current one.")
     @discord.app_commands.guild_only()
-    # @discord.app_commands.default_permissions(administrator=True)
-    # @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def cmd_member_tickets(self, interaction: discord.Interaction, channel: discord.TextChannel,
                                  member: discord.Member, season: None or int = 0,
                                  hide: None or bool = False) -> None:
-        if channel.id not in (await bot.db.queries.tickets.tracked_channels()):
+        if channel.id not in (await qtickets.tracked_channels()):
             await interaction.response.send_message("That channel is not being tracked!", ephemeral=True)
             return
 
         await interaction.response.send_message("Just a moment...", ephemeral=hide)
         if season == 0:
-            season = bot.utils.bloons.get_ct_number_during(datetime.datetime.now())
-        member_activity = await bot.db.queries.tickets.get_tickets_from(member.id, channel.id, season)
+            season = get_ct_number_during(datetime.datetime.now())
+        member_activity = await qtickets.get_tickets_from(member.id, channel.id, season)
 
         embed = discord.Embed(
             title=f"{member.display_name}'s Tickets (CT {season})",
@@ -140,27 +140,25 @@ class TrackerCog(ErrorHandlerCog):
                                    season="The CT season to check. Defaults to the current one.",
                                    hide="If True, the message will be ephemeral.")
     @discord.app_commands.guild_only()
-    # @discord.app_commands.default_permissions(administrator=True)
-    # @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def cmd_tile_history(self, interaction: discord.InteractionResponse,
                                channel: discord.TextChannel,
                                tile: str,
                                season: None or int = 0,
                                hide: None or bool = False) -> None:
-        if channel.id not in (await bot.db.queries.tickets.tracked_channels()):
+        if channel.id not in (await qtickets.tracked_channels()):
             await interaction.response.send_message("That channel is not being tracked!", ephemeral=True)
             return
 
         tile = tile.upper()
-        tile_re = r"(?:[a-gA-G][a-gA-G][a-hA-H]|[Mm][Rr][Xx]|[Zz]{3})"
-        if re.search(tile_re, tile) is None or not bot.utils.bloons.is_tile_code_valid(tile):
+        if re.search(tile_re, tile) is None or \
+                not await is_tile_code_valid(tile):
             await interaction.response.send_message(f"`{tile}` is not a valid tile code!", ephemeral=True)
             return
 
         await interaction.response.send_message("Just a moment...", ephemeral=hide)
         if season == 0:
-            season = bot.utils.bloons.get_ct_number_during(datetime.datetime.now())
-        tile_claims = await bot.db.queries.tickets.get_tile_claims(tile, channel.id, season)
+            season = get_ct_number_during(datetime.datetime.now())
+        tile_claims = await qtickets.get_tile_claims(tile, channel.id, season)
 
         content_template = "- <t:{tile_timestamp}> <@{user_id}>"
         content_parts = []
@@ -194,34 +192,46 @@ class TrackerCog(ErrorHandlerCog):
         )
 
     @commands.Cog.listener()
+    async def on_message(self, message: discord.Message) -> None:
+        if (match := re.search(tile_re, message.content)) is None or \
+                message.channel.id not in (await qtickets.tracked_channels()):
+            return
+        tile = match.group(1).upper()
+
+        asyncio.create_task(self.bot.signal("on_tile_started", tile, message.channel.id, message))
+
+        time_check = discord.utils.utcnow()-timedelta(hours=1, minutes=30)
+        async for msg in message.channel.history(after=time_check, oldest_first=False):
+            if (msg != message and
+                    msg.author != message.author and
+                    (match := re.search(tile_re, msg.content)) is not None and
+                    match.group(1).upper() == tile and
+                    await qtickets.get_capture_by_message(msg.id) is None):
+                await message.add_reaction(WARN_ALREADY_CLAIMED)
+                break
+
+    @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent) -> None:
         if str(payload.emoji) not in tracked_emojis or \
-                payload.channel_id not in (await bot.db.queries.tickets.tracked_channels()):
+                payload.channel_id not in (await qtickets.tracked_channels()):
             return
 
-        tile_re = r"(?:[a-gA-G][a-gA-G][a-hA-H]|[Mm][Rr][Xx]|[Zz]{3})"
         channel = self.bot.get_channel(payload.channel_id)
         message = await channel.fetch_message(payload.message_id)
-        match = re.search(tile_re, message.content)
-        if match is None:
+        if (match := re.search(tile_re, message.content)) is None:
             return
 
-        tile = match.group(0).upper()
-        if not bot.utils.bloons.is_tile_code_valid(tile):
+        tile = match.group(1).upper()
+        if not await is_tile_code_valid(tile):
             return
 
-        await bot.db.queries.tickets.capture(payload.channel_id, message.author.id, tile, payload.message_id)
-
-        # Forward event to those who are listening
-        for cog_name in self.bot.cogs:
-            cog = self.bot.cogs[cog_name]
-            if hasattr(cog, "on_tile_captured"):
-                await cog.on_tile_captured(tile, payload.channel_id, message.author.id)
+        await qtickets.capture(payload.channel_id, message.author.id, tile, payload.message_id)
+        await self.bot.signal("on_tile_captured", tile, payload.channel_id, message.author.id)
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent) -> None:
         if str(payload.emoji) not in tracked_emojis or \
-                payload.channel_id not in (await bot.db.queries.tickets.tracked_channels()):
+                payload.channel_id not in (await qtickets.tracked_channels()):
             return
 
         channel = self.bot.get_channel(payload.channel_id)
@@ -229,14 +239,9 @@ class TrackerCog(ErrorHandlerCog):
         for reaction in message.reactions:
             if reaction.emoji in tracked_emojis:
                 return
-        capture = await bot.db.queries.tickets.get_capture_by_message(payload.message_id)
-        await bot.db.queries.tickets.uncapture(payload.message_id)
-
-        # Forward event to those who are listening
-        for cog_name in self.bot.cogs:
-            cog = self.bot.cogs[cog_name]
-            if hasattr(cog, "on_tile_uncaptured"):
-                await cog.on_tile_uncaptured(capture.tile, capture.channel_id, capture.user_id)
+        capture = await qtickets.get_capture_by_message(payload.message_id)
+        await qtickets.uncapture(payload.message_id)
+        await self.bot.signal("on_tile_uncaptured", capture.tile, capture.channel_id, capture.user_id)
 
 
 async def setup(bot: commands.Bot) -> None:

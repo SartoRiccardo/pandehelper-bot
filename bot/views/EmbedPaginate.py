@@ -56,11 +56,7 @@ class EmbedPaginateView(discord.ui.View):
         self.btn_prev.disabled = self.current == 0
         self.btn_next.disabled = self.current == len(self.embeds)-1
 
-        await interaction.response.send_message(
-            content=f"ⓘ Showing page **{idx+1}**!",
-            ephemeral=True,
-        )
-
+        await interaction.response.defer(thinking=False)
         await self.original_interaction.edit_original_response(
             embed=self.embeds[idx],
             view=self

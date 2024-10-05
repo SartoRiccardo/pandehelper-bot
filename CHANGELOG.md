@@ -1,0 +1,21 @@
+# Changelog
+
+## 1.9.0 - 2024-10-04
+
+### Added
+- Released [pandehelper.sarto.dev](https://pandehelper.sarto.dev)
+- Added `CHANGELOG.md`
+- Added `/regs sorted` and `/regs race`
+- Added `/ctmap`
+
+### Changed
+- `/raceregs` is deprecated in favor of `/regs race` and will be removed in a future version.
+- `/tile` now also shows estimated time to complete a tile.
+- Planner changes:
+  - Planner channels always resend the message when they need to update. This is to avoid rate limits.
+  - Team members can now claim 4 tiles *per CT day* instead of in total
+  - Banners expiring on Last Day gradually show when they're more worth than a regular tile. They still don't ping.
+  - Bot sends less messages when interacting with the UI (e.g. pressing buttons) if not needed
+- Tracker changes:
+  - Bot reacts with a warning emote when attempting to claim a tile someone else is on
+  - When claiming a tile, it autoclaims it in the planner too if possible

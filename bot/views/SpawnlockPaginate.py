@@ -12,7 +12,8 @@ class TileButton(discord.ui.Button):
         self.sup_callback = sup_callback
         super().__init__(
             label=tile_name,
-            style=discord.ButtonStyle.blurple if active else discord.ButtonStyle.gray,
+            style=discord.ButtonStyle.green if active else discord.ButtonStyle.blurple,
+            disabled=active,
         )
 
     async def callback(self, interaction: discord.Interaction) -> Any:
@@ -32,7 +33,11 @@ class SpawnlockPaginateView(discord.ui.View):
         self.original_interaction = original_interaction
 
         for i in range(len(tile_data)):
-            self.add_item(TileButton(tile_data[i]["Code"], i, self.edit_embed, i == self.current))
+            self.add_item(TileButton(
+                tile_data[i]["Code"],
+                i, self.edit_embed,
+                i == self.current,
+            ))
 
     def set_original_interaction(self, original_interaction: discord.Interaction) -> None:
         self.original_interaction = original_interaction
@@ -45,17 +50,13 @@ class SpawnlockPaginateView(discord.ui.View):
             )
             return
 
+        await interaction.response.defer(thinking=False)
         if tile_idx == self.current:
             await interaction.response.send_message(
                 content="ⓘ You have already selected that tile!",
                 ephemeral=True,
             )
             return
-
-        await interaction.response.send_message(
-            content=f"ⓘ Showing tile **{self.tile_data[tile_idx]['Code']}**!",
-            ephemeral=True,
-        )
 
         embed = bot.utils.bloons.raw_challenge_to_embed(self.tile_data[tile_idx])
         await self.original_interaction.edit_original_response(

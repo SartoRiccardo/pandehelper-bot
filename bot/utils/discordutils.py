@@ -3,6 +3,9 @@ import discord
 import aiohttp
 import aiofiles
 import asyncio
+import io
+import traceback
+from datetime import datetime, timedelta
 from discord.ext import commands
 
 
@@ -11,7 +14,11 @@ async def update_messages(
         content: list[tuple[str, discord.ui.View or None]],
         channel: discord.TextChannel,
         tolerance: int = 10,
-        delete_user_messages: bool = True) -> None:
+        delete_user_messages: bool = True,
+        resend: bool = False,
+        allowed_mentions: discord.AllowedMentions = discord.AllowedMentions.none(),
+        silent: bool = True,
+) -> None:
     """Edits a bunch of messages to reflect some new content. If other users
     sent messages in the channel in the meanwhile, it deletes its own old messages
     and send the whole thing again, to make sure it's always the newest message sent.
@@ -23,17 +30,23 @@ async def update_messages(
     :param delete_user_messages: If True, it will delete user messages in the way. Only does so if it updates
                                  (so NOT if it resends) and will only delete the messages it "tolerated". So setting
                                  tolerance=0 turns this off as well.
+    :param resend: If True, resends the messages if the previous ones are older than 1hr. Still deletes the previous ones.
+    :param allowed_mentions: Allowed mentions for the send command.
+    :param silent: If it resends the message, toggle if it's silent.
     """
     messages_to_change = []
     bot_messages = []
     user_messages_delete = []
     modify = True
     tolerance_used = 0
+    now = discord.utils.utcnow()
     async for message in channel.history(limit=25):
         if message.author == bot:
             tolerance_used = tolerance+1  # If there's any more user messages after this, break.
             if modify:
                 messages_to_change.insert(0, message)
+                if resend and message.created_at < now - timedelta(hours=1):
+                    modify = False
             bot_messages.append(message)
             if len(content) < len(messages_to_change):
                 modify = False
@@ -58,11 +71,10 @@ async def update_messages(
                 new_view = discord.ui.View()
             if messages_to_change[i].content != new_content or not \
                     (len(messages_to_change[i].components) == len(new_view.to_components()) == 0):
-                await messages_to_change[i].edit(content=new_content, view=new_view)
-                #coros.append(messages_to_change[i].edit(content=new_content, view=new_view))
+                await messages_to_change[i].edit(content=new_content, view=new_view, allowed_mentions=allowed_mentions)
+                #coros.append(messages_to_change[i].edit(content=new_content, view=new_view, allowed_mentions=allowed_mentions))
 
-        # Either the library doesnt handle 429s as it should or it doesn't work with asyncio.gather for some reason
-        # await asyncio.gather(*coros)
+        await asyncio.gather(*coros)
         return
 
     coros = []
@@ -71,7 +83,12 @@ async def update_messages(
     await asyncio.gather(*coros)
 
     for msg, view in content:
-        await channel.send(content=msg, view=view)
+        await channel.send(
+            content=msg,
+            view=view,
+            allowed_mentions=allowed_mentions,
+            silent=silent,
+        )
 
 
 def gatekeep():
@@ -111,3 +128,40 @@ async def download_file(session: aiohttp.ClientSession, url: str, path: str) -> 
 async def download_files(urls: list[str], paths: list[str]) -> None:
     async with aiohttp.ClientSession() as session:
         await asyncio.gather(*[download_file(session, url, paths[i]) for i, url in enumerate(urls)])
+
+
+def composite_views(*views: discord.ui.View):
+    new_view = discord.ui.View()
+    for i, vw in enumerate(views):
+        for item in vw.children:
+            item.row = i
+            new_view.add_item(item)
+    return new_view
+
+
+async def handle_error(
+        interaction: discord.Interaction,
+        error: Exception,
+) -> None:
+    thrown_error = error.__cause__
+    error_type = type(error.__cause__)
+    if error.__cause__ is None:
+        error_type = type(error)
+        thrown_error = error
+
+    if error_type == discord.app_commands.errors.MissingPermissions:
+        content = "You don't have the perms to execute this command. Sorry!\n" \
+                  f"*Needs permissions: {', '.join(thrown_error.missing_permissions)}*"
+    elif hasattr(thrown_error, "formatted_exc"):
+        content = thrown_error.formatted_exc()
+        print(error)
+    else:
+        content = f"Error occurred: {error_type}"
+        str_traceback = io.StringIO()
+        traceback.print_exception(error, file=str_traceback)
+        print(f"\n{str_traceback.getvalue().rstrip()}\n")
+
+    if interaction.response.is_done():
+        await interaction.edit_original_response(content=content)
+    else:
+        await interaction.response.send_message(content, ephemeral=True)

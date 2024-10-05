@@ -3,12 +3,22 @@ import discord
 from datetime import datetime, timedelta
 from discord.ext import commands, tasks
 import asyncio
+from typing import Any
 import bot.db.queries.tilestrat
 import bot.utils.discordutils
 from bot.exceptions import UnknownTile
-from bot.classes import ErrorHandlerCog
+from .CogBase import CogBase
 from bot.views import EmbedPaginateView
-import bot.utils.bloons
+from bot.utils.bloons import (
+    raw_challenge_to_embed,
+    get_current_ct_number,
+)
+from bot.utils.misc import add_spaces
+from bot.utils.bloonsdata import (
+    fetch_tile_data,
+    relic_to_tile_code,
+    fetch_all_tiles,
+)
 from bot.utils.emojis import LEAST_TIERS, LEAST_CASH, BLOONARIUS, VORTEX, LYCH, TIME_ATTACK, BLANK, DREADBLOON, \
     PHAYZE
 from bot.utils.images import IMG_LEAST_CASH, IMG_LEAST_TIERS, IMG_BLOONARIUS, IMG_VORTEX, IMG_LYCH, IMG_TIME_ATTACK, \
@@ -46,7 +56,7 @@ You can do one of 2 things for race tiles, which one is up to you:
 TOTAL_TILES = 163
 
 
-class TilestratCog(ErrorHandlerCog):
+class TilestratCog(CogBase):
     help_descriptions = {
         None: "Manages a forum to post tile strategies",
         "tilestrat-forum": {
@@ -69,31 +79,26 @@ class TilestratCog(ErrorHandlerCog):
         self.check_back: dict[int, datetime] = {}
 
     async def cog_load(self) -> None:
-        await self.load_state()
+        await super().cog_load()
         self.clean_raidlog.start()
 
     async def cog_unload(self) -> None:
-        await self.load_state()
+        await super().cog_unload()
         self.clean_raidlog.cancel()
 
-    async def load_state(self) -> None:
-        state = await asyncio.to_thread(bot.utils.io.get_cog_state, "raidlog")
-        if state is None:
-            return
-
-        data = state["data"]
-        if "check_back" in data:
+    async def parse_state(self, saved_at: datetime, state: dict[str, Any]) -> None:
+        if "check_back" in state:
             self.check_back = {}
-            for key in data["check_back"]:
-                self.check_back[int(key)] = datetime.fromtimestamp(data["check_back"][key])
+            for key in state["check_back"]:
+                self.check_back[int(key)] = datetime.fromtimestamp(state["check_back"][key])
 
-    async def save_state(self) -> None:
+    async def serialize_state(self) -> dict[str, Any]:
         data = {
             "check_back": {},
         }
         for key in self.check_back.keys():
             data["check_back"][str(key)] = self.check_back[key].timestamp()
-        await asyncio.to_thread(bot.utils.io.save_cog_state, "raidlog", data)
+        return data
 
     @tasks.loop(seconds=3600)
     async def clean_raidlog(self) -> None:
@@ -116,7 +121,7 @@ class TilestratCog(ErrorHandlerCog):
 
         for thr_id in to_delete:
             del self.check_back[thr_id]
-        await self.save_state()
+        await self._save_state()
 
     @discord.app_commands.command(name="raidlog", description="Alias for /tilestrat")
     @discord.app_commands.describe(tile_code="The tile code to look up.")
@@ -138,7 +143,7 @@ class TilestratCog(ErrorHandlerCog):
         tile_code = tile_code.strip().upper()
         tile_re = r"(?:M|[A-G])(?:R|[A-G])(?:X|[A-H])"
         if len(tile_code) != 3 or re.match(tile_re, tile_code) is None:
-            actual_tile_code = await asyncio.to_thread(bot.utils.bloons.relic_to_tile_code, tile_code)
+            actual_tile_code = await relic_to_tile_code(tile_code)
             if actual_tile_code is None:
                 raise UnknownTile(tile_code)
             tile_code = actual_tile_code
@@ -149,7 +154,7 @@ class TilestratCog(ErrorHandlerCog):
             await bot.db.queries.tilestrat.del_tile_strat_forum(interaction.guild_id)
             raise TilestratForumNotFound()
 
-        tile_info = await asyncio.to_thread(bot.utils.bloons.fetch_tile_data, tile_code)
+        tile_info = await fetch_tile_data(tile_code)
         if tile_info is None:
             raise UnknownTile(tile_code)
 
@@ -200,7 +205,7 @@ class TilestratCog(ErrorHandlerCog):
                 boss_name_tag = await forum_channel.create_tag(name=boss_name)
             tags.append(boss_name_tag)
 
-        map_name = bot.utils.bloons.add_spaces(tile_data["selectedMap"])
+        map_name = add_spaces(tile_data["selectedMap"])
         if map_name == "Adoras Temple":
             map_name = "Adora's Temple"
         elif map_name == "Pats Pond":
@@ -213,7 +218,7 @@ class TilestratCog(ErrorHandlerCog):
             name=thread_template.format(event_num=tile_info["EventNumber"], map=map_name, tile_code=tile_info["Code"]),
             content=thread_init_message,
             applied_tags=tags,
-            embed=bot.utils.bloons.raw_challenge_to_embed(tile_info),
+            embed=raw_challenge_to_embed(tile_info),
         )).thread
         await self.on_raidlog_created(thread, tile_info, forum_channel.id)
         return thread
@@ -233,7 +238,7 @@ class TilestratCog(ErrorHandlerCog):
             raise TilestratForumNotFound()
 
         if season is None:
-            season = bot.utils.bloons.get_current_ct_number()
+            season = get_current_ct_number()
 
         logged_count = {
             "Banner": {"race": 0, "lc": 0, "lt": 0, "boss": 0},
@@ -246,7 +251,7 @@ class TilestratCog(ErrorHandlerCog):
             "Regular": {"race": 0, "lc": 0, "lt": 0},
         }
 
-        tiles = await asyncio.to_thread(bot.utils.bloons.fetch_all_tiles)
+        tiles = await fetch_all_tiles()
         logged_tiles = await bot.db.queries.tilestrat.get_tilestrats_by_season(season, forum_id)
         logged_tiles = [lt.tile_code for lt in logged_tiles]
 
@@ -356,7 +361,7 @@ class TilestratCog(ErrorHandlerCog):
     async def on_message(self, message: discord.Message) -> None:
         if message.channel.id in self.check_back:
             del self.check_back[message.channel.id]
-            await self.save_state()
+            await self._save_state()
 
     @discord.ext.commands.Cog.listener()
     async def on_raw_thread_delete(self, payload: discord.RawThreadDeleteEvent) -> None:
@@ -371,11 +376,11 @@ class TilestratCog(ErrorHandlerCog):
     async def on_raidlog_requested(self, thread: discord.Thread) -> None:
         if thread.id in self.check_back:
             self.check_back[thread.id] = datetime.now() + timedelta(hours=3)
-            await self.save_state()
+            await self._save_state()
 
     async def on_raidlog_created(self, thread: discord.Thread, tile_info: dict, forum_id: int) -> None:
         self.check_back[thread.id] = datetime.now() + timedelta(hours=3)
-        await self.save_state()
+        await self._save_state()
         await bot.db.queries.tilestrat.create_tilestrat(
             forum_id, thread.id, tile_info["Code"], tile_info["EventNumber"], tile_info["GameData"]["subGameType"],
             tile_info["GameData"]["bossData"]["bossBloon"] if "bossData" in tile_info["GameData"] else None

@@ -264,17 +264,22 @@ async def get_planner_linked_to(tile_claim_ch: int, conn=None) -> int:
 @postgres
 async def get_claims_by(user: int, planner_channel: int, conn=None) -> list[dict[str, Any]]:
     event_start, _ee = bot.utils.bloons.get_current_ct_period()
-    return await conn.fetch("""
-        SELECT *
-        FROM plannertileclaims
+    return await conn.fetch(
+        """
+        SELECT ptc.planner_channel, ptc.tile, ptc.user_id, ptc.claimed_at
+        FROM plannertileclaims ptc
+        JOIN planners p
+            ON p.planner_channel = ptc.planner_channel
         WHERE user_id = $1
-            AND planner_channel = $2
-            AND claimed_at >= $3
+            AND ptc.planner_channel = $2
+            AND ptc.claimed_at >= $3
             AND (
-                (SELECT clear_time FROM planners WHERE planner_channel = $2) IS NULL OR
-                claimed_at >= (SELECT clear_time FROM planners WHERE planner_channel = $2)
+                p.clear_time IS NULL OR
+                ptc.claimed_at >= p.clear_time
             )
-    """, user, planner_channel, event_start)
+        """,
+        user, planner_channel, event_start,
+    )
 
 
 @postgres
@@ -334,3 +339,23 @@ async def get_planner_tracked_tiles(planner_id: int, conn=None) -> list[str]:
         SELECT tile FROM plannertrackedtiles WHERE planner_channel=$1
     """, planner_id)
     return [r["tile"] for r in result]
+
+
+@postgres
+async def overwrite_planner_tiles(planner_id: int, tiles: list[tuple[str, int]], conn=None) -> None:
+    async with conn.transaction():
+        await conn.execute(
+            """
+            DELETE FROM plannertrackedtiles
+            WHERE planner_channel=$1
+            """,
+            planner_id,
+        )
+        await conn.executemany(
+            """
+            INSERT INTO plannertrackedtiles
+                (tile, expires_after_hr, registered_at, planner_channel)
+            VALUES ($1, $2, CURRENT_TIMESTAMP, $3)
+            """,
+            [(tile, expire, planner_id) for tile, expire in tiles]
+        )

@@ -21,16 +21,16 @@ If you want to host your own instance, keep reading this document.
 ```bash
 git clone https://github.com/SartoRiccardo/ct-ticket-tracker/
 ```
-2. Install Python dependencies
+2. Rename `config.example.py` into `config.py` and populate it accordingly
+3. Execute the contents of `db_init.sql` into your PostgreSQL database
+   * Make sure the user you set in `config.py` has read/write permissions on that database and its tables
+4. Change the emojis in `bot/utils/emojis.py`, chances are they'll be broken
+5. Rename `files/tags.example.json` into `files/tags.json`
+   * Add/edit new tags if you want to
+6. Install Python dependencies
 ```bash
 python -m pip install -r requirements.txt
 ```
-3. Rename `config.example.py` into `config.py` and populate it accordingly
-4. Execute the contents of `db_init.sql` into your PostgreSQL database
-   * Make sure the user you set in `config.py` has read/write permissions on that database and its tables
-5. Change the emojis in `bot/utils/emojis.py`, chances are they'll be broken
-6. Rename `bot/files/json/tags.example.json` into `bot/files/json/tags.json`
-   1. Add/edit new tags if you want to
 7. Run `ct-ticket-tracker.py`
 8. To register its commands, type `,,,sync` to register them in all servers, or `,,,sync .` if you just want to sync them in your current guild.
 9. If you want to load/unload specific cogs, type `,,,cog load [cogname]` or `,,,cog unload [cogname]`.

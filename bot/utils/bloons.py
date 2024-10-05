@@ -1,14 +1,34 @@
 from datetime import datetime, timedelta
 import discord
-from bloonspy import Client, btd6
-import re
-import os
-import json
-from .Cache import Cache
-from bot.utils.emojis import NO_SELLING, NO_KNOWLEDGE, CERAM_HEALTH, MOAB_HEALTH, MOAB_SPEED, BLOON_SPEED, \
-    MAX_TOWERS, REGROW_RATE, CASH
-from bot.utils.images import BANNER_IMG, REGULAR_IMG, RELICS_IMG, RELIC_IMG, MAPS, IMG_BLOONARIUS, \
-    IMG_LYCH, IMG_VORTEX, IMG_PHAYZE, IMG_DREADBLOON, IMG_LEAST_CASH, IMG_LEAST_TIERS, IMG_TIME_ATTACK
+from bot.utils.misc import add_spaces
+from bot.utils.io import get_race_rounds
+from bot.utils.emojis import (
+    NO_SELLING,
+    NO_KNOWLEDGE,
+    CERAM_HEALTH,
+    MOAB_HEALTH,
+    MOAB_SPEED,
+    BLOON_SPEED,
+    MAX_TOWERS,
+    REGROW_RATE,
+    CASH,
+    BLANK,
+)
+from bot.utils.images import (
+    BANNER_IMG,
+    REGULAR_IMG,
+    RELICS_IMG,
+    RELIC_IMG,
+    MAPS,
+    IMG_BLOONARIUS,
+    IMG_LYCH,
+    IMG_VORTEX,
+    IMG_PHAYZE,
+    IMG_DREADBLOON,
+    IMG_LEAST_CASH,
+    IMG_LEAST_TIERS,
+    IMG_TIME_ATTACK,
+)
 
 
 EVENT_EPOCHS = [
@@ -19,9 +39,6 @@ EVENT_EPOCHS = [
     (44, datetime.fromtimestamp(1712700000)),
     (52, datetime.fromtimestamp(1722981600)),
 ]
-
-CT_DATA_CACHE_HR = 12
-tiles_cache = Cache([], datetime.now())
 
 EVENT_DURATION = 7
 DEFAULT_STARTING_LIVES = {
@@ -123,6 +140,15 @@ def get_current_ct_day() -> int:
     return get_ct_day_during(datetime.now())
 
 
+def format_seconds(seconds: int) -> str:
+    formatted = f"{seconds % 60:0>2}"
+    if (minutes := seconds // 60) > 0:
+        formatted = f"{minutes % 60:0>2}:{formatted}"
+    if (hours := seconds // 3600) > 0:
+        formatted = f"{hours}:{formatted}"
+    return formatted
+
+
 def raw_challenge_to_embed(challenge) -> discord.Embed or None:
     event_number = challenge["EventNumber"]
     # event_number = get_current_ct_number()
@@ -171,13 +197,24 @@ def raw_challenge_to_embed(challenge) -> discord.Embed or None:
     title = f"{add_spaces(challenge['selectedMap'])} — {challenge['selectedDifficulty']} {mode}"
 
     starting_lives = challenge['dcModel']['startRules']['lives']
+    start_round = challenge['dcModel']['startRules']['round']
     if starting_lives == -1:
         starting_lives = DEFAULT_STARTING_LIVES[challenge['selectedDifficulty']]
     end_round = challenge['dcModel']['startRules']['endRound']
+    end_round_value = end_round
     if end_round == -1:
-        end_round = f"{challenge['bossData']['TierCount'] * 20 + 20}+"
+        end_round_value = challenge['bossData']['TierCount'] * 20 + 20
+        end_round = f"{end_round_value}+"
+    str_time_complete = ""
+    if challenge['subGameType'] != 2:
+        round_lengths = get_race_rounds()
+        seconds_to_complete = int(sum([round_lengths[i]["length"] for i in range(start_round-1, end_round_value)]))
+        str_time_complete = f"\nMinimum duration: 🕖 {format_seconds(seconds_to_complete)}{BLANK}" \
+                            f"⏩ {format_seconds(seconds_to_complete//3)}"
     description = f"{CASH} ${challenge['dcModel']['startRules']['cash']} — ♥️ {starting_lives} — " \
-                  f"Rounds {challenge['dcModel']['startRules']['round']}/{end_round}\n\n"
+                  f"Rounds {start_round}/{end_round}" + \
+                  str_time_complete + "\n\n"
+
 
     if challenge['dcModel']['maxTowers'] > -1:
         description += f"{MAX_TOWERS} Max Towers: {challenge['dcModel']['maxTowers']}\n"
@@ -273,102 +310,3 @@ def raw_challenge_to_embed(challenge) -> discord.Embed or None:
                 content += " — " if i % 2 == 0 else "\n"
         embed.add_field(name=f"{key} Towers", value=content, inline=False)
     return embed
-
-
-def add_spaces(text: str) -> str:
-    """Adds spaces to a text in PascalCase"""
-    def repl(matchobj):
-        return " " + matchobj.group(0)
-    return re.sub("[A-Z]", repl, text).strip()
-
-
-def fetch_tile_data(tile: str):
-    path = f"bot/files/json/tiles/{tile}.json"
-    if not os.path.exists(path):
-        return None
-    fin = open(path)
-    data = json.loads(fin.read())
-    fin.close()
-    return data
-
-
-def fetch_all_tiles():
-    path = f"bot/files/json/tiles"
-    tiles = []
-    for file in os.listdir(path):
-        data = fetch_tile_data(file[:3])
-        if data is not None:
-            tiles.append(data)
-    return tiles
-
-
-def relic_to_tile_code(relic: str) -> str or None:
-    relic = relic.lower().replace(" ", "_")
-    relics = {
-        'AirAndSea': ['aas', 'airandsea', 'air_and_sea', "ans"],
-        'Abilitized': ['abilitized'],
-        'AlchemistTouch': ['alchtouch', 'alch', 'alchemisttouch', 'alchemist_touch', 'alch_touch'],
-        'MonkeyBoost': ['boost', 'mboost', 'mb', 'monkeyboost', 'monkey_boost'],
-        'MarchingBoots': ['boots', 'mboots', 'marchingboots', 'marching_boots'],
-        'BoxOfMonkey': ['box', 'boxofmonkey', 'bom', 'box_of_monkey'],
-        'BoxOfChocolates': ['chocobox', 'chocbox', "boxofchocolates"],
-        'CamoTrap': ['ctrap', 'camotrap', 'camo_trap'],
-        'DurableShots': ['dshots', 'durableshots', 'durable_shotr'],
-        'ExtraEmpowered': ['eemp', 'extraemp', 'extra_empowered'],
-        'FlintTips': ['flinttips', 'flint_tips', "flint", "ft"],
-        'Camoflogged': ['flogged', 'cflogged', 'camo_flogged'],
-        'Fortifried': ['fried', 'ffried', 'fortifried'],
-        'GoingTheDistance': ['goingthedistance', 'gtd'],
-        'GlueTrap': ['gtrap', 'glue', 'gluetrap', 'glue_trap'],
-        'HardBaked': ['hardbaked', 'hb'],
-        'HeroBoost': ['hboost', 'heroboost', 'hero_boost'],
-        'ManaBulwark': ['manabulwark', "mana"],
-        'MoabClash': ['mc', 'clash', 'moabclash', 'moab_clash'],
-        'MoabMine': ['mine', 'moabmine'],
-        'Regeneration': ['regen', 'regeneration'],
-        'Restoration': ['resto', 'restoration'],
-        'RoundingUp': ["rup", 'roundingup', 'rounding_up'],
-        'RoyalTreatment': ['royal', 'rtreatment', 'royaltreatment', 'royal_treatment'],
-        'Sharpsplosion': ['sharp', 'sharpsplosion'],
-        'SuperMonkeyStorm': ['sms', 'supermonkeystorm', 'super_monkey_storm'],
-        'RoadSpikes': ['spikes', 'rspikes', 'roadspikes', 'road_spikes'],
-        'StartingStash': ['stash', 'startingstash', 'starting_stash'],
-        'Thrive': ['thrive'],
-        'ElDorado': ['eldorado', 'dorado', 'el_dorado'],
-        'DeepHeat': ['dheat', 'deepheat', 'deep_heat'],
-        "Techbot": ["techbot"],
-        "Heartless": ["heartless"],
-        "BrokenHeart": ["brokenheart", "broken_heart"],
-        "BiggerBloonSabotage": ["bbs", "bigger_bloon_sabotage", "biggerbloonsabotage"],
-    }
-    for key in relics:
-        if relic in relics[key]:
-            tiles = fetch_all_tiles()
-            for tile in tiles:
-                if tile["RelicType"] == key:
-                    return tile["Code"]
-    return None
-
-
-def get_current_ct_event() -> btd6.ContestedTerritoryEvent or None:
-    now = datetime.now()
-    events = Client.contested_territories()
-    for ct in events:
-        if ct.start <= now:
-            return ct
-    return None
-
-
-def get_current_ct_tiles() -> list[btd6.CtTile]:
-    """This is supposed to be awaited and turned into a thread but it's only blocking once every 12 hours so idc"""
-    global tiles_cache
-    if not tiles_cache.valid:
-        ct = get_current_ct_event()
-        if ct is None:
-            return []
-        tiles_cache = Cache(ct.tiles(), datetime.now() + timedelta(hours=CT_DATA_CACHE_HR))
-    return tiles_cache.value
-
-
-def is_tile_code_valid(tile: str) -> bool:
-    return tile in [t.id for t in get_current_ct_tiles()]

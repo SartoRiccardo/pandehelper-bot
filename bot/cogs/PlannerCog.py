@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import re
+from typing import Any
 import discord
 from discord.ext import tasks, commands
 import asyncio
@@ -8,13 +9,41 @@ import bot.db.queries.planner
 import bot.db.queries.tickets
 import bot.utils.io
 import bot.utils.discordutils
-from bot.classes import ErrorHandlerCog
+from bot.utils.bloons import (
+    get_current_ct_day,
+    get_current_ct_period,
+    get_ct_day_during,
+)
+from bot.utils.bloonsdata import (
+    get_current_ct_event,
+    get_current_ct_tiles,
+)
+from .CogBase import CogBase
 from bot.utils.emojis import TILE_BANNER, TILE_REGULAR, TILE_RELIC, RELICS
 from bot.views import PlannerUserView, PlannerAdminView
-from bot.utils.emojis import EXPIRE_LATER, EXPIRE_DONT_RECAP, EXPIRE_AFTER_RESET, EXPIRE_STALE, EXPIRE_2HR, \
-    EXPIRE_3HR, BLANK
+from bot.utils.emojis import (
+    EXPIRE_SUBOPTIMAL,
+    EXPIRE_LATER,
+    EXPIRE_DONT_RECAP,
+    EXPIRE_AFTER_RESET,
+    EXPIRE_STALE,
+    EXPIRE_2HR,
+    EXPIRE_3HR,
+    BLANK,
+    WARN_ALREADY_CLAIMED,
+)
 from bloonspy import btd6
+import logging
 
+qplanner = bot.db.queries.planner
+
+formatter = logging.Formatter('[%(asctime)s] %(name)s: %(message)s')
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+ch.setFormatter(formatter)
+planner_logger = logging.getLogger("planner")
+planner_logger.setLevel(logging.DEBUG)
+planner_logger.addHandler(ch)
 
 PLANNER_ADMIN_PANEL = """
 # Control Panel
@@ -23,8 +52,6 @@ PLANNER_ADMIN_PANEL = """
 - Ping Channel: {}
 - Team Role: {}
 __*To configure, use `/planner config`*__
-
-*Please don't send other messages in this channel! I'm gonna get really mad and accidentally ping everybody in an hour if you do because I should be the first thing you see in the channel.*
 """[1:-1]
 PLANNER_HR = "```\n \n```"
 PLANNER_TABLE_HEADER = """
@@ -35,13 +62,14 @@ PLANNER_TABLE_EMPTY = "https://cdn.discordapp.com/attachments/924255725390270474
 PLANNER_TABLE_ROW = "{emoji_claim} {emoji_tile} `{tile}`  |  "
 PLANNER_TABLE_ROW_TIME = "<t:{expire_at}:T> (<t:{expire_at}:R>){claimer}\n"
 PLANNER_TABLE_ROW_STALE = "⚠️ **__STALE SINCE <t:{expire_at}:R>__** ⚠️\n"
+resp_alr_claimed = "That tile's not claimed by you! Hands off! 💢"
 
 
-class PlannerCog(ErrorHandlerCog):
+class PlannerCog(CogBase):
     planner_group = discord.app_commands.Group(name="planner", description="Various CT Planner commands")
     help_descriptions = {
-        None: "Please check out [the wiki](<https://github.com/SartoRiccardo/ct-ticket-tracker/wiki>) for a "
-              "step-by-step setup guide!\n\n"
+        None: "For a more detailed guide on how Planners work, check out the "
+              "[Banner Planner setup guide](https://pandehelper.sarto.dev/setup/banner-planner) on the website.\n\n"
               "Creates a planner that tracks all banner decay times, pings when they decay, and lets users "
               "claim them beforehand. Works in tandem with the `tracker` module.",
         "planner": {
@@ -63,48 +91,44 @@ class PlannerCog(ErrorHandlerCog):
         next_check = next_check.replace(minute=int(next_check.minute/PlannerCog.CHECK_EVERY)*PlannerCog.CHECK_EVERY) \
                      + timedelta(minutes=PlannerCog.CHECK_EVERY)
         # This is updated in inject_new_banners which gets called every reset
-        self.current_event: btd6.ContestedTerritoryEvent = bot.utils.bloons.get_current_ct_event()
+        self.current_event: btd6.ContestedTerritoryEvent | None = None
         self.next_check = next_check
         self.next_check_unclaimed = next_check
         self.banner_decays = []
         self.next_planner_refreshes = {}
         self.last_check_end = self.next_check
-        self.ct_day = 0
+        self.ct_day = get_current_ct_day()
 
-    async def load_state(self) -> None:
-        state = await asyncio.to_thread(bot.utils.io.get_cog_state, "planner")
-        if state is None:
-            return
-
-        saved_at = datetime.fromtimestamp(state["saved_at"])
+    async def parse_state(self, saved_at: datetime, state: dict[str, Any]) -> None:
         if self.next_check-saved_at > timedelta(minutes=PlannerCog.CHECK_EVERY):
             return
 
-        data = state["data"]
-        if "next_check" in data:
-            self.next_check = datetime.fromtimestamp(data["next_check"])
-        if "last_check_end" in data:
-            self.last_check_end = datetime.fromtimestamp(data["last_check_end"])
+        if "next_check" in state:
+            self.next_check = datetime.fromtimestamp(state["next_check"])
+        if "last_check_end" in state:
+            self.last_check_end = datetime.fromtimestamp(state["last_check_end"])
 
-    async def save_state(self) -> None:
-        data = {
+    async def serialize_state(self) -> dict[str, Any]:
+        return {
             "next_check": self.next_check.timestamp(),
             "last_check_end": self.last_check_end.timestamp(),
         }
-        await asyncio.to_thread(bot.utils.io.save_cog_state, "planner", data)
 
     async def cog_load(self) -> None:
-        await self.load_state()
+        await super().cog_load()
+
+        self.current_event = await get_current_ct_event()
+
         views = await self.get_views()
         for v in views:
             self.bot.add_view(v)
         self.check_reminders.start()
 
-        self.banner_decays = await bot.db.queries.planner.get_tile_closest_to_expire(datetime.now())
+        self.banner_decays = await qplanner.get_tile_closest_to_expire(datetime.now())
         self.check_decay.start()
 
         next_refresh = datetime.now().replace(second=0, microsecond=0, minute=0) + timedelta(hours=1)
-        planners = await bot.db.queries.planner.get_planners()
+        planners = await qplanner.get_planners()
         for p in planners:
             self.next_planner_refreshes[p.planner_channel] = next_refresh
         self.check_planner_refresh.start()
@@ -112,7 +136,8 @@ class PlannerCog(ErrorHandlerCog):
         self.check_reset.start()
         self.check_orphan_has_tickets_roles.start()
 
-    def cog_unload(self) -> None:
+    async def cog_unload(self) -> None:
+        await super().cog_unload()
         self.check_reminders.cancel()
         self.check_decay.cancel()
         self.check_planner_refresh.cancel()
@@ -128,7 +153,7 @@ class PlannerCog(ErrorHandlerCog):
         now = datetime.now()
         if now < self.next_check:
             return
-        _cts, ct_end = bot.utils.bloons.get_current_ct_period()
+        _cts, ct_end = get_current_ct_period()
         if now >= ct_end-timedelta(hours=12):
             return
 
@@ -142,10 +167,10 @@ class PlannerCog(ErrorHandlerCog):
             check_unclaimed = True
             self.next_check_unclaimed += timedelta(minutes=PlannerCog.CHECK_EVERY_UNCLAIMED)
 
-        _cts, ct_end = bot.utils.bloons.get_current_ct_period()
-        planners = await bot.db.queries.planner.get_planners(only_active=True)
+        _cts, ct_end = get_current_ct_period()
+        planners = await qplanner.get_planners(only_active=True)
         for planner in planners:
-            tile_codes = await bot.db.queries.planner.get_planner_tracked_tiles(planner.planner_channel)
+            tile_codes = await qplanner.get_planner_tracked_tiles(planner.planner_channel)
             pings = await self.check_planner_reminder(
                 planner.planner_channel,
                 planner.ping_channel,
@@ -161,22 +186,24 @@ class PlannerCog(ErrorHandlerCog):
                     planner.ping_channel,
                     planner.ping_role_with_tickets if planner.ping_role_with_tickets else planner.team_role,
                 )
-        await self.save_state()
+        await self._save_state()
 
-    async def check_planner_reminder(self,
-                                     planner_id: int,
-                                     ping_ch_id: int,
-                                     banner_codes: list[str],
-                                     check_from: datetime,
-                                     check_to: datetime,
-                                     check_to_unclaimed: datetime or None) -> dict[int or None, list[str]]:
+    async def check_planner_reminder(
+            self,
+            planner_id: int,
+            ping_ch_id: int,
+            banner_codes: list[str],
+            check_from: datetime,
+            check_to: datetime,
+            check_to_unclaimed: datetime or None
+    ) -> dict[int or None, list[str]]:
         if ping_ch_id is None:
             return {}
-        banners = await bot.db.queries.planner.get_planned_tiles(planner_id, banner_codes,
+        banners = await qplanner.get_planned_tiles(planner_id, banner_codes,
                                                                  expire_between=(check_from, check_to))
         banners_unclaimed = []
         if check_to_unclaimed is not None:
-            banners_unclaimed = await bot.db.queries.planner.get_planned_tiles(planner_id, banner_codes,
+            banners_unclaimed = await qplanner.get_planned_tiles(planner_id, banner_codes,
                                                                                expire_between=(check_from,
                                                                                                check_to_unclaimed),
                                                                                claimed_status="UNCLAIMED")
@@ -239,7 +266,7 @@ class PlannerCog(ErrorHandlerCog):
             try:
                 ping_channel = await self.bot.fetch_channel(ping_channel_id)
             except (discord.NotFound, discord.Forbidden):
-                await bot.db.queries.planner.planner_delete_config(planner_id, ping_channel=True)
+                await qplanner.planner_delete_config(planner_id, ping_channel=True)
                 await self.send_planner_msg(planner_id)
                 return None
 
@@ -253,7 +280,7 @@ class PlannerCog(ErrorHandlerCog):
         Checks if a banner has just decayed and pings the team in the appropriate channel.
         """
         now = datetime.now()
-        _cts, ct_end = bot.utils.bloons.get_current_ct_period()
+        _cts, ct_end = get_current_ct_period()
         if now >= ct_end-timedelta(hours=12):
             return
 
@@ -263,12 +290,12 @@ class PlannerCog(ErrorHandlerCog):
             tile_expire_time = banner.claimed_at + timedelta(hours=banner.expires_in_hr)
             if tile_expire_time < now:
                 update_expire_list = True
-                planner = await bot.db.queries.planner.get_planner(banner.planner_channel)
+                planner = await qplanner.get_planner(banner.planner_channel)
                 if not planner.is_active:
                     continue
 
-                tiles_tracked = await bot.db.queries.planner.get_planner_tracked_tiles(planner.planner_channel)
-                tiles_expiring = await bot.db.queries.planner.get_planned_tiles(
+                tiles_tracked = await qplanner.get_planner_tracked_tiles(planner.planner_channel)
+                tiles_expiring = await qplanner.get_planned_tiles(
                     planner.planner_channel,
                     tiles_tracked,
                     expire_between=(tile_expire_time, now),
@@ -280,13 +307,13 @@ class PlannerCog(ErrorHandlerCog):
 
         await asyncio.gather(*send_ping_coros)
         if update_expire_list:
-            self.banner_decays = await bot.db.queries.planner.get_tile_closest_to_expire(now)
+            self.banner_decays = await qplanner.get_tile_closest_to_expire(now)
 
     async def decay_ping_when_ready(self,
                                     tile: "bot.db.model.PlannedTile.PlannedTile",
                                     planner: "bot.db.model.Planner.Planner") -> None:
         # now = datetime.now()
-        tile_data = await bot.db.queries.planner.planner_get_tile_status(tile.tile, tile.planner_channel)
+        tile_data = await qplanner.planner_get_tile_status(tile.tile, tile.planner_channel)
         ping_role = planner.ping_role_with_tickets if planner.ping_role_with_tickets else planner.ping_role
 
         # This check never happens when called by check_decay since it only
@@ -308,7 +335,7 @@ class PlannerCog(ErrorHandlerCog):
             try:
                 ping_channel = await self.bot.fetch_channel(ping_channel_id)
             except (discord.NotFound, discord.Forbidden):
-                await bot.db.queries.planner.planner_delete_config(planner_id, ping_channel=True)
+                await qplanner.planner_delete_config(planner_id, ping_channel=True)
                 await self.send_planner_msg(planner_id)
                 return None
 
@@ -339,13 +366,15 @@ class PlannerCog(ErrorHandlerCog):
     @tasks.loop(seconds=60)
     async def check_reset(self) -> None:
         """Calls functions at every CT Day reset"""
-        current_day = bot.utils.bloons.get_current_ct_day()
+        current_day = get_current_ct_day()
         if current_day == self.ct_day:
             return
+
+        planner_logger.debug(f"New day: {self.ct_day} -> {current_day}")
         self.ct_day = current_day
         if self.ct_day <= 7:
-            await self.reassign_has_tickets_roles()
-            await self.inject_new_banners()
+            asyncio.create_task(self.reassign_has_tickets_roles())
+            asyncio.create_task(self.inject_new_banners())
 
     @tasks.loop(seconds=3600*24)
     async def check_orphan_has_tickets_roles(self) -> None:
@@ -360,40 +389,36 @@ class PlannerCog(ErrorHandlerCog):
         """
         If there's a new CT event live, inject the new event's banners into all planners.
         """
-        current_event = await asyncio.to_thread(bot.utils.bloons.get_current_ct_event)
+        current_event = await get_current_ct_event()
+        planner_logger.debug(f"Injecting? {current_event.id} == {self.current_event.id}")
         if current_event == self.current_event:
             return
         self.current_event = current_event
 
+        evt_tiles = await asyncio.to_thread(current_event.tiles)
         banners = [
-            tile.id for tile in (await asyncio.to_thread(current_event.tiles))
+            tile.id for tile in evt_tiles
             if tile.tile_type == btd6.CtTileType.BANNER
         ]
-        planners = await bot.db.queries.planner.get_planners()
+        planners = await qplanner.get_planners()
         for p in planners:
-            tiles = await bot.db.queries.planner.get_planner_tracked_tiles(p.planner_channel)
-            await asyncio.gather(*[
-                bot.db.queries.planner.remove_tile_from_planner(p.planner_channel, t)
-                for t in tiles
-            ])
-            await asyncio.gather(*[
-                bot.db.queries.planner.add_tile_to_planner(p.planner_channel, t, 24)
-                for t in banners
-            ])
+            await qplanner.overwrite_planner_tiles(
+                p.planner_channel, [(tile, 24) for tile in banners]
+            )
 
     async def reassign_has_tickets_roles(self) -> None:
         """
         For every planner & its team, checks ticket counts and reassigns the "has tickets"
         role to whoever necessary.
         """
-        planners = await bot.db.queries.planner.get_planners()
+        planners = await qplanner.get_planners()
         for pln in planners:
             planner_ch = self.bot.get_channel(pln.planner_channel)
             if planner_ch is None:
                 try:
                     planner_ch = await self.bot.fetch_channel(pln.planner_channel)
                 except (discord.NotFound, discord.Forbidden):
-                    await bot.db.queries.planner.del_planner(pln.planner_channel)
+                    await qplanner.del_planner(pln.planner_channel)
                     continue
 
             role = discord.utils.get(planner_ch.guild.roles, id=pln.team_role)
@@ -411,7 +436,7 @@ class PlannerCog(ErrorHandlerCog):
     async def remove_has_tickets_roles(self) -> None:
         """Removes the has tickets role from all planners."""
         # Lots of copied code with reassign_has_tickets_roles ahhhh
-        planners = await bot.db.queries.planner.get_planners()
+        planners = await qplanner.get_planners()
         for pln in planners:
             if pln.ping_role_with_tickets is None:
                 continue
@@ -421,7 +446,7 @@ class PlannerCog(ErrorHandlerCog):
                 try:
                     planner_ch = await self.bot.fetch_channel(pln.planner_channel)
                 except (discord.NotFound, discord.Forbidden):
-                    await bot.db.queries.planner.del_planner(pln.planner_channel)
+                    await qplanner.del_planner(pln.planner_channel)
                     continue
 
             role = discord.utils.get(planner_ch.guild.roles, id=pln.ping_role_with_tickets)
@@ -447,14 +472,14 @@ class PlannerCog(ErrorHandlerCog):
     @discord.app_commands.default_permissions(administrator=True)
     @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def cmd_remove_planner(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
-        if await bot.db.queries.planner.get_planner(channel.id) is None:
+        if await qplanner.get_planner(channel.id) is None:
             await interaction.response.send_message(
                 content=f"<#{channel.id}> is not even a planner!",
                 ephemeral=True
             )
             return
 
-        await bot.db.queries.planner.del_planner(channel.id)
+        await qplanner.del_planner(channel.id)
         await interaction.response.send_message(
             content=f"<#{channel.id}> will no longer be updated as a planner!",
             ephemeral=True
@@ -486,7 +511,7 @@ class PlannerCog(ErrorHandlerCog):
                                     ping_channel: None or discord.TextChannel = None,
                                     ping_role: None or discord.Role = None,
                                     tile_claim_channel: None or discord.TextChannel = None) -> None:
-        if await bot.db.queries.planner.get_planner(planner_channel.id) is None:
+        if await qplanner.get_planner(planner_channel.id) is None:
             await interaction.response.send_message(
                 content="That's not a planner channel!",
                 ephemeral=True,
@@ -494,7 +519,7 @@ class PlannerCog(ErrorHandlerCog):
             return
 
         if tile_claim_channel:
-            planner_linked = await bot.db.queries.planner.get_planner_linked_to(tile_claim_channel.id)
+            planner_linked = await qplanner.get_planner_linked_to(tile_claim_channel.id)
             if planner_linked is not None and planner_linked != planner_channel.id:
                 await interaction.response.send_message(
                     content=f"<#{tile_claim_channel.id}> is already linked to another planner!",
@@ -517,7 +542,7 @@ class PlannerCog(ErrorHandlerCog):
             )
             return
 
-        await bot.db.queries.planner.planner_update_config(
+        await qplanner.planner_update_config(
             planner_channel.id,
             ping_ch=ping_channel.id if ping_channel else None,
             ping_role=ping_role.id if ping_role else None,
@@ -552,23 +577,17 @@ class PlannerCog(ErrorHandlerCog):
                 )
                 return
 
-        if await bot.db.queries.planner.get_planner(planner_channel.id) is None:
+        if await qplanner.get_planner(planner_channel.id) is None:
             await interaction.response.send_message(
                 content="That's not a planner channel!",
                 ephemeral=True,
             )
             return
 
-        currently_tracked = await bot.db.queries.planner.get_planner_tracked_tiles(planner_channel.id)
-        await asyncio.gather(*[
-            bot.db.queries.planner.remove_tile_from_planner(planner_channel.id, tile)
-            for tile in currently_tracked
-        ])
-
-        await asyncio.gather(*[
-            bot.db.queries.planner.add_tile_to_planner(planner_channel.id, tile, 24)
-            for tile in tile_list
-        ])
+        await qplanner.overwrite_planner_tiles(
+            planner_channel.id,
+            [(tile, 24) for tile in tile_list]
+        )
 
         await interaction.response.send_message(
             content="All done! The planner message will be updated in a bit...",
@@ -577,14 +596,14 @@ class PlannerCog(ErrorHandlerCog):
         await self.send_planner_msg(planner_channel.id)
 
     async def add_planner(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
-        if await bot.db.queries.planner.get_planner(channel.id) is not None:
+        if await qplanner.get_planner(channel.id) is not None:
             await interaction.response.send_message(
                 content=f"<#{channel.id}> is already a planner!",
                 ephemeral=True
             )
             return
 
-        await bot.db.queries.planner.add_planner(channel.id)
+        await qplanner.add_planner(channel.id)
         await interaction.response.send_message(
             content=f"<#{channel.id}> is now a planner channel!\n"
                     "*Make sure my permissions are set correctly and I can write, see & delete messages in that "
@@ -600,7 +619,7 @@ class PlannerCog(ErrorHandlerCog):
 
         :param channel: The ID of the Planner channel.
         """
-        planner = await bot.db.queries.planner.get_planner(channel)
+        planner = await qplanner.get_planner(channel)
         if planner is None:
             return []
 
@@ -640,10 +659,10 @@ class PlannerCog(ErrorHandlerCog):
         banner_codes = await self.get_banner_tile_list()
         relic_tiles = await self.get_relic_tile_list()
         relic_codes = [r.id for r in relic_tiles]
-        tile_list = await bot.db.queries.planner.get_planner_tracked_tiles(channel)
-        ct_start, ct_end = bot.utils.bloons.get_current_ct_period()
+        tile_list = await qplanner.get_planner_tracked_tiles(channel)
+        ct_start, ct_end = get_current_ct_period()
         if now < ct_end:
-            tracked_tiles = await bot.db.queries.planner.get_planned_tiles(
+            tracked_tiles = await qplanner.get_planned_tiles(
                 channel, tile_list, expire_between=(ct_start, ct_end)
             )
         else:
@@ -654,13 +673,19 @@ class PlannerCog(ErrorHandlerCog):
             EXPIRE_AFTER_RESET: None,
         }
         banner_claims = []
-        for i in range(len(tracked_tiles)):
-            tile = tracked_tiles[i]
+        for i, tile in enumerate(tracked_tiles):
             expire_at = tile.claimed_at + timedelta(hours=tile.expires_in_hr)
             emoji_claim = EXPIRE_LATER
             if expire_at >= ct_end-timedelta(hours=12):
-                emoji_claim = EXPIRE_DONT_RECAP
-                emojis_explanations[EXPIRE_DONT_RECAP] = "Should __not__ be refreshed"
+                hours_left = (ct_end - now).total_seconds() // 3600
+                banners_hours_left = (ct_end - expire_at).total_seconds() // 3600
+                if tile.tile in banner_codes and (hours_left+1) * 20 < (banners_hours_left+1) * 40:
+                    emoji_claim = EXPIRE_SUBOPTIMAL
+                    emojis_explanations[EXPIRE_SUBOPTIMAL] = "If you have any tickets left, " \
+                                                             "it's more optimal to take than a regular tile"
+                else:
+                    emoji_claim = EXPIRE_DONT_RECAP
+                    emojis_explanations[EXPIRE_DONT_RECAP] = "Should __not__ be refreshed"
             elif expire_at < now:
                 emoji_claim = EXPIRE_STALE
             elif now < next_reset_day <= expire_at:
@@ -724,11 +749,11 @@ class PlannerCog(ErrorHandlerCog):
 
     async def get_views(self) -> list[None or PlannerUserView]:
         views = []
-        channels = await bot.db.queries.planner.get_planners()
+        channels = await qplanner.get_planners()
         for channel in channels:
             channel_id = channel.planner_channel
-            tile_codes = await bot.db.queries.planner.get_planner_tracked_tiles(channel_id)
-            tiles = await bot.db.queries.planner.get_planned_tiles(channel_id, tile_codes)
+            tile_codes = await qplanner.get_planner_tracked_tiles(channel_id)
+            tiles = await qplanner.get_planned_tiles(channel_id, tile_codes)
             banner_claims = {}
             for banner in tile_codes:
                 banner_claims[banner] = False
@@ -756,7 +781,7 @@ class PlannerCog(ErrorHandlerCog):
     async def get_banner_tile_list() -> list[str]:
         """Returns a list of banner tile codes."""
         return [
-            tile.id for tile in bot.utils.bloons.get_current_ct_tiles()
+            tile.id for tile in await get_current_ct_tiles()
             if tile.tile_type == btd6.CtTileType.BANNER
         ]
 
@@ -764,7 +789,7 @@ class PlannerCog(ErrorHandlerCog):
     async def get_relic_tile_list() -> list[btd6.CtTile]:
         """Returns a list of relic tiles."""
         return [
-            r for r in bot.utils.bloons.get_current_ct_tiles()
+            r for r in await get_current_ct_tiles()
             if r.tile_type == btd6.CtTileType.RELIC
         ]
 
@@ -778,49 +803,73 @@ class PlannerCog(ErrorHandlerCog):
             try:
                 channel = await self.bot.fetch_channel(channel_id)
             except (discord.NotFound, discord.Forbidden):
-                await bot.db.queries.planner.del_planner(channel_id)
+                await qplanner.del_planner(channel_id)
                 return
 
         planner_content = await self.get_planner_msg(channel_id)
         self.next_planner_refreshes[channel_id] = datetime.now() + timedelta(hours=1)
         try:
-            await bot.utils.discordutils.update_messages(self.bot.user, planner_content, channel, tolerance=5)
+            await bot.utils.discordutils.update_messages(
+                self.bot.user,
+                planner_content,
+                channel,
+                resend=True,
+            )
         except discord.Forbidden:
             pass
 
     @staticmethod
-    async def switch_tile_claim(user: discord.Member, planner_channel_id: int, tile: str) -> tuple[str, bool]:
+    async def switch_tile_claim(
+            user: discord.Member,
+            planner_channel_id: int,
+            tile: str,
+            can_unclaim: bool = True,
+    ) -> tuple[str, bool]:
         """Claims or unclaims a tile for an user.
 
         :param user: The member who wants to claim the tile.
         :param planner_channel_id: The Planner channel ID.
         :param tile: The ID of the tile.
-        :return: A message to give to the user.
+        :param can_unclaim: If False, it won't unclaim the tile if it's already the user's.
+        :return: A message to give to the user + whether the planner should refresh.
         """
-        planner_info = await bot.db.queries.planner.get_planner(planner_channel_id)
+        planner_info = await qplanner.get_planner(planner_channel_id)
         if planner_info is None:
             return "This channel is not a planner channel...?", False
         if planner_info.ping_role is not None and \
                 discord.utils.get(user.roles, id=planner_info.ping_role) is None:
             return f"You need the <@&{planner_info.ping_role}> role to claim tiles!", False
 
-        tile_status = await bot.db.queries.planner.planner_get_tile_status(tile, planner_channel_id)
+        tile_status = await qplanner.planner_get_tile_status(tile, planner_channel_id)
         if tile_status is None:
             return "That tile isn't in the planner...?", False
-        claimed_by_user = await bot.db.queries.planner.get_claims_by(user.id, planner_channel_id)
+        tile_expire_day = get_ct_day_during(tile_status.claimed_at + timedelta(hours=tile_status.expires_in_hr))
 
-        response = "That tile's not claimed by you! Hands off! 💢"
+        response = ""
         refresh = False
-        if tile_status.claimed_by == user.id:
-            await bot.db.queries.planner.planner_unclaim_tile(tile, planner_channel_id)
+        if tile_status.claimed_by != user.id and tile_status.claimed_by is not None:
+            response = resp_alr_claimed
+        elif tile_status.claimed_by == user.id and can_unclaim:
+            await qplanner.planner_unclaim_tile(tile, planner_channel_id)
             response = f"You have unclaimed `{tile}`!"
             refresh = True
-        elif len(claimed_by_user) >= 4:
-            response = "You already have 4 tiles claimed. You can't claim any more."
-        elif tile_status.claimed_by is None:
-            await bot.db.queries.planner.planner_claim_tile(user.id, tile, planner_channel_id)
-            response = f"You have claimed `{tile}`!\n*Select it again if you want to unclaim it.*"
-            refresh = True
+        else:
+            claimed_by_user = await qplanner.get_claims_by(user.id, planner_channel_id)
+            tile_infos = await qplanner.get_planned_tiles(planner_channel_id,
+                                                          [claim["tile"] for claim in claimed_by_user])
+            claims_on_days = {}
+            for ti in tile_infos:
+                expire_in_day = get_ct_day_during(ti.claimed_at + timedelta(hours=ti.expires_in_hr))
+                if expire_in_day not in claims_on_days:
+                    claims_on_days[expire_in_day] = []
+                claims_on_days[expire_in_day].append(ti)
+
+            if tile_expire_day in claims_on_days and len(claims_on_days[tile_expire_day]) >= 4:
+                response = "You already have 4 tiles claimed _for that CT day._ You can't claim any more."
+            elif tile_status.claimed_by is None:
+                await qplanner.planner_claim_tile(user.id, tile, planner_channel_id)
+                response = f"You have claimed `{tile}`!\n*Select it again if you want to unclaim it.*"
+                refresh = True
 
         if refresh:
             await PlannerCog.check_has_tickets_role(user, planner_info)
@@ -847,20 +896,36 @@ class PlannerCog(ErrorHandlerCog):
         """
         await self.handle_tile_capture(tile, claim_channel, claimer, is_capture=False)
 
+    async def on_tile_started(self, tile: str, claim_channel: int, message: discord.Message) -> None:
+        """
+        Event fired when a tile gets called in a tracked channel.
+
+        :param tile: The ID of the tile.
+        :param claim_channel: The ID of the Ticket Tracker channel.
+        :param message: The message that was sent to start the tile.
+        """
+        if (planner_id := await qplanner.get_planner_linked_to(claim_channel)) is None:
+            return
+        msg, should_refresh = await self.switch_tile_claim(message.author, planner_id, tile, can_unclaim=False)
+        if should_refresh:
+            await self.send_planner_msg(planner_id)
+        if msg == resp_alr_claimed:
+            await message.add_reaction(WARN_ALREADY_CLAIMED)
+
     async def handle_tile_capture(self, tile: str, claim_channel: int, claimer: int, is_capture: bool = True) -> None:
-        planner_id = await bot.db.queries.planner.get_planner_linked_to(claim_channel)
+        planner_id = await qplanner.get_planner_linked_to(claim_channel)
         if planner_id is None:
             return
         if is_capture:
-            await bot.db.queries.planner.planner_unclaim_tile(tile, planner_id)
+            await qplanner.planner_unclaim_tile(tile, planner_id)
 
         # Create the "with tickets" role if it doesn't exist
-        planner = await bot.db.queries.planner.get_planner(planner_id)
+        planner = await qplanner.get_planner(planner_id)
         if not planner.ping_role_with_tickets:
             try:
                 new_ping_role = await self.create_ping_role(planner)
                 if new_ping_role:
-                    await bot.db.queries.planner.planner_update_config(
+                    await qplanner.planner_update_config(
                         planner.planner_channel,
                         ping_role_with_tickets=new_ping_role.id
                     )
@@ -871,23 +936,30 @@ class PlannerCog(ErrorHandlerCog):
             await self.check_has_tickets_role(channel.guild.get_member(claimer), planner)
 
         # Update planner if necessary
-        tile_list = await bot.db.queries.planner.get_planner_tracked_tiles(planner_id)
+        tile_list = await qplanner.get_planner_tracked_tiles(planner_id)
         if tile in tile_list:
-            self.banner_decays = await bot.db.queries.planner.get_tile_closest_to_expire(datetime.now())
+            self.banner_decays = await qplanner.get_tile_closest_to_expire(datetime.now())
             await self.send_planner_msg(planner_id)
 
-    @discord.app_commands.checks.has_permissions(manage_guild=True)
     async def edit_tile_time(self,
                              interaction: discord.Interaction,
                              planner_id: int,
                              tile: str,
                              new_time: datetime) -> None:
-        planner_info = await bot.db.queries.planner.get_planner(planner_id)
+        planner_info = await qplanner.get_planner(planner_id)
         if planner_info is None or planner_info.claims_channel is None:
             return
+
+        if not (interaction.user.guild_permissions.manage_guild or interaction.user.guild_permissions.administrator) \
+                and planner_info.team_role not in [rl.id for rl in interaction.user.roles]:
+            return await interaction.response.send_message(
+                content=f"You don't have the team role! Only <@&{planner_info.team_role}> members can edit the tile!",
+                ephemeral=True,
+            )
+
         claims_channel = planner_info.claims_channel
-        tracked_tile_list = await bot.db.queries.planner.get_planner_tracked_tiles(planner_id)
-        success = await bot.db.queries.planner.edit_tile_capture_time(
+        tracked_tile_list = await qplanner.get_planner_tracked_tiles(planner_id)
+        success = await qplanner.edit_tile_capture_time(
             claims_channel, tile, new_time - timedelta(days=1)
         )
         message = f"Got it! `{tile}` will decay at " \
@@ -906,15 +978,15 @@ class PlannerCog(ErrorHandlerCog):
         )
         await self.send_planner_msg(planner_id)
 
-        tile_status = await bot.db.queries.planner.planner_get_tile_status(tile, planner_id)
+        tile_status = await qplanner.planner_get_tile_status(tile, planner_id)
         if tile_status and tile_status.claimed_by:
             member = interaction.guild.get_member(tile_status.claimed_by)
             await self.check_has_tickets_role(member, planner_info)
-        self.banner_decays = await bot.db.queries.planner.get_tile_closest_to_expire(datetime.now())
+        self.banner_decays = await qplanner.get_tile_closest_to_expire(datetime.now())
 
     async def force_unclaim(self, interaction: discord.Interaction, planner_id: int, tile: str) -> None:
-        prev_status = await bot.db.queries.planner.planner_get_tile_status(tile, planner_id)
-        await bot.db.queries.planner.planner_unclaim_tile(tile, planner_id)
+        prev_status = await qplanner.planner_get_tile_status(tile, planner_id)
+        await qplanner.planner_unclaim_tile(tile, planner_id)
         await interaction.response.send_message(
             content=f"All done! `{tile}` is now unclaimed.",
             ephemeral=True
@@ -924,18 +996,18 @@ class PlannerCog(ErrorHandlerCog):
         if prev_status.claimed_by is None:
             return
         member = interaction.guild.get_member(prev_status.claimed_by)
-        planner = await bot.db.queries.planner.get_planner(planner_id)
+        planner = await qplanner.get_planner(planner_id)
         await self.check_has_tickets_role(member, planner)
 
     async def remove_planner_tile(self, interaction: discord.Interaction, planner_id: int, tile: str) -> None:
-        await bot.db.queries.planner.remove_tile_from_planner(planner_id, tile)
+        await qplanner.remove_tile_from_planner(planner_id, tile)
         overwrite_id = bot.utils.discordutils.get_slash_command_id(self.bot, "planner")
         await interaction.response.send_message(
             content=f"All done! `{tile}` will no longer appear in the planner.\n"
                     f"*Need to remove lots of tiles? Try using </planner overwrite:{overwrite_id}> instead!*",
             ephemeral=True
         )
-        self.banner_decays = await bot.db.queries.planner.get_tile_closest_to_expire(datetime.now())
+        self.banner_decays = await qplanner.get_tile_closest_to_expire(datetime.now())
         await self.send_planner_msg(planner_id)
 
     async def add_planner_tile(self,
@@ -943,7 +1015,7 @@ class PlannerCog(ErrorHandlerCog):
                                planner_id: int,
                                tile: str,
                                recap_after: int) -> None:
-        await bot.db.queries.planner.add_tile_to_planner(planner_id, tile, recap_after)
+        await qplanner.add_tile_to_planner(planner_id, tile, recap_after)
         overwrite_id = bot.utils.discordutils.get_slash_command_id(self.bot, "planner")
         await interaction.response.send_message(
             content=f"All done! `{tile}` will appear in the planner. If it doesn't appear, it's because it hasn't "
@@ -951,7 +1023,7 @@ class PlannerCog(ErrorHandlerCog):
                     f"*Need to add lots of tiles? Try using </planner overwrite:{overwrite_id}> instead!*",
             ephemeral=True
         )
-        self.banner_decays = await bot.db.queries.planner.get_tile_closest_to_expire(datetime.now())
+        self.banner_decays = await qplanner.get_tile_closest_to_expire(datetime.now())
         await self.send_planner_msg(planner_id)
 
     async def create_ping_role(self, planner: bot.db.model.Planner.Planner) -> discord.Role or None:
@@ -966,7 +1038,7 @@ class PlannerCog(ErrorHandlerCog):
             try:
                 channel = await self.bot.fetch_channel(planner.planner_channel)
             except (discord.NotFound, discord.Forbidden):
-                await bot.db.queries.planner.del_planner(planner.planner_channel)
+                await qplanner.del_planner(planner.planner_channel)
                 return None
 
         team_role = discord.utils.get(channel.guild.roles, id=planner.ping_role)
@@ -997,20 +1069,20 @@ class PlannerCog(ErrorHandlerCog):
             return
         ping_role = member.guild.get_role(planner.ping_role_with_tickets)
         if ping_role is None:
-            await bot.db.queries.planner.planner_delete_config(planner.planner_channel, ping_role_with_tickets=True)
+            await qplanner.planner_delete_config(planner.planner_channel, ping_role_with_tickets=True)
             return
 
-        today_ticket_idx = min(bot.utils.bloons.get_current_ct_day() - 1, 6)
+        today_ticket_idx = min(get_current_ct_day() - 1, 6)
         tickets_used = len(
             (await bot.db.queries.tickets.get_tickets_from(member.id, planner.claims_channel))[today_ticket_idx]
         )
 
-        member_claims = await bot.db.queries.planner.get_claims_by(member.id, planner.planner_channel)
+        member_claims = await qplanner.get_claims_by(member.id, planner.planner_channel)
         tile_codes = [claim["tile"] for claim in member_claims]
-        tile_infos = await bot.db.queries.planner.get_planned_tiles(planner.planner_channel, tile_codes)
-        today = bot.utils.bloons.get_current_ct_day()
+        tile_infos = await qplanner.get_planned_tiles(planner.planner_channel, tile_codes)
+        today = get_current_ct_day()
         for ti in tile_infos:
-            expire_in_day = bot.utils.bloons.get_ct_day_during(ti.claimed_at + timedelta(hours=ti.expires_in_hr))
+            expire_in_day = get_ct_day_during(ti.claimed_at + timedelta(hours=ti.expires_in_hr))
             if expire_in_day == today:
                 tickets_used += 1
 

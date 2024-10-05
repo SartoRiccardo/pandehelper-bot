@@ -1,13 +1,12 @@
 import string
 import discord
-import asyncio
-import bot.utils.io
+from typing import Any
 from discord.ext import commands, tasks
 from datetime import datetime, timedelta
-from bot.classes import ErrorHandlerCog
+from .CogBase import CogBase
 
 
-class WelcomeCog(ErrorHandlerCog):
+class WelcomeCog(CogBase):
     has_help_msg = False
     help_descriptions = {
         None: "Manages private channels for recruitment purposes. Has no commands."
@@ -25,31 +24,26 @@ class WelcomeCog(ErrorHandlerCog):
         self.waiting_rooms: dict[int, datetime] = {}
 
     async def cog_load(self) -> None:
-        await self.load_state()
+        await super().cog_load()
         self.check_inactive_rooms.start()
 
-    def cog_unload(self) -> None:
+    async def cog_unload(self) -> None:
+        await super().cog_unload()
         self.check_inactive_rooms.cancel()
 
-    async def load_state(self) -> None:
-        state = await asyncio.to_thread(bot.utils.io.get_cog_state, "welcome")
-        if state is None:
-            return
-
-        data = state["data"]
-        if "waiting_rooms" in data:
+    async def parse_state(self, saved_at: datetime, state: dict[str, Any]) -> None:
+        if "waiting_rooms" in state:
             self.waiting_rooms = {}
-            for wr in data["waiting_rooms"]:
+            for wr in state["waiting_rooms"]:
                 self.waiting_rooms[wr["uid"]] = datetime.fromtimestamp(wr["expire"])
 
-    async def save_state(self) -> None:
-        data = {
+    async def serialize_state(self) -> dict[str, Any]:
+        return {
             "waiting_rooms": [
                 {"uid": uid, "expire": self.waiting_rooms[uid].timestamp()}
                 for uid in self.waiting_rooms
             ],
         }
-        await asyncio.to_thread(bot.utils.io.save_cog_state, "welcome", data)
 
     @tasks.loop(seconds=10)
     async def check_inactive_rooms(self) -> None:
@@ -83,7 +77,7 @@ class WelcomeCog(ErrorHandlerCog):
         member = message.author
         if member.id in self.waiting_rooms and message.channel.topic == str(member.id):
             self.waiting_rooms[member.id] = datetime.now() + timedelta(seconds=self.VISITOR_AFTER)
-            await self.save_state()
+            await self._save_state()
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member) -> None:
@@ -121,7 +115,7 @@ class WelcomeCog(ErrorHandlerCog):
         )
         self.waiting_rooms[member.id] = datetime.now() + timedelta(seconds=self.VISITOR_AFTER)
         await new_ch.send(self.WELCOME_MSG.format(member.id))
-        await self.save_state()
+        await self._save_state()
 
     async def remove_waiting_room(self, member: discord.Member | discord.User, guild_id: int = None) -> None:
         if member.guild.id != self.PANDEMONIUM_GID:
@@ -142,7 +136,7 @@ class WelcomeCog(ErrorHandlerCog):
                 await channel.delete()
                 if member.id in self.waiting_rooms:
                     del self.waiting_rooms[member.id]
-                    await self.save_state()
+                    await self._save_state()
                 return
 
     async def get_guild(self, guild_id: int) -> discord.Guild:

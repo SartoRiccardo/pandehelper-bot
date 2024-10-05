@@ -227,10 +227,7 @@ class PlannerAdminView(discord.ui.View):
 
     async def switch_planner(self, interaction: discord.Interaction, new_active: bool) -> None:
         await bot.db.queries.planner.turn_planner(self.planner_id, new_active)
-        await interaction.response.send_message(
-            content=f"The planner has been turned {'on' if new_active else 'off'}!",
-            ephemeral=True
-        )
+        await interaction.response.defer(thinking=False)
         await self.refresh_planner(self.planner_id)
 
     async def clear_planner(self, interaction: discord.Interaction):
