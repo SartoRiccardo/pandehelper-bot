@@ -83,7 +83,7 @@ async def relic_to_tile_code(relic: str) -> str or None:
         'DurableShots': ['dshots', 'durableshots', 'durable_shots'],
         'ExtraEmpowered': ['eemp', 'extraemp', 'extra_empowered'],
         'FlintTips': ['flinttips', 'flint_tips', "flint", "ft"],
-        'Camoflogged': ['flogged', 'cflogged', 'camo_flogged'],
+        'CamoFlogged': ['flogged', 'cflogged', 'camoflogged', 'camo_flogged', 'cf', 'flog'],
         'Fortifried': ['fried', 'ffried', 'fortifried'],
         'GoingTheDistance': ['goingthedistance', 'gtd'],
         'GlueTrap': ['gtrap', 'glue', 'gluetrap', 'glue_trap'],
