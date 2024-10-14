@@ -138,6 +138,7 @@ async def get_tile_closest_to_expire(from_date: datetime.datetime,
     latest_expire = f"""
         SELECT channel, tile, MAX(claimed_at) as claimed_at
         FROM claims
+        WHERE claimed_at IS NOT NULL
         GROUP BY (channel, tile)
     """
 

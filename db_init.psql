@@ -3,7 +3,8 @@ CREATE TABLE IF NOT EXISTS claims (
     tile VARCHAR(3) NOT NULL,
     channel BIGINT NOT NULL,
     message BIGINT NOT NULL,
-    claimed_at TIMESTAMP NOT NULL,
+    claimed_at TIMESTAMP,
+    called_at TIMESTAMP DEFAULT NOW(),
     PRIMARY KEY (message)
 );
 

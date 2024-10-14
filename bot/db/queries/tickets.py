@@ -87,21 +87,98 @@ async def is_channel_tracked(channel_id: int, conn=None) -> bool:
 
 
 @postgres
-async def capture(channel: int, user: int, tile: str, message: int, conn=None) -> None:
-    await conn.execute("""
-            INSERT INTO claims (userid, tile, channel, message, claimed_at) VALUES ($1, $2, $3, $4, $5)
-                ON CONFLICT DO NOTHING
-        """, user, tile, channel, message, datetime.datetime.now())
+async def call_tile(
+        channel: int,
+        tile: str,
+        message: int,
+        user: int = None,
+        edit: bool = False,
+        conn=None
+) -> None:
+    if not edit:
+        await conn.execute(
+            """
+            INSERT INTO claims (userid, tile, channel, message)
+            VALUES ($1, $2, $3, $4)
+            """,
+            user, tile, channel, message,
+        )
+    else:
+        await conn.execute(
+            """
+            UPDATE claims
+            SET tile=$1
+            WHERE claimed_at IS NULL
+                AND message = $2
+            """,
+            tile, message,
+        )
+
+
+@postgres
+async def is_tile_called(
+        channel: int,
+        tile: str,
+        ignore_user: int,
+        minutes_back: int = 90,
+        conn=None
+) -> bool:
+    result = await conn.fetchrow(
+        """
+        SELECT COUNT(*) > 0 AS is_called
+        FROM claims
+        WHERE channel = $1
+            AND tile = $2
+            AND claimed_at IS NULL
+            AND userid != $4
+            AND called_at >= CURRENT_TIMESTAMP - $3 * INTERVAL '1 minute'
+        """,
+        channel, tile, minutes_back, ignore_user,
+    )
+    return result["is_called"]
+
+
+@postgres
+async def delete_claim(message: int, conn=None) -> None:
+    await conn.execute(
+        """
+        DELETE FROM claims
+        WHERE message = $1
+        """,
+        message,
+    )
+
+
+@postgres
+async def capture(message: int, conn=None) -> None:
+    await conn.execute(
+        """
+        UPDATE claims
+        SET claimed_at = NOW()
+        WHERE message = $1
+        """,
+        message,
+    )
 
 
 @postgres
 async def uncapture(message: int, conn=None) -> None:
-    await conn.execute("DELETE FROM claims WHERE message=$1", message)
+    await conn.execute(
+        """
+        UPDATE claims
+        SET claimed_at = NULL
+        WHERE message = $1
+        """,
+        message,
+    )
 
 
 @postgres
 async def get_capture_by_message(message: int, conn=None) -> TileCapture or None:
-    payload = await conn.fetch("SELECT * FROM claims WHERE message=$1", message)
+    payload = await conn.fetch(
+        """SELECT * FROM claims WHERE message=$1""",
+        message,
+    )
     if len(payload) == 0:
         return None
 

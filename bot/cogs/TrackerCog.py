@@ -200,15 +200,26 @@ class TrackerCog(CogBase):
 
         asyncio.create_task(self.bot.signal("on_tile_started", tile, message.channel.id, message))
 
-        time_check = discord.utils.utcnow()-timedelta(hours=1, minutes=30)
-        async for msg in message.channel.history(after=time_check, oldest_first=False):
-            if (msg != message and
-                    msg.author != message.author and
-                    (match := re.search(tile_re, msg.content)) is not None and
-                    match.group(1).upper() == tile and
-                    await qtickets.get_capture_by_message(msg.id) is None):
-                await message.add_reaction(WARN_ALREADY_CLAIMED)
-                break
+        if await qtickets.is_tile_called(message.channel.id, tile, message.author.id+1):
+            await message.add_reaction(WARN_ALREADY_CLAIMED)
+
+        await qtickets.call_tile(message.channel.id, tile, message.id, user=message.author.id)
+
+    @commands.Cog.listener()
+    async def on_raw_message_delete(self, payload: discord.RawMessageDeleteEvent) -> None:
+        await qtickets.delete_claim(payload.message_id)
+
+    @commands.Cog.listener()
+    async def on_raw_message_edit(self, payload: discord.RawMessageUpdateEvent) -> None:
+        if not await qtickets.get_capture_by_message(payload.message_id):
+            return
+
+        channel = self.bot.get_channel(payload.channel_id)
+        message = await channel.fetch_message(payload.message_id)
+        if (match := re.search(tile_re, message.content)) is None:
+            await qtickets.delete_claim(payload.message_id)
+        tile = match.group(1).upper()
+        await qtickets.call_tile(payload.channel_id, tile, payload.message_id, edit=True)
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent) -> None:
@@ -225,7 +236,7 @@ class TrackerCog(CogBase):
         if not await is_tile_code_valid(tile):
             return
 
-        await qtickets.capture(payload.channel_id, message.author.id, tile, payload.message_id)
+        await qtickets.capture(payload.message_id)
         await self.bot.signal("on_tile_captured", tile, payload.channel_id, message.author.id)
 
     @commands.Cog.listener()
