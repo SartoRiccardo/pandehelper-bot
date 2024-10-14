@@ -25,6 +25,7 @@ from bot.utils.images import IMG_LEAST_CASH, IMG_LEAST_TIERS, IMG_BLOONARIUS, IM
     IMG_DREADBLOON, IMG_PHAYZE
 import re
 from bot.exceptions import TilestratForumNotFound, NotACommunity
+from config import BOT_COLOR
 
 
 thread_init_message = f"""
@@ -272,7 +273,7 @@ class TilestratCog(CogBase):
         embed = discord.Embed(
             title=f"{interaction.guild.name} Tile Strats (Season #{season})",
             description=f"__**STRATS LOGGED: {len(logged_tiles)/len(tiles)*100:.1f}%**__",
-            color=discord.Color.orange(),
+            color=BOT_COLOR,
         )
         embed.add_field(name="Banners",
                         value=self.get_stat_field(logged_count["Banner"], logged_total["Banner"]),
@@ -438,7 +439,7 @@ class TilestratCog(CogBase):
 
         embed_template = discord.Embed(
             title=thread.name,
-            color=discord.Color.orange(),
+            color=BOT_COLOR,
             url=TilestratCog.get_channel_url(thread),
         )
         if len(thumb_url) > 0:

@@ -29,6 +29,7 @@ from bot.utils.images import (
     IMG_LEAST_TIERS,
     IMG_TIME_ATTACK,
 )
+from config import BOT_COLOR
 
 
 EVENT_EPOCHS = [
@@ -269,7 +270,7 @@ async def raw_challenge_to_embed(challenge) -> discord.Embed or None:
     embed = discord.Embed(
         title=title,
         description=description,
-        color=discord.Color.orange(),
+        color=BOT_COLOR,
     )
 
     embed.set_author(

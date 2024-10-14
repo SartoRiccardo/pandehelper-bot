@@ -1,4 +1,3 @@
-import asyncio
 import datetime
 import bot.utils.io
 import bot.utils.bloons
@@ -6,6 +5,7 @@ import bot.utils.discordutils
 import discord
 from discord.ext import commands, tasks
 from .CogBase import CogBase
+from config import BOT_COLOR
 
 
 class UtilsCog(CogBase):
@@ -266,7 +266,7 @@ class UtilsCog(CogBase):
                         "Found a bug? Yell at the maintainer or make "
                         "[an issue on Github](https://github.com/SartoRiccardo/pandehelper-bot/issues)\n\n"
                         f"*Coded & maintained by __Chime__ (@chimenea.mo) <:chimichanga:1147529275499614288>*",
-            color=discord.Color.orange()
+            color=BOT_COLOR,
         )
         await interaction.response.send_message(embed=embed)
 

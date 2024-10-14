@@ -7,8 +7,8 @@ import bot.db.queries.tickets
 from bot.utils.bloons import get_ct_number_during
 from bot.utils.bloonsdata import is_tile_code_valid
 from .CogBase import CogBase
-from datetime import timedelta
 from bot.utils.emojis import WARN_ALREADY_CLAIMED
+from config import BOT_COLOR
 
 qtickets = bot.db.queries.tickets
 tracked_emojis = ["🟩", "👌", "🟢", "✅", "👍"]
@@ -119,7 +119,7 @@ class TrackerCog(CogBase):
 
         embed = discord.Embed(
             title=f"{member.display_name}'s Tickets (CT {season})",
-            color=discord.Color.orange()
+            color=BOT_COLOR,
         )
         embed.set_thumbnail(url=member.display_avatar.url)
 
@@ -187,7 +187,7 @@ class TrackerCog(CogBase):
             embed=discord.Embed(
                 title=f"{tile} Capture History (CT {season})",
                 description=content,
-                color=discord.Color.orange(),
+                color=BOT_COLOR,
             ),
         )
 

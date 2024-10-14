@@ -8,6 +8,8 @@ DB_NAME = "ct_ticket_tracker"
 
 DATA_PATH = "~"
 
+BOT_COLOR = 0xb71c1c
+
 # Guild with emote perms for the bot and all 100 emote slots free. Needed for the leaderboard cog.
 # Leave blank if you don't care about the leaderboard having team icon emotes.
 EMOTE_GUILD_ID = None
