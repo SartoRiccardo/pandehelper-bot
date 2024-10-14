@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.1 - 2024-10-15
+
+### Changed
+- The bot now tracks all messages containing a tile claim in a tracked channel, to prevent making too many API calls when checking if someone else is already doing a specific tile
+- Bot default color changed to #0xff1744
+
 ## 1.9.0 - 2024-10-04
 
 ### Added
