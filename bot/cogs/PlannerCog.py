@@ -933,7 +933,10 @@ class PlannerCog(CogBase):
                 pass
         else:
             channel = self.bot.get_channel(claim_channel)
-            await self.check_has_tickets_role(channel.guild.get_member(claimer), planner)
+            member = channel.guild.get_member(claimer)
+            if member is None:
+                member = await channel.guild.fetch_member(claimer)
+            await self.check_has_tickets_role(member, planner)
 
         # Update planner if necessary
         tile_list = await qplanner.get_planner_tracked_tiles(planner_id)
