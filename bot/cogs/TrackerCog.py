@@ -252,7 +252,8 @@ class TrackerCog(CogBase):
                 return
         capture = await qtickets.get_capture_by_message(payload.message_id)
         await qtickets.uncapture(payload.message_id)
-        await self.bot.signal("on_tile_uncaptured", capture.tile, capture.channel_id, capture.user_id)
+        if capture is not None:
+            await self.bot.signal("on_tile_uncaptured", capture.tile, capture.channel_id, capture.user_id)
 
 
 async def setup(bot: commands.Bot) -> None:
