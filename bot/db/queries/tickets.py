@@ -150,15 +150,30 @@ async def delete_claim(message: int, conn=None) -> None:
 
 
 @postgres
-async def capture(message: int, conn=None) -> None:
-    await conn.execute(
-        """
-        UPDATE claims
-        SET claimed_at = NOW()
-        WHERE message = $1
-        """,
-        message,
-    )
+async def capture(
+        message: int,
+        channel: int = None,
+        tile: str = None,
+        user: int = None,
+        conn=None
+) -> None:
+    if channel and tile and user:
+        await conn.execute(
+            """
+            INSERT INTO claims (userid, tile, channel, message, claimed_at)
+            VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+            """,
+            user, tile, channel, message,
+        )
+    else:
+        await conn.execute(
+            """
+            UPDATE claims
+            SET claimed_at = NOW()
+            WHERE message = $1
+            """,
+            message,
+        )
 
 
 @postgres

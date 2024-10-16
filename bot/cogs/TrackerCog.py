@@ -200,7 +200,7 @@ class TrackerCog(CogBase):
 
         asyncio.create_task(self.bot.signal("on_tile_started", tile, message.channel.id, message))
 
-        if await qtickets.is_tile_called(message.channel.id, tile, message.author.id+1):
+        if await qtickets.is_tile_called(message.channel.id, tile, message.author.id):
             await message.add_reaction(WARN_ALREADY_CLAIMED)
 
         await qtickets.call_tile(message.channel.id, tile, message.id, user=message.author.id)
@@ -227,17 +227,21 @@ class TrackerCog(CogBase):
                 payload.channel_id not in (await qtickets.tracked_channels()):
             return
 
-        channel = self.bot.get_channel(payload.channel_id)
-        message = await channel.fetch_message(payload.message_id)
-        if (match := re.search(tile_re, message.content)) is None:
-            return
+        if claim := await qtickets.get_capture_by_message(payload.message_id):
+            await qtickets.capture(payload.message_id)
+            tile = claim.tile
+        else:
+            channel = self.bot.get_channel(payload.channel_id)
+            message = await channel.fetch_message(payload.message_id)
+            if (match := re.search(tile_re, message.content)) is None:
+                return
 
-        tile = match.group(1).upper()
-        if not await is_tile_code_valid(tile):
-            return
+            tile = match.group(1).upper()
+            if not await is_tile_code_valid(tile):
+                return
+            await qtickets.capture(payload.message_id, tile=tile, user=payload.user_id, channel=payload.channel_id)
 
-        await qtickets.capture(payload.message_id)
-        await self.bot.signal("on_tile_captured", tile, payload.channel_id, message.author.id)
+        await self.bot.signal("on_tile_captured", tile, payload.channel_id, payload.user_id)
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent) -> None:
