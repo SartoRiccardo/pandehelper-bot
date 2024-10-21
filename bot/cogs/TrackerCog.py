@@ -218,6 +218,7 @@ class TrackerCog(CogBase):
         message = await channel.fetch_message(payload.message_id)
         if (match := re.search(tile_re, message.content)) is None:
             await qtickets.delete_claim(payload.message_id)
+            return
         tile = match.group(1).upper()
         await qtickets.call_tile(payload.channel_id, tile, payload.message_id, edit=True)
 
