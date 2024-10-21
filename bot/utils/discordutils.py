@@ -7,6 +7,7 @@ import io
 import traceback
 from datetime import datetime, timedelta
 from discord.ext import commands
+import discord.errors
 
 
 async def update_messages(
@@ -152,6 +153,8 @@ async def handle_error(
     if error_type == discord.app_commands.errors.MissingPermissions:
         content = "You don't have the perms to execute this command. Sorry!\n" \
                   f"*Needs permissions: {', '.join(thrown_error.missing_permissions)}*"
+    elif error_type == discord.errors.Forbidden:
+        content = "It seems like I'm missing some permissions on this server and can't execute this command properly!"
     elif hasattr(thrown_error, "formatted_exc"):
         content = thrown_error.formatted_exc()
         print(error)
