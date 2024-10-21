@@ -631,7 +631,7 @@ class PlannerCog(CogBase):
         if planner.ping_role:
             ping_role_msg = f"<@&{planner.ping_role}>"
             if planner.ping_role_with_tickets:
-                ping_role_msg += f"\n - Team Role (with tickets): <@&{planner.ping_role_with_tickets}>"
+                ping_role_msg += f"\n  - Team Role (with tickets): <@&{planner.ping_role_with_tickets}>"
 
         admin_panel = PLANNER_ADMIN_PANEL
         if cmd := await self.bot.get_app_command("planner"):
