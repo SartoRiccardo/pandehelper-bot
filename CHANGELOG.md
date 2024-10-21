@@ -2,10 +2,10 @@
 
 ## 1.9.2 - 2024-10-21
 
-## Changed
+### Changed
 - The bot now has a custom error message when it doesn't have the permissions to execute something
 
-## Fixed
+### Fixed
 - The bot no longer throws an error when, after editing a message that previously had a tile code, the new message doesn't have one
 - "has tickets" role in the planner should be correctly indented
 
