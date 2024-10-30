@@ -1,5 +1,4 @@
 from typing import Any
-
 import PIL
 from PIL import Image
 import aiofiles

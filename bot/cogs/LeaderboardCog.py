@@ -284,18 +284,18 @@ class LeaderboardCog(CogBase):
         tmp_path = os.path.join(DATA_PATH, "tmp")
         frames, icons = [], []
         for frame, icon in to_make:
-            if frame not in frames and not os.path.exists(os.path.join(tmp_path, frame.name)):
+            if frame not in frames and not os.path.exists(os.path.join(tmp_path, f"{frame.name}.png")):
                 frames.append(frame)
-            if icon not in icons and not os.path.exists(os.path.join(tmp_path, icon.name)):
+            if icon not in icons and not os.path.exists(os.path.join(tmp_path, f"{icon.name}.png")):
                 icons.append(icon)
         
         await bot.utils.discordutils.download_files(
             [f.url for f in frames],
-            [os.path.join(tmp_path, f.name) for f in frames]
+            [os.path.join(tmp_path, f"{f.name}.png") for f in frames]
         )
         await bot.utils.discordutils.download_files(
             [i.url for i in icons],
-            [os.path.join(tmp_path, i.name) for i in icons]
+            [os.path.join(tmp_path, f"{i.name}.png") for i in icons]
         )
     
     @staticmethod
