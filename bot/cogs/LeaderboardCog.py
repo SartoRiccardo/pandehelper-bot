@@ -52,7 +52,7 @@ class LeaderboardCog(CogBase):
         self.track_leaderboard.start()
 
     async def cog_unload(self) -> None:
-        await super().cog_load()
+        await super().cog_unload()
         self.track_leaderboard.cancel()
 
     async def serialize_state(self) -> dict[str, Any]:
@@ -149,9 +149,14 @@ class LeaderboardCog(CogBase):
         team_icon_emotes = {}
         if EMOTE_GUILD_ID:
             emote_guild = self.bot.get_guild(EMOTE_GUILD_ID)
+            if emote_guild is None:
+                emote_guild = await self.bot.fetch_guild(EMOTE_GUILD_ID)
             try:
-                team_icon_emotes = await asyncio.wait_for(self.load_team_icon_emotes(emote_guild, leaderboard), timeout=7*60)
-            except asyncio.TimeoutError:
+                team_icon_emotes = await asyncio.wait_for(
+                    self.load_team_icon_emotes(emote_guild, leaderboard),
+                    timeout=7*60
+                )
+            except TimeoutError:
                 pass  # If the task takes longer than 7 minutes it probably hit rate limit on the create emoji endpoint.
         
         message_full = msg_header
@@ -182,7 +187,7 @@ class LeaderboardCog(CogBase):
         self.last_hour_score = current_hour_score
         await self._save_state()
 
-        # Misc addendums to the leaderboard
+        # Misc addenda to the leaderboard
         top_1_percent_message = ""
         if current_event.total_scores_team > 10100:
             award_word = "Awarded" if should_skip_eco else "Awardable"
