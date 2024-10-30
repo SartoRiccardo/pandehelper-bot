@@ -395,7 +395,7 @@ class PlannerCog(CogBase):
             return
         self.current_event = current_event
 
-        evt_tiles = await asyncio.to_thread(current_event.tiles)
+        evt_tiles = await current_event.tiles()
         banners = [
             tile.id for tile in evt_tiles
             if tile.tile_type == btd6.CtTileType.BANNER

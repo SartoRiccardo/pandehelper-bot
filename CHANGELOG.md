@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.9.3 - 2024-10-30
+
+### Fixed
+- Planner should correctly inject new banners on CT start
+
 ## 1.9.2 - 2024-10-21
 
 ### Changed
