@@ -4,6 +4,7 @@
 
 ### Fixed
 - Planner should correctly inject new banners on CT start
+- Leaderboard emoji making works more reliably
 
 ## 1.9.2 - 2024-10-21
 

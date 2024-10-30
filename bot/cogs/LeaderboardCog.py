@@ -307,13 +307,18 @@ class LeaderboardCog(CogBase):
             animated: bool
     ) -> str:
         tmp_path = os.path.join(DATA_PATH, "tmp")
-        frame_path = os.path.join(tmp_path, frame.name)
-        icon_path = os.path.join(tmp_path, icon.name)
+        frame_path = os.path.join(tmp_path, frame.name) + ".png"
+        icon_path = os.path.join(tmp_path, icon.name) + ".png"
         if not os.path.exists(frame_path) or not os.path.exists(icon_path):
             return BLANK
         merged_path = os.path.join(tmp_path, f"{emote_name}.{'gif' if animated else 'png'}")
         
-        await asyncio.to_thread(bot.utils.io.merge_images, frame_path, icon_path, merged_path, animated)
+        success = await asyncio.to_thread(bot.utils.io.merge_images, frame_path, icon_path, merged_path, animated)
+        if not success:
+            os.remove(frame_path)
+            os.remove(icon_path)
+            return BLANK
+
         async with aiofiles.open(merged_path, "rb") as fin:
             image = await fin.read()
         # Be careful with this joint the rate limit is super low and
