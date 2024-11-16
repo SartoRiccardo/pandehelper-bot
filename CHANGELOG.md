@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.9.4 - 2024-11-16
+
+### Fixed
+- Bumped `bloonspy` version as to not get blocked by the NinjaKiwi API
+
 ## 1.9.3 - 2024-10-30
 
 ### Fixed
