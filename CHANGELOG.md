@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.5 - 2024-11-17
+
+## Fixed
+- Planner reminder tasks shouldn't crash if the bot doesn't have access to a single channel.
+- Planner decay ping shouldn't crash if the bot doesn't have access to a single channel.
+- Tilestrat thread cleanup doesn't fail if it can't delete a single thread
+
 ## 1.9.4 - 2024-11-16
 
 ### Fixed

@@ -117,7 +117,10 @@ class TilestratCog(CogBase):
                 except discord.NotFound:
                     thread = None
             if thread is not None:
-                await thread.delete()
+                try:
+                    await thread.delete()
+                except discord.Forbidden:
+                    pass
             to_delete.append(thr_id)
 
         for thr_id in to_delete:

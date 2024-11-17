@@ -224,11 +224,13 @@ class PlannerCog(CogBase):
 
         return pings
 
-    async def send_reminder(self,
-                            pings: dict[int or None, list[str]],
-                            planner_id: int,
-                            ping_channel_id: int,
-                            ping_role: int) -> None:
+    async def send_reminder(
+            self,
+            pings: dict[int or None, list[str]],
+            planner_id: int,
+            ping_channel_id: int,
+            ping_role: int,
+    ) -> None:
         message = "**Tiles that will expire soon:**\n"
         pinged_someone = False
         for uid in pings:
@@ -268,11 +270,12 @@ class PlannerCog(CogBase):
             except (discord.NotFound, discord.Forbidden):
                 await qplanner.planner_delete_config(planner_id, ping_channel=True)
                 await self.send_planner_msg(planner_id)
-                return None
+                return
 
-        await ping_channel.send(
-            content=message
-        )
+        try:
+            await ping_channel.send(content=message)
+        except discord.Forbidden:
+            await qplanner.planner_delete_config(planner_id, ping_channel=True)
 
     @tasks.loop(seconds=5)
     async def check_decay(self) -> None:
@@ -321,8 +324,14 @@ class PlannerCog(CogBase):
         # if now < tile_data.expires_at:
         #     await asyncio.sleep((tile_data.expires_at-now).total_seconds())
 
-        await self.send_decay_ping(tile.planner_channel, tile_data.ping_channel,
-                                   tile.tile, tile_data.claimed_by, ping_role)
+        if tile_data.ping_channel is not None:
+            await self.send_decay_ping(
+                tile.planner_channel,
+                tile_data.ping_channel,
+                tile.tile,
+                tile_data.claimed_by,
+                ping_role,
+            )
 
     async def send_decay_ping(self,
                               planner_id: int,
