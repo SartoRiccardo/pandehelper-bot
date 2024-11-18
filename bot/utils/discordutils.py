@@ -81,7 +81,7 @@ async def update_messages(
     coros = []
     for msg in bot_messages:
         coros.append(msg.delete())
-    await asyncio.gather(*coros)
+    await asyncio.gather(*coros, return_exceptions=True)
 
     for msg, view in content:
         await channel.send(

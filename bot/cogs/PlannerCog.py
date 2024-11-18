@@ -268,14 +268,14 @@ class PlannerCog(CogBase):
             try:
                 ping_channel = await self.bot.fetch_channel(ping_channel_id)
             except (discord.NotFound, discord.Forbidden):
-                await qplanner.planner_delete_config(planner_id, ping_channel=True)
+                await qplanner.planner_delete_config(planner_id, ping_ch=True)
                 await self.send_planner_msg(planner_id)
                 return
 
         try:
             await ping_channel.send(content=message)
         except discord.Forbidden:
-            await qplanner.planner_delete_config(planner_id, ping_channel=True)
+            await qplanner.planner_delete_config(planner_id, ping_ch=True)
 
     @tasks.loop(seconds=5)
     async def check_decay(self) -> None:
@@ -344,7 +344,7 @@ class PlannerCog(CogBase):
             try:
                 ping_channel = await self.bot.fetch_channel(ping_channel_id)
             except (discord.NotFound, discord.Forbidden):
-                await qplanner.planner_delete_config(planner_id, ping_channel=True)
+                await qplanner.planner_delete_config(planner_id, ping_ch=True)
                 await self.send_planner_msg(planner_id)
                 return None
 
@@ -357,9 +357,10 @@ class PlannerCog(CogBase):
             message += " @here"
         message += "!"
 
-        await ping_channel.send(
-            content=message
-        )
+        try:
+            await ping_channel.send(content=message)
+        except discord.Forbidden:
+            await qplanner.planner_delete_config(planner_id, ping_ch=True)
 
     @tasks.loop(seconds=30)
     async def check_planner_refresh(self) -> None:
