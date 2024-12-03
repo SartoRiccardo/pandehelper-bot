@@ -265,7 +265,8 @@ class UtilsCog(CogBase):
                         "More information and help at [pandehelper.sarto.dev](https://pandehelper.sarto.dev)\n"
                         "Found a bug? Yell at the maintainer or make "
                         "[an issue on Github](https://github.com/SartoRiccardo/pandehelper-bot/issues)\n\n"
-                        f"*Coded & maintained by __Chime__ (@chimenea.mo) <:chimichanga:1147529275499614288>*",
+                        f"*Coded & maintained by __Chime__ (@chimenea.mo) <:chimichanga:1147529275499614288>* · "
+                        f"[Privacy Policy](https://pandehelper.sarto.dev/privacy-policy)",
             color=BOT_COLOR,
         )
         await interaction.response.send_message(embed=embed)
