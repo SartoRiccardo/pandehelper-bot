@@ -208,7 +208,7 @@ async def get_tile_claims(tile: str, channel: int, event: int = 0, conn=None) ->
     else:
         event_start, event_end = bloons.get_ct_period_during(event=event)
     tiles = await conn.fetch("""
-        SELECT * FROM CLAIMS
+        SELECT * FROM claims
         WHERE channel=$1
           AND tile=$2
           AND claimed_at >= $3
@@ -216,3 +216,14 @@ async def get_tile_claims(tile: str, channel: int, event: int = 0, conn=None) ->
         ORDER BY claimed_at ASC
     """, channel, tile, event_start, event_end)
     return [TileCapture(r["userid"], tile, channel, r["message"], r["claimed_at"]) for r in tiles]
+
+
+@postgres
+async def purge_old_tickets(conn=None) -> None:
+    await conn.execute(
+        """
+        UPDATE claims
+        SET tile='???'
+        WHERE called_at <= NOW() - MAKE_INTERVAL(days => 60)
+        """
+    )

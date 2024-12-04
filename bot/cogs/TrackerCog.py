@@ -1,7 +1,7 @@
 import asyncio
 import datetime
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import re
 import bot.db.queries.tickets
 from bot.utils.bloons import get_ct_number_during
@@ -37,6 +37,14 @@ class TrackerCog(CogBase):
 
     def __init__(self, bot: commands.Bot) -> None:
         super().__init__(bot)
+
+    async def cog_load(self) -> None:
+        await super().cog_load()
+        self.task_purge_user_data.start()
+
+    @tasks.loop(seconds=3600 * 24)
+    async def task_purge_user_data(self) -> None:
+        await qtickets.purge_old_tickets()
 
     @tickets_group.command(name="track", description="Track a channel.")
     @discord.app_commands.describe(channel="The channel to start tracking.")
