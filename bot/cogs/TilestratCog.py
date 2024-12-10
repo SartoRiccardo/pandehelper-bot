@@ -204,6 +204,8 @@ class TilestratCog(CogBase):
                 boss_name = "Dreadbloon"
             elif tile_data['bossData']['bossBloon'] == 4:
                 boss_name = "Phayze"
+            elif tile_data['bossData']['bossBloon'] == 5:
+                boss_name = "Blastapopoulos"
             boss_name_tag = discord.utils.get(forum_channel.available_tags, name=boss_name)
             if boss_name_tag is None:
                 boss_name_tag = await forum_channel.create_tag(name=boss_name)
@@ -401,7 +403,7 @@ class TilestratCog(CogBase):
             event_num: int
     ) -> list[discord.Embed]:
         int_to_tile_type = {8: "Least Cash", 2: "Race", 9: "Least Tiers"}
-        int_to_boss = {0: "Bloonarius", 1: "Lych", 2: "Vortex", 3: "Dreadbloon", 4: "Phayze"}
+        int_to_boss = {0: "Bloonarius", 1: "Lych", 2: "Vortex", 3: "Dreadbloon", 4: "Phayze", 5: "Blastapopoulos"}
         tile_types = {
             8: {"image": IMG_LEAST_CASH, "emoji": LEAST_CASH},
             9: {"image": IMG_LEAST_TIERS, "emoji": LEAST_TIERS},
