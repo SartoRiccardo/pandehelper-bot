@@ -120,7 +120,7 @@ class TrackerCog(CogBase):
             await interaction.response.send_message("That channel is not being tracked!", ephemeral=True)
             return
 
-        await interaction.response.send_message("Just a moment...", ephemeral=hide)
+        await interaction.response.defer(ephemeral=hide)
         if season == 0:
             season = get_ct_number_during(datetime.datetime.now())
         member_activity = await qtickets.get_tickets_from(member.id, channel.id, season)
@@ -163,7 +163,7 @@ class TrackerCog(CogBase):
             await interaction.response.send_message(f"`{tile}` is not a valid tile code!", ephemeral=True)
             return
 
-        await interaction.response.send_message("Just a moment...", ephemeral=hide)
+        await interaction.response.defer(ephemeral=hide)
         if season == 0:
             season = get_ct_number_during(datetime.datetime.now())
         tile_claims = await qtickets.get_tile_claims(tile, channel.id, season)

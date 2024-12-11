@@ -3,6 +3,7 @@ import os
 import asyncio
 import aiofiles
 import aiohttp_client_cache
+import aiohttp
 from bloonspy import AsyncClient, btd6
 from config import DATA_PATH
 import json
@@ -23,10 +24,12 @@ async def init_bloonspy_client() -> None:
 
     async def init():
         global bpy_client
-        async with aiohttp_client_cache.CachedSession(cache=cache) as session:
+        # CachedSession has an issue when deleting keys in concurrent requests
+        # async with aiohttp_client_cache.CachedSession(cache=cache) as session:
+        async with aiohttp.ClientSession() as session:
             bpy_client = AsyncClient(session)
             while True:
-                await session.delete_expired_responses()
+                # await session.delete_expired_responses()
                 await asyncio.sleep(3600 * 24)
     asyncio.create_task(init())
 
