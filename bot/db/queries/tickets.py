@@ -224,6 +224,6 @@ async def purge_old_tickets(conn=None) -> None:
         """
         UPDATE claims
         SET tile='???'
-        WHERE called_at <= NOW() - MAKE_INTERVAL(days => 60)
+        WHERE called_at <= NOW() - MAKE_INTERVAL(days => 30)
         """
     )
