@@ -271,11 +271,11 @@ class LeaderboardCog(CogBase):
         await self.download_team_icon_assets(to_make)
         for frame, icon in to_make:
             icon_hash = self.hash_team_icon(frame, icon)
-            emotes[icon_hash] = await self.make_team_icon_emote(emote_guild, icon_hash, frame, icon, avail_static_slots > 0)
-            if avail_anim_slots > 0:
-                avail_anim_slots -= 1
-            else:
+            emotes[icon_hash] = await self.make_team_icon_emote(emote_guild, icon_hash, frame, icon, avail_static_slots == 0)
+            if avail_static_slots > 0:
                 avail_static_slots -= 1
+            else:
+                avail_anim_slots -= 1
         
         return emotes
 
