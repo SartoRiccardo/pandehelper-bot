@@ -267,18 +267,18 @@ class LeaderboardCog(CogBase):
                 else:
                     avail_static_slots += 1
                 await e.delete()
-        
+
         await self.download_team_icon_assets(to_make)
         for frame, icon in to_make:
             icon_hash = self.hash_team_icon(frame, icon)
-            emotes[icon_hash] = await self.make_team_icon_emote(emote_guild, icon_hash, frame, icon, avail_static_slots == 0)
+            emotes[icon_hash] = await self.make_team_icon_emote(emote_guild, icon_hash, frame, icon, avail_static_slots > 0)
             if avail_anim_slots > 0:
                 avail_anim_slots -= 1
             else:
                 avail_static_slots -= 1
         
         return emotes
-    
+
     @staticmethod
     async def download_team_icon_assets(to_make: list[tuple["bloonspy.btd6.Asset", "bloonspy.btd6.Asset"]]) -> None:
         tmp_path = os.path.join(DATA_PATH, "tmp")
@@ -326,10 +326,11 @@ class LeaderboardCog(CogBase):
         # If it's your first time running the leaderboard it WILL exceed it.
         try:
             emote = await emote_guild.create_custom_emoji(name=emote_name, image=image)
-            os.remove(merged_path)
         except discord.errors.HTTPException:
             return BLANK
-        
+        finally:
+            os.remove(merged_path)
+
         return f"<{'a' if animated else ''}:_:{emote.id}>"
     
     @staticmethod
