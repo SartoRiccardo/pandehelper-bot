@@ -2,7 +2,6 @@ import math
 import discord
 from datetime import datetime, timedelta
 from discord.ext import commands, tasks
-import asyncio
 from typing import Any
 import bot.db.queries.tilestrat
 import bot.utils.discordutils
@@ -20,9 +19,9 @@ from bot.utils.bloonsdata import (
     fetch_all_tiles,
 )
 from bot.utils.emojis import LEAST_TIERS, LEAST_CASH, BLOONARIUS, VORTEX, LYCH, TIME_ATTACK, BLANK, DREADBLOON, \
-    PHAYZE
+    PHAYZE, BLASTAPOPOULOS
 from bot.utils.images import IMG_LEAST_CASH, IMG_LEAST_TIERS, IMG_BLOONARIUS, IMG_VORTEX, IMG_LYCH, IMG_TIME_ATTACK, \
-    IMG_DREADBLOON, IMG_PHAYZE
+    IMG_DREADBLOON, IMG_PHAYZE, IMG_BLASTAPOPOULOS
 import re
 from bot.exceptions import TilestratForumNotFound, NotACommunity
 from config import BOT_COLOR
@@ -415,6 +414,7 @@ class TilestratCog(CogBase):
             2: {"image": IMG_VORTEX, "emoji": VORTEX},
             3: {"image": IMG_DREADBLOON, "emoji": DREADBLOON},
             4: {"image": IMG_PHAYZE, "emoji": PHAYZE},
+            5: {"image": IMG_BLASTAPOPOULOS, "emoji": PHAYZE},
         }
         old_thread_template = "- [CT{ct_num}]({thread_url}) - {tile_type_emoji} {tile_type}"
 
