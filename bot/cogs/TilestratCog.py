@@ -414,7 +414,7 @@ class TilestratCog(CogBase):
             2: {"image": IMG_VORTEX, "emoji": VORTEX},
             3: {"image": IMG_DREADBLOON, "emoji": DREADBLOON},
             4: {"image": IMG_PHAYZE, "emoji": PHAYZE},
-            5: {"image": IMG_BLASTAPOPOULOS, "emoji": PHAYZE},
+            5: {"image": IMG_BLASTAPOPOULOS, "emoji": BLASTAPOPOULOS},
         }
         old_thread_template = "- [CT{ct_num}]({thread_url}) - {tile_type_emoji} {tile_type}"
 
