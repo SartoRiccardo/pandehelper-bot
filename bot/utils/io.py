@@ -52,11 +52,12 @@ def merge_images(img1_path: str, img2_path: str, save_path: str, gif: bool) -> b
         replaced = False
         for i in range(frame2.size[0]):
             for j in range(frame2.size[1]):
-                if pixels[i, j] != (0, 0, 0, 0):
-                    # Make a square 3 tall and 3 wide. Changing only one pixel sometimes
+                if pixels[i, j][3] == 255:
+                    # Make a square. Changing only one pixel sometimes
                     # doesn't work due to compression or... something
-                    for x in range(3):
-                        for y in range(3):
+                    SQUARE_SIZE = 6
+                    for x in range(SQUARE_SIZE):
+                        for y in range(SQUARE_SIZE):
                             pixels[x, y] = pixels[i, j]
                     replaced = True
                     break
