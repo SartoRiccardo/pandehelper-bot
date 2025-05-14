@@ -129,6 +129,7 @@ MAPS = {
     "LuminousCove": "https://media.discordapp.net/attachments/1164868153571029073/1275428625067413619/LuminousCove_No_UI.webp",
     "CastleRevenge": "https://media.discordapp.net/attachments/1147525931813052467/1279007676201959516/CastleRevenge_No_UI.webp",
     "SpaPits": "https://media.discordapp.net/attachments/1164868153571029073/1361386965504884838/SpaPits_No_UI.webp",
+    "EnchantedGlade": "https://media.discordapp.net/attachments/1217788157009858643/1372269237015412848/latest.webp",
     None: UNFORTUNATE,
 }
 
