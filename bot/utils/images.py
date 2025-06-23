@@ -129,6 +129,7 @@ MAPS = {
     "LuminousCove": "https://media.discordapp.net/attachments/1164868153571029073/1275428625067413619/LuminousCove_No_UI.webp",
     "CastleRevenge": "https://media.discordapp.net/attachments/1147525931813052467/1279007676201959516/CastleRevenge_No_UI.webp",
     "SpaPits": "https://media.discordapp.net/attachments/1164868153571029073/1361386965504884838/SpaPits_No_UI.webp",
+    "SunsetGulch": "https://cdn.discordapp.com/attachments/1250112072654524487/1385303220271845446/sunset_gulch.png",
     None: UNFORTUNATE,
 }
 
