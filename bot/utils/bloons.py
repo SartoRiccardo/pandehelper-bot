@@ -56,6 +56,7 @@ TOWER_CATEGORY = {
     "TackShooter": "Primary",
     "IceMonkey": "Primary",
     "GlueGunner": "Primary",
+    "Desperado": "Primary",
     "SniperMonkey": "Military",
     "MonkeySub": "Military",
     "MonkeyBuccaneer": "Military",
