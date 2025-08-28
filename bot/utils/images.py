@@ -131,6 +131,7 @@ MAPS = {
     "SpaPits": "https://media.discordapp.net/attachments/1164868153571029073/1361386965504884838/SpaPits_No_UI.webp",
     "SunsetGulch": "https://cdn.discordapp.com/attachments/1250112072654524487/1385303220271845446/sunset_gulch.png",
     "EnchantedGlade": "https://media.discordapp.net/attachments/1217788157009858643/1372269237015412848/latest.webp",
+    "LostCrevasse": "https://i.imgur.com/6jCOjb4.png",
     None: UNFORTUNATE,
 }
 
