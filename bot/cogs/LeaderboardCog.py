@@ -104,6 +104,12 @@ class LeaderboardCog(CogBase):
             return
         self.next_update += timedelta(hours=1)
 
+        try:
+            await self.do_leaderboard_update()
+        except discord.errors.DiscordServerError:
+            pass
+
+    async def do_leaderboard_update(self, now: datetime):
         msg_header = ("Team                                                        |    Points\n"
                       "—————————————————   +   —————") \
                      if self.first_run else \
@@ -173,7 +179,7 @@ class LeaderboardCog(CogBase):
             message_full += "\n" + row_template.format(
                 placement=placement,
                 icon=f" {team_icon_emotes[icon_hash]}" if icon_hash in team_icon_emotes else "",
-                name=team_name,
+                name=team_name[:20],
                 score=team.score
             )
             if not should_skip_eco:
