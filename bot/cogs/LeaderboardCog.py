@@ -105,7 +105,7 @@ class LeaderboardCog(CogBase):
         self.next_update += timedelta(hours=1)
 
         try:
-            await self.do_leaderboard_update()
+            await self.do_leaderboard_update(now)
         except discord.errors.DiscordServerError:
             pass
 
