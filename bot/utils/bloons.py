@@ -42,7 +42,6 @@ EVENT_EPOCHS = [
     (52, datetime.fromtimestamp(1722981600)),
     (77, datetime.fromtimestamp(1753308000)),
     (78, datetime.fromtimestamp(1754431200)),
-    (83, datetime.fromtimestamp(1760486400)),
 ]
 
 EVENT_DURATION = 7
