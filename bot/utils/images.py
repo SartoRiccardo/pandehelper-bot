@@ -133,6 +133,7 @@ MAPS = {
     "EnchantedGlade": "https://media.discordapp.net/attachments/1217788157009858643/1372269237015412848/latest.webp",
     "LostCrevasse": "https://i.imgur.com/6jCOjb4.png",
     "ThreeMinesAround": "https://media.discordapp.net/attachments/1164868153571029073/1428497605326798848/three_mines_around.webp",
+    "Polyphemus": "https://media.discordapp.net/attachments/1164868153571029073/1460744589542424621/latest.png?ex=696807e9&is=6966b669&hm=4cd7551704b3003ce3e4acdd1cc5355abd31afa303fa477e1d3546a6257997a3&=&format=webp",
     None: UNFORTUNATE,
 }
 

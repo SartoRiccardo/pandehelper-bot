@@ -178,7 +178,7 @@ class LeaderboardCog(CogBase):
             icon_hash = self.hash_team_icon(team)
             message_full += "\n" + row_template.format(
                 placement=placement,
-                icon=f" {team_icon_emotes[icon_hash]}" if icon_hash in team_icon_emotes else "",
+                icon="" #f" {team_icon_emotes[icon_hash]}" if icon_hash in team_icon_emotes else "",
                 name=team_name[:20],
                 score=team.score
             )
