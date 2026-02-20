@@ -725,7 +725,7 @@ class PlannerCog(CogBase):
                 claimer=f"   →  <@{tile.claimed_by}>" if tile.claimed_by is not None else ""
             )
 
-            if len(new_row) + len(tile_table) > 2000:
+            if len(new_row) + len(tile_table) > 1250:
                 messages.append((tile_table, None))
                 tile_table = ""
             tile_table += new_row
@@ -736,7 +736,7 @@ class PlannerCog(CogBase):
             if emojis_explanations[emoji] is not None:
                 append_explanation += f"\nⓘ {emoji} *{emojis_explanations[emoji]}*"
         if len(append_explanation) > 1:
-            if len(tile_table) + len(append_explanation) > 2000:
+            if len(tile_table) + len(append_explanation) > 2000:  # TBA: reduce to 1250 maybe?
                 messages.append((tile_table, None))
                 tile_table = BLANK + append_explanation
             else:
