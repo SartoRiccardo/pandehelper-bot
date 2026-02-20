@@ -221,7 +221,7 @@ class LeaderboardCog(CogBase):
         messages = []
         message_current = ""
         for ln in message_full.split("\n"):
-            if len(message_current + "\n" + ln) <= 1500:
+            if len(message_current + "\n" + ln) <= 1250:
                 message_current += "\n" + ln
             else:
                 messages.append(message_current[1:])  # Take out initial newline
