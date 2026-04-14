@@ -26,6 +26,7 @@ from bot.utils.images import (
     IMG_PHAYZE,
     IMG_DREADBLOON,
     IMG_BLASTAPOPOULOS,
+    IMG_DIAMONDBACK,
     IMG_LEAST_CASH,
     IMG_LEAST_TIERS,
     IMG_TIME_ATTACK,
@@ -182,7 +183,8 @@ async def raw_challenge_to_embed(challenge) -> discord.Embed or None:
     boss = None
     challenge_thmb = ""
     boss_data = [("Bloonarius", IMG_BLOONARIUS), ("Lych", IMG_LYCH), ("Vortex", IMG_VORTEX),
-                 ("Dreadbloon", IMG_DREADBLOON), ("Phayze", IMG_PHAYZE), ("Blastapopoulos", IMG_BLASTAPOPOULOS)]
+                 ("Dreadbloon", IMG_DREADBLOON), ("Phayze", IMG_PHAYZE), ("Blastapopoulos", IMG_BLASTAPOPOULOS),
+                 ("Diamondback", IMG_DIAMONDBACK)]
     if "bossData" in challenge:
         boss, challenge_thmb = boss_data[challenge['bossData']['bossBloon']]
 

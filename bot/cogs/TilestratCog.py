@@ -19,9 +19,9 @@ from bot.utils.bloonsdata import (
     fetch_all_tiles,
 )
 from bot.utils.emojis import LEAST_TIERS, LEAST_CASH, BLOONARIUS, VORTEX, LYCH, TIME_ATTACK, BLANK, DREADBLOON, \
-    PHAYZE, BLASTAPOPOULOS
+    PHAYZE, BLASTAPOPOULOS, DIAMONDBACK
 from bot.utils.images import IMG_LEAST_CASH, IMG_LEAST_TIERS, IMG_BLOONARIUS, IMG_VORTEX, IMG_LYCH, IMG_TIME_ATTACK, \
-    IMG_DREADBLOON, IMG_PHAYZE, IMG_BLASTAPOPOULOS
+    IMG_DREADBLOON, IMG_PHAYZE, IMG_BLASTAPOPOULOS, IMG_DIAMONDBACK
 import re
 from bot.exceptions import TilestratForumNotFound, NotACommunity
 from config import BOT_COLOR
@@ -402,7 +402,7 @@ class TilestratCog(CogBase):
             event_num: int
     ) -> list[discord.Embed]:
         int_to_tile_type = {8: "Least Cash", 2: "Race", 9: "Least Tiers"}
-        int_to_boss = {0: "Bloonarius", 1: "Lych", 2: "Vortex", 3: "Dreadbloon", 4: "Phayze", 5: "Blastapopoulos"}
+        int_to_boss = {0: "Bloonarius", 1: "Lych", 2: "Vortex", 3: "Dreadbloon", 4: "Phayze", 5: "Blastapopoulos", 6: "Diamondback"}
         tile_types = {
             8: {"image": IMG_LEAST_CASH, "emoji": LEAST_CASH},
             9: {"image": IMG_LEAST_TIERS, "emoji": LEAST_TIERS},
@@ -415,6 +415,7 @@ class TilestratCog(CogBase):
             3: {"image": IMG_DREADBLOON, "emoji": DREADBLOON},
             4: {"image": IMG_PHAYZE, "emoji": PHAYZE},
             5: {"image": IMG_BLASTAPOPOULOS, "emoji": BLASTAPOPOULOS},
+            6: {"image": IMG_DIAMONDBACK, "emoji": DIAMONDBACK},
         }
         old_thread_template = "- [CT{ct_num}]({thread_url}) - {tile_type_emoji} {tile_type}"
 

@@ -7,7 +7,7 @@ import bot.db.queries.tilestrat
 
 SUCCESS_REACTION = '\N{THUMBS UP SIGN}'
 str_to_chal_type = {"Least Cash": 8, "Least Tiers": 9, "Race": 2}
-str_to_boss = {"Bloonarius": 0, "Lych": 1, "Vortex": 2, "Dreadbloon": 3, "Phayze": 4}
+str_to_boss = {"Bloonarius": 0, "Lych": 1, "Vortex": 2, "Dreadbloon": 3, "Phayze": 4, "Blastapopoulos": 5, "Diamondback": 6}
 
 
 @bot.db.connection.postgres
