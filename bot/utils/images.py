@@ -133,14 +133,17 @@ MAPS = {
     "EnchantedGlade": "https://media.discordapp.net/attachments/1217788157009858643/1372269237015412848/latest.webp",
     "LostCrevasse": "https://i.imgur.com/6jCOjb4.png",
     "ThreeMinesAround": "https://media.discordapp.net/attachments/1164868153571029073/1428497605326798848/three_mines_around.webp",
-    "Polyphemus": "https://media.discordapp.net/attachments/1164868153571029073/1460744589542424621/latest.png?ex=696807e9&is=6966b669&hm=4cd7551704b3003ce3e4acdd1cc5355abd31afa303fa477e1d3546a6257997a3&=&format=webp",
+    "SkullPeak": "https://cdn.discordapp.com/attachments/1164868153571029073/1535333135221399583/250px-BTD6_MapSelectSkullPeakButton.png",
+    "Ascent": "https://cdn.discordapp.com/attachments/1164868153571029073/1535333335356801024/is-anyone-going-to-talk-about-ascent-v0-al3pqxzjfjgh1.png",
+    "AncientPortal": "https://cdn.discordapp.com/attachments/1164868153571029073/1535334035537141821/latest.png",
+    "Polyphemus": "https://media.discordapp.net/attachments/1164868153571029073/1460744589542424621/latest.png",
     None: UNFORTUNATE,
 }
 
 IMG_BLOONARIUS = "https://i.gyazo.com/be511c1e97575bd2c50943be77783a95.png"
 IMG_LYCH = "https://i.gyazo.com/eee6e911abfebde7aa2b4935f01e741a.png"
 IMG_VORTEX = "https://i.gyazo.com/d223e91b628adf7cb63cc42be7728180.png"
-IMG_DREADBLOON = "https://media.discordapp.net/attachments/1164868153571029073/1165627269298012160/latest.png?ex=654789fd&is=653514fd&hm=f69276c7b4c0a2e78b8017fefb5c58e1b581d51ca11a05924a9ee93acc75e839&="
+IMG_DREADBLOON = "https://media.discordapp.net/attachments/1164868153571029073/1165627269298012160/latest.png"
 IMG_PHAYZE = "https://i.gyazo.com/23dcb6bba8dfa877b86309dce1248daf.png"
 IMG_BLASTAPOPOULOS = "https://media.discordapp.net/attachments/1217788157009858643/1316090434413395978/BlastapopoulosPortrait.webp"
 IMG_DIAMONDBACK = "https://media.discordapp.net/attachments/923146728222363660/1492746417297559642/Diamondback.png"

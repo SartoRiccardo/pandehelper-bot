@@ -73,6 +73,7 @@ TOWER_CATEGORY = {
     "Alchemist": "Magic",
     "Druid": "Magic",
     "Mermonkey": "Magic",
+    "Skywarden": "Magic",
     "BananaFarm": "Support",
     "SpikeFactory": "Support",
     "MonkeyVillage": "Support",
